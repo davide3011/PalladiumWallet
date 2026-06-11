@@ -1,0 +1,83 @@
+using NBitcoin;
+using NBitcoin.DataEncoders;
+using PalladiumWallet.Core.Chain;
+
+namespace PalladiumWallet.Tests.Chain;
+
+public class ChainProfileTests
+{
+    [Fact]
+    public void Mainnet_ha_le_costanti_del_blueprint()
+    {
+        var p = ChainProfiles.Mainnet;
+
+        Assert.Equal("PLM", p.CoinUnit);
+        Assert.Equal(0x80, p.WifPrefix);
+        Assert.Equal(55, p.AddrP2pkh);
+        Assert.Equal(5, p.AddrP2sh);
+        Assert.Equal("plm", p.SegwitHrp);
+        Assert.Equal("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f", p.GenesisHash);
+        Assert.Equal(50001, p.DefaultTcpPort);
+        Assert.Equal(50002, p.DefaultSslPort);
+        Assert.Equal(746, p.Bip44CoinType);
+        Assert.Equal("palladium", p.UriScheme);
+        Assert.True(p.SkipPowValidation); // obbligatorio: la catena usa LWMA (§3)
+        Assert.Equal(120, p.BlockTimeSeconds);
+    }
+
+    [Fact]
+    public void Testnet_e_regtest_hanno_i_valori_del_blueprint()
+    {
+        var t = ChainProfiles.Testnet;
+        Assert.Equal(0xff, t.WifPrefix);
+        Assert.Equal(127, t.AddrP2pkh);
+        Assert.Equal(115, t.AddrP2sh);
+        Assert.Equal("tplm", t.SegwitHrp);
+        Assert.Equal(1, t.Bip44CoinType);
+
+        var r = ChainProfiles.Regtest;
+        Assert.Equal("rplm", r.SegwitHrp);
+    }
+
+    [Fact]
+    public void Selettore_di_rete_restituisce_il_profilo_giusto()
+    {
+        Assert.Same(ChainProfiles.Mainnet, ChainProfiles.For(NetKind.Mainnet));
+        Assert.Same(ChainProfiles.Testnet, ChainProfiles.For(NetKind.Testnet));
+        Assert.Same(ChainProfiles.Regtest, ChainProfiles.For(NetKind.Regtest));
+    }
+
+    [Theory]
+    [InlineData(ScriptKind.Legacy, "xprv", "xpub")]
+    [InlineData(ScriptKind.WrappedSegwit, "yprv", "ypub")]
+    [InlineData(ScriptKind.WrappedSegwitMultisig, "Yprv", "Ypub")]
+    [InlineData(ScriptKind.NativeSegwit, "zprv", "zpub")]
+    [InlineData(ScriptKind.NativeSegwitMultisig, "Zprv", "Zpub")]
+    public void Header_estesi_mainnet_producono_i_prefissi_slip132_attesi(
+        ScriptKind kind, string privPrefix, string pubPrefix)
+    {
+        var headers = ChainProfiles.Mainnet.ExtKeyHeaders[kind];
+        Assert.StartsWith(privPrefix, EncodeWithHeader(headers.Private));
+        Assert.StartsWith(pubPrefix, EncodeWithHeader(headers.Public));
+    }
+
+    [Fact]
+    public void Header_estesi_testnet_producono_tprv_tpub()
+    {
+        var headers = ChainProfiles.Testnet.ExtKeyHeaders[ScriptKind.Legacy];
+        Assert.StartsWith("tprv", EncodeWithHeader(headers.Private));
+        Assert.StartsWith("tpub", EncodeWithHeader(headers.Public));
+    }
+
+    // Serializza header (4 byte BE) + payload BIP32 di 74 byte e codifica Base58Check:
+    // il prefisso testuale risultante dipende solo dall'header.
+    private static string EncodeWithHeader(uint header)
+    {
+        var data = new byte[78];
+        data[0] = (byte)(header >> 24);
+        data[1] = (byte)(header >> 16);
+        data[2] = (byte)(header >> 8);
+        data[3] = (byte)header;
+        return Encoders.Base58Check.EncodeData(data);
+    }
+}
