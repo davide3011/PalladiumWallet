@@ -35,8 +35,12 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _walletPath;
     private string? _password;
     private ElectrumClient? _client;
+    private WalletSynchronizer? _synchronizer;
     private IReadOnlyDictionary<string, Transaction>? _lastTransactions;
     private BuiltTransaction? _pendingSend;
+
+    /// <summary>Notifica arrivata durante una sync: si risincronizza appena finita.</summary>
+    private bool _resyncRequested;
 
     /// <summary>File in attesa di password (apertura da menu File → Apri).</summary>
     private string? _pendingOpenPath;
@@ -308,9 +312,10 @@ public partial class MainWindowViewModel : ViewModelBase
             + (doc.IsWatchOnly ? " · watch-only" : "");
         ApplyCache(doc.Cache);
         IsWalletOpen = true;
-        StatusMessage = doc.Cache is null
-            ? "Wallet aperto. Connettiti a un server per sincronizzare."
-            : "Wallet aperto (dati dell'ultima sincronizzazione).";
+        StatusMessage = "Wallet aperto: connessione al server…";
+        // Come Electrum: ci si connette da soli al server selezionato,
+        // senza aspettare un click.
+        _ = ConnectAndSync();
     }
 
     private void ApplyCache(SyncCache? cache)
@@ -364,6 +369,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_account is null || _doc is null)
             return;
+        if (IsSyncing)
+        {
+            _resyncRequested = true;
+            return;
+        }
         IsSyncing = true;
         StatusMessage = "";
         try
@@ -383,28 +393,36 @@ public partial class MainWindowViewModel : ViewModelBase
                 IsConnected = true;
                 _autoReconnect = true;
                 ConnectionStatus = $"connesso a {host}:{port}{(UseSsl ? " (TLS)" : "")}";
+                // Synchronizer per connessione: conserva la cache di tx e
+                // prove verificate, così le risincronizzazioni sono incrementali.
+                _synchronizer = new WalletSynchronizer(_account, _client, _doc.GapLimit);
+                _synchronizer.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
             }
 
-            var sync = new WalletSynchronizer(_account, _client, _doc.GapLimit);
-            sync.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
-            var result = await sync.SyncOnceAsync();
-            _lastTransactions = result.Transactions;
-
-            _doc.Cache = new SyncCache
+            // Se durante la sync arrivano notifiche, si ripete subito: nessun
+            // aggiornamento del server va perso (modello Electrum).
+            do
             {
-                TipHeight = result.TipHeight,
-                ConfirmedSats = result.ConfirmedSats,
-                UnconfirmedSats = result.UnconfirmedSats,
-                NextReceiveIndex = result.NextReceiveIndex,
-                NextChangeIndex = result.NextChangeIndex,
-                History = [.. result.History],
-                Utxos = [.. result.Utxos],
-                Addresses = [.. result.AddressRows],
-            };
-            WalletStore.Save(_doc, _walletPath!, _password);
-            ApplyCache(_doc.Cache);
-            StatusMessage = $"Sincronizzato: altezza {result.TipHeight}, " +
-                $"{result.History.Count} transazioni verificate SPV.";
+                _resyncRequested = false;
+                var result = await _synchronizer!.SyncOnceAsync();
+                _lastTransactions = result.Transactions;
+
+                _doc.Cache = new SyncCache
+                {
+                    TipHeight = result.TipHeight,
+                    ConfirmedSats = result.ConfirmedSats,
+                    UnconfirmedSats = result.UnconfirmedSats,
+                    NextReceiveIndex = result.NextReceiveIndex,
+                    NextChangeIndex = result.NextChangeIndex,
+                    History = [.. result.History],
+                    Utxos = [.. result.Utxos],
+                    Addresses = [.. result.AddressRows],
+                };
+                WalletStore.Save(_doc, _walletPath!, _password);
+                ApplyCache(_doc.Cache);
+                StatusMessage = $"Sincronizzato: altezza {result.TipHeight}, " +
+                    $"{result.History.Count} transazioni verificate SPV. Aggiornamento in tempo reale attivo.";
+            } while (_resyncRequested);
         }
         catch (CertificatePinMismatchException ex)
         {
@@ -453,10 +471,14 @@ public partial class MainWindowViewModel : ViewModelBase
     private void OnServerNotification(string method, System.Text.Json.JsonElement payload)
     {
         // Cambiamento su un nostro indirizzo o nuovo blocco: risincronizza.
+        // Se una sync è già in corso, si accoda (il loop in ConnectAndSync la
+        // ripete subito dopo): nessuna notifica viene persa.
         if (method is "blockchain.scripthash.subscribe" or "blockchain.headers.subscribe")
             Dispatcher.UIThread.Post(() =>
             {
-                if (!IsSyncing)
+                if (IsSyncing)
+                    _resyncRequested = true;
+                else
                     _ = ConnectAndSync();
             });
     }
@@ -541,6 +563,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _ = _client?.DisposeAsync().AsTask();
         _client = null;
+        _synchronizer = null;
+        _autoReconnect = false;
+        _resyncRequested = false;
         _doc = null;
         _account = null;
         _lastTransactions = null;
