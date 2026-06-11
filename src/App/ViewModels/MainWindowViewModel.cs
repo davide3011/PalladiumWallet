@@ -69,10 +69,42 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string statusMessage = "";
 
-    // ---- pannello setup ----
+    // ---- wizard di setup (§15): un passo alla volta ----
+
+    public const string StepStart = "start";
+    public const string StepOpen = "open";
+    public const string StepShowSeed = "show-seed";
+    public const string StepConfirmSeed = "confirm-seed";
+    public const string StepWords = "words";
+    public const string StepPassphrase = "passphrase";
+    public const string StepPassword = "password";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStepStart))]
+    [NotifyPropertyChangedFor(nameof(IsStepOpen))]
+    [NotifyPropertyChangedFor(nameof(IsStepShowSeed))]
+    [NotifyPropertyChangedFor(nameof(IsStepConfirmSeed))]
+    [NotifyPropertyChangedFor(nameof(IsStepWords))]
+    [NotifyPropertyChangedFor(nameof(IsStepPassphrase))]
+    [NotifyPropertyChangedFor(nameof(IsStepPassword))]
+    private string setupStep = StepStart;
+
+    public bool IsStepStart => SetupStep == StepStart;
+    public bool IsStepOpen => SetupStep == StepOpen;
+    public bool IsStepShowSeed => SetupStep == StepShowSeed;
+    public bool IsStepConfirmSeed => SetupStep == StepConfirmSeed;
+    public bool IsStepWords => SetupStep == StepWords;
+    public bool IsStepPassphrase => SetupStep == StepPassphrase;
+    public bool IsStepPassword => SetupStep == StepPassword;
+
+    /// <summary>True quando il flusso è "ripristina" (parole inserite dall'utente).</summary>
+    private bool _isRestoreFlow;
 
     [ObservableProperty]
     private string mnemonicInput = "";
+
+    [ObservableProperty]
+    private string confirmMnemonicInput = "";
 
     [ObservableProperty]
     private string passphraseInput = "";
@@ -180,10 +212,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void RefreshSetupState()
     {
+        SetupStep = StepStart;
+        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = "";
         WalletFileExists = WalletStore.Exists(AppPaths.DefaultWalletPath(Net));
         StatusMessage = WalletFileExists
-            ? "Trovato un wallet esistente: inserisci la password (se impostata) e apri."
-            : "Nessun wallet su questa rete: creane uno nuovo o ripristina da seed.";
+            ? "Trovato un wallet esistente su questa rete: aprilo, oppure creane un altro."
+            : "Benvenuto: crea un nuovo wallet o ripristina da seed.";
         RefreshServers();
     }
 
@@ -209,13 +243,97 @@ public partial class MainWindowViewModel : ViewModelBase
             ServerInput = $"{server.Host}:{server.PortFor(value)}";
     }
 
-    // ---------- comandi setup ----------
+    // ---------- comandi del wizard (§15): un passo alla volta ----------
 
     [RelayCommand]
-    private void GenerateMnemonic()
+    private void WizardStartOpen()
     {
+        PasswordInput = "";
+        SetupStep = StepOpen;
+        StatusMessage = "Inserisci la password del file (lascia vuoto se non impostata).";
+    }
+
+    [RelayCommand]
+    private void WizardStartNew()
+    {
+        _isRestoreFlow = false;
         MnemonicInput = Bip39.Generate(MnemonicLength.Twelve).ToString();
-        StatusMessage = "Nuova mnemonica generata: SCRIVILA SU CARTA prima di continuare.";
+        SetupStep = StepShowSeed;
+        StatusMessage = "Scrivi le 12 parole SU CARTA, nell'ordine. Sono l'unico backup del wallet.";
+    }
+
+    [RelayCommand]
+    private void WizardStartRestore()
+    {
+        _isRestoreFlow = true;
+        MnemonicInput = "";
+        SetupStep = StepWords;
+        StatusMessage = "Inserisci la mnemonica BIP39 (12 o 24 parole separate da spazi).";
+    }
+
+    [RelayCommand]
+    private void WizardNextFromShowSeed()
+    {
+        ConfirmMnemonicInput = "";
+        SetupStep = StepConfirmSeed;
+        StatusMessage = "Reinserisci le 12 parole per confermare di averle scritte.";
+    }
+
+    [RelayCommand]
+    private void WizardNextFromConfirmSeed()
+    {
+        var normalized = string.Join(' ',
+            ConfirmMnemonicInput.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        if (!string.Equals(normalized, MnemonicInput, StringComparison.OrdinalIgnoreCase))
+        {
+            StatusMessage = "Le parole non corrispondono: ricontrolla quello che hai scritto su carta.";
+            return;
+        }
+        GoToPassphraseStep();
+    }
+
+    [RelayCommand]
+    private void WizardNextFromWords()
+    {
+        if (!Bip39.TryParse(MnemonicInput, out _))
+        {
+            StatusMessage = "Mnemonica non valida (parole o checksum errati): ricontrolla.";
+            return;
+        }
+        GoToPassphraseStep();
+    }
+
+    private void GoToPassphraseStep()
+    {
+        PassphraseInput = "";
+        SetupStep = StepPassphrase;
+        StatusMessage = "Passphrase BIP39 opzionale: cambia completamente il wallet. " +
+            "Se la usi, annotala A PARTE dal seed; se la perdi i fondi sono irrecuperabili. " +
+            "Lascia vuoto per non usarla.";
+    }
+
+    [RelayCommand]
+    private void WizardNextFromPassphrase()
+    {
+        PasswordInput = "";
+        SetupStep = StepPassword;
+        StatusMessage = "Password di cifratura del file wallet su disco (consigliata). " +
+            "Non sostituisce il seed: serve solo a proteggere il file.";
+    }
+
+    [RelayCommand]
+    private void WizardBack()
+    {
+        SetupStep = SetupStep switch
+        {
+            StepOpen or StepShowSeed or StepWords => StepStart,
+            StepConfirmSeed => StepShowSeed,
+            StepPassphrase => _isRestoreFlow ? StepWords : StepConfirmSeed,
+            StepPassword => StepPassphrase,
+            _ => StepStart,
+        };
+        if (SetupStep == StepStart)
+            RefreshSetupState();
     }
 
     [RelayCommand]
@@ -275,11 +393,13 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (WrongPasswordException)
         {
-            // Cifrato: si chiede la password nel pannello di apertura.
+            // Cifrato: si chiede la password nel passo di apertura del wizard.
             if (IsWalletOpen)
                 CloseWallet();
             _pendingOpenPath = path;
             WalletFileExists = true;
+            PasswordInput = "";
+            SetupStep = StepOpen;
             StatusMessage = $"Il wallet \"{Path.GetFileName(path)}\" è cifrato: inserisci la password e premi Apri.";
         }
         catch (Exception ex)
@@ -306,7 +426,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _account = account;
         _walletPath = path;
         _password = password;
-        MnemonicInput = PassphraseInput = PasswordInput = "";
+        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = "";
+        SetupStep = StepStart;
 
         NetworkInfo = $"{doc.Network} · {doc.ScriptKind} · m/{doc.AccountPath}"
             + (doc.IsWatchOnly ? " · watch-only" : "");
