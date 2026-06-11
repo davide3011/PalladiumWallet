@@ -92,6 +92,19 @@ public class TransactionFactoryTests
     }
 
     [Fact]
+    public void Gli_utxo_in_mempool_non_sono_spendibili()
+    {
+        var account = Account();
+        var (utxos, txs) = Fund(account, 1_000_000);
+        utxos[0].Height = 0; // in mempool: visibile nel saldo pending, non spendibile
+
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
+            feeRateSatPerVByte: 2, changeIndex: 0));
+        Assert.Contains("in attesa di conferma", ex.Message);
+    }
+
+    [Fact]
     public void Gli_utxo_congelati_sono_esclusi_dalla_spesa()
     {
         var account = Account();

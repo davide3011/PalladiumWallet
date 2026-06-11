@@ -50,9 +50,16 @@ public sealed class TransactionFactory(HdAccount account)
         int changeIndex,
         bool sendAll = false)
     {
-        var spendable = utxos.Where(u => !u.Frozen).ToList();
+        // Si spendono solo UTXO confermati: i fondi in mempool si vedono nel
+        // saldo "in attesa" ma non sono spendibili finché non confermano.
+        var spendable = utxos.Where(u => !u.Frozen && u.Height > 0).ToList();
         if (spendable.Count == 0)
-            throw new WalletSpendException("Nessun UTXO spendibile selezionato.");
+        {
+            var pending = utxos.Where(u => !u.Frozen && u.Height <= 0).Sum(u => u.ValueSats);
+            throw new WalletSpendException(pending > 0
+                ? $"Nessun fondo confermato: {CoinAmount.Format(pending)} in attesa di conferma (non spendibile)."
+                : "Nessun UTXO spendibile selezionato.");
+        }
 
         var coins = spendable.Select(u => new Coin(
             new OutPoint(uint256.Parse(u.Txid), (uint)u.Vout),

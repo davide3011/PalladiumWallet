@@ -332,10 +332,11 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         BalanceText = CoinAmount.Format(cache.ConfirmedSats, Profile.CoinUnit);
         // Saldo in attesa: somma delle tx in mempool (può essere negativo per
-        // gli invii in uscita non ancora confermati).
+        // gli invii in uscita non ancora confermati). Non è spendibile finché
+        // non conferma: la TransactionFactory usa solo UTXO confermati.
         var pending = cache.History.Where(t => t.Height <= 0).Sum(t => t.DeltaSats);
         UnconfirmedText = pending != 0
-            ? $"in mempool: {(pending > 0 ? "+" : "")}{CoinAmount.Format(pending)} (in attesa di conferma)"
+            ? $"in attesa di conferma: {(pending > 0 ? "+" : "")}{CoinAmount.Format(pending)} — non ancora spendibile"
             : "";
         ReceiveAddress = _account.GetReceiveAddress(cache.NextReceiveIndex).ToString();
         History.Clear();

@@ -105,7 +105,7 @@ static int Info(string[] o)
     if (doc.Cache is { } cache)
     {
         Console.WriteLine($"saldo:    {CoinAmount.Format(cache.ConfirmedSats, account.Profile.CoinUnit)} confermato"
-            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} non conf." : ""));
+            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} in attesa (non spendibile)." : ""));
         Console.WriteLine($"sync:     altezza {cache.TipHeight}, {cache.History.Count} transazioni");
         Console.WriteLine($"ricezione: {account.GetReceiveAddress(cache.NextReceiveIndex)}");
     }
@@ -147,7 +147,7 @@ static async Task<int> Sync(string[] o)
     WalletStore.Save(doc, path, Opt(o, "--password"));
 
     Console.WriteLine($"Saldo: {CoinAmount.Format(result.ConfirmedSats, account.Profile.CoinUnit)} confermato"
-        + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} non confermato" : ""));
+        + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} in attesa di conferma (non spendibile)" : ""));
     Console.WriteLine($"Storico ({result.History.Count}):");
     foreach (var tx in result.History)
         Console.WriteLine($"  {(tx.Height > 0 ? tx.Height.ToString() : "mempool"),7}  " +
