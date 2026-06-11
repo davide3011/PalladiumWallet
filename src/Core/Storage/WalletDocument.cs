@@ -40,6 +40,9 @@ public sealed class WalletDocument
     /// <summary>Etichette per indirizzo/txid (§12).</summary>
     public Dictionary<string, string> Labels { get; set; } = [];
 
+    /// <summary>Rubrica contatti (nome + indirizzo blockchain).</summary>
+    public List<StoredContact> Contacts { get; set; } = [];
+
     /// <summary>Cache dell'ultimo stato sincronizzato (saldo/storico mostrabili offline).</summary>
     public SyncCache? Cache { get; set; }
 
@@ -67,6 +70,13 @@ public sealed class WalletDocument
         _ => throw new InvalidDataException(
             $"Versione file wallet {doc.Version} non supportata (max {CurrentVersion})."),
     };
+}
+
+/// <summary>Contatto in rubrica: nome leggibile + indirizzo blockchain.</summary>
+public sealed class StoredContact
+{
+    public required string Name { get; set; }
+    public required string Address { get; set; }
 }
 
 /// <summary>Stato sincronizzato persistito: permette di mostrare saldo/storico offline.</summary>
