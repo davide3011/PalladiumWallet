@@ -24,6 +24,7 @@ public sealed class SyncResult
     public required IReadOnlyList<CachedTx> History { get; init; }
     public required IReadOnlyList<CachedUtxo> Utxos { get; init; }
     public required IReadOnlyList<TrackedAddress> Addresses { get; init; }
+    public required IReadOnlyList<CachedAddress> AddressRows { get; init; }
     public required IReadOnlyDictionary<string, Transaction> Transactions { get; init; }
 }
 
@@ -145,6 +146,22 @@ public sealed class WalletSynchronizer(HdAccount account, ElectrumClient client,
             return hb.CompareTo(ha);
         });
 
+        // Saldo e numero di transazioni per singolo indirizzo (vista indirizzi).
+        var balanceByAddress = utxos
+            .GroupBy(u => u.Address)
+            .ToDictionary(g => g.Key, g => g.Sum(u => u.ValueSats));
+        var addressRows = tracked
+            .OrderBy(t => t.IsChange).ThenBy(t => t.Index)
+            .Select(t => new CachedAddress
+            {
+                Address = t.Address.ToString(),
+                IsChange = t.IsChange,
+                Index = t.Index,
+                BalanceSats = balanceByAddress.GetValueOrDefault(t.Address.ToString()),
+                TxCount = historyByAddress.TryGetValue(t.ScriptHash, out var h) ? h.Count : 0,
+            })
+            .ToList();
+
         return new SyncResult
         {
             TipHeight = tip.Height,
@@ -155,6 +172,7 @@ public sealed class WalletSynchronizer(HdAccount account, ElectrumClient client,
             History = history,
             Utxos = utxos,
             Addresses = tracked,
+            AddressRows = addressRows,
             Transactions = transactions,
         };
     }

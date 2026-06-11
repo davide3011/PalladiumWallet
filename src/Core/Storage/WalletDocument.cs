@@ -79,6 +79,17 @@ public sealed class SyncCache
     public int NextChangeIndex { get; set; }
     public List<CachedTx> History { get; set; } = [];
     public List<CachedUtxo> Utxos { get; set; } = [];
+    public List<CachedAddress> Addresses { get; set; } = [];
+}
+
+/// <summary>Indirizzo scansionato con saldo proprio e numero di transazioni (vista indirizzi).</summary>
+public sealed class CachedAddress
+{
+    public required string Address { get; set; }
+    public bool IsChange { get; set; }
+    public int Index { get; set; }
+    public long BalanceSats { get; set; }
+    public int TxCount { get; set; }
 }
 
 public sealed class CachedTx
