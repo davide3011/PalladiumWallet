@@ -14,10 +14,25 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ============ MENU (stile Electrum) ============ -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="Nuovo / ripristina wallet…" Command="{Binding NewWalletCommand}"/>
+                <MenuItem Header="Apri wallet da file…" Click="OnOpenWalletFileClick"/>
+                <Separator/>
+                <MenuItem Header="Chiudi wallet" Command="{Binding CloseWalletCommand}"
+                          IsEnabled="{Binding IsWalletOpen}"/>
+            </MenuItem>
+            <MenuItem Header="_Rete">
+                <MenuItem Header="Cerca altri server (peer)" Command="{Binding DiscoverServersCommand}"/>
+                <MenuItem Header="Reset certificati SSL" Command="{Binding ResetCertificatesCommand}"/>
+            </MenuItem>
+        </Menu>
 
         <!-- ============ PANNELLO SETUP: crea / ripristina / apri ============ -->
-        <ScrollViewer Grid.Row="0" IsVisible="{Binding IsSetupVisible}">
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSetupVisible}">
             <StackPanel MaxWidth="560" Margin="24" Spacing="14">
                 <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"/>
 
@@ -58,7 +73,7 @@
         </ScrollViewer>
 
         <!-- ============ PANNELLO WALLET ============ -->
-        <Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
 
             <!-- Testata: saldo + rete + chiudi -->
             <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
@@ -74,17 +89,36 @@
             <!-- Server -->
             <Border Grid.Row="1" Margin="0,12,0,12" Padding="10"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="6">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
-                    <TextBlock Grid.Column="0" Text="Server:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding ServerInput}"
-                             PlaceholderText="host:porta del server di indicizzazione"/>
-                    <CheckBox Grid.Column="2" Content="TLS" IsChecked="{Binding UseSsl}" Margin="8,0"/>
-                    <Button Grid.Column="3" Content="Connetti e sincronizza"
+                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Server:"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1"
+                              ItemsSource="{Binding KnownServers}"
+                              SelectedItem="{Binding SelectedKnownServer}"
+                              HorizontalAlignment="Stretch"/>
+                    <CheckBox Grid.Row="0" Grid.Column="2" Content="TLS"
+                              IsChecked="{Binding UseSsl}" Margin="8,0"/>
+                    <Button Grid.Row="0" Grid.Column="3" Content="Connetti e sincronizza"
                             Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
-                    <Button Grid.Column="4" Content="Reset cert." Margin="6,0,0,0"
-                            Command="{Binding ResetCertificatesCommand}"/>
-                    <TextBlock Grid.Column="5" Text="{Binding ConnectionStatus}"
-                               VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Gray"/>
+
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal"
+                                Spacing="8" Margin="0,8,0,0">
+                        <TextBox Text="{Binding ServerInput}" MinWidth="220"
+                                 PlaceholderText="oppure host:porta manuale"/>
+                        <Button Content="Cerca altri server"
+                                Command="{Binding DiscoverServersCommand}"/>
+                        <Button Content="Reset cert."
+                                Command="{Binding ResetCertificatesCommand}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                                Orientation="Horizontal" Spacing="6" Margin="8,8,0,0"
+                                VerticalAlignment="Center">
+                        <Ellipse Width="10" Height="10" Fill="LimeGreen"
+                                 IsVisible="{Binding IsConnected}"/>
+                        <Ellipse Width="10" Height="10" Fill="IndianRed"
+                                 IsVisible="{Binding !IsConnected}"/>
+                        <TextBlock Text="{Binding ConnectionStatus}" Foreground="Gray"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -116,6 +150,32 @@
                     </ListBox>
                 </TabItem>
 
+                <TabItem Header="Indirizzi">
+                    <Grid RowDefinitions="Auto,*" Margin="4">
+                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
+                            <TextBlock Grid.Column="0" Text="Tipo" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="Indice" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="Indirizzo" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="Saldo" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="4" Text="Tx" FontWeight="Bold"/>
+                        </Grid>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Addresses}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AddressRow">
+                                    <Grid ColumnDefinitions="90,60,*,140,60">
+                                        <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
+                                        <SelectableTextBlock Grid.Column="2" Text="{Binding Indirizzo}"
+                                                             FontFamily="monospace" FontSize="13"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </TabItem>
+
                 <TabItem Header="Invia">
                     <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
                         <TextBox PlaceholderText="Indirizzo destinatario" Text="{Binding SendTo}"
@@ -144,7 +204,7 @@
         </Grid>
 
         <!-- Barra di stato -->
-        <Border Grid.Row="1" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+        <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
                 Padding="10,6">
             <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"/>
         </Border>

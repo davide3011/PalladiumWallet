@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,6 +20,9 @@ namespace PalladiumWallet.App.ViewModels;
 /// <summary>Riga dello storico transazioni per la vista.</summary>
 public sealed record HistoryRow(string Conferma, string Importo, string Txid, string Verificata);
 
+/// <summary>Riga della vista indirizzi (stile Electrum): saldo e uso per indirizzo.</summary>
+public sealed record AddressRow(string Tipo, int Indice, string Indirizzo, string Saldo, string NumTx);
+
 /// <summary>
 /// ViewModel unico dell'applicazione (wizard §15 ridotto + dashboard):
 /// pannello di setup (crea/ripristina/apri) e pannello wallet
@@ -32,6 +37,14 @@ public partial class MainWindowViewModel : ViewModelBase
     private ElectrumClient? _client;
     private IReadOnlyDictionary<string, Transaction>? _lastTransactions;
     private BuiltTransaction? _pendingSend;
+
+    /// <summary>File in attesa di password (apertura da menu File → Apri).</summary>
+    private string? _pendingOpenPath;
+
+    /// <summary>Dopo la prima connessione riuscita il timer riconnette da solo.</summary>
+    private bool _autoReconnect;
+
+    private readonly DispatcherTimer _keepAliveTimer;
 
     // ---- selezione rete e stato pannelli ----
 
@@ -87,9 +100,19 @@ public partial class MainWindowViewModel : ViewModelBase
     private string connectionStatus = "non connesso";
 
     [ObservableProperty]
+    private bool isConnected;
+
+    [ObservableProperty]
     private bool isSyncing;
 
+    public ObservableCollection<KnownServer> KnownServers { get; } = [];
+
+    [ObservableProperty]
+    private KnownServer? selectedKnownServer;
+
     public ObservableCollection<HistoryRow> History { get; } = [];
+
+    public ObservableCollection<AddressRow> Addresses { get; } = [];
 
     // ---- pannello invia ----
 
@@ -114,6 +137,34 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         RefreshSetupState();
+        // Aggiornamenti continui (§9): ping periodico per tenere viva la
+        // connessione e accorgersi subito della caduta; se cade, riconnette
+        // e risincronizza da solo. Le notifiche push restano la via principale.
+        _keepAliveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _keepAliveTimer.Tick += async (_, _) => await KeepAliveTickAsync();
+        _keepAliveTimer.Start();
+    }
+
+    private async Task KeepAliveTickAsync()
+    {
+        if (!IsWalletOpen || IsSyncing)
+            return;
+        if (_client is { IsConnected: true })
+        {
+            try
+            {
+                await _client.PingAsync();
+            }
+            catch
+            {
+                // La caduta viene gestita dall'evento Disconnected.
+            }
+        }
+        else if (_autoReconnect)
+        {
+            ConnectionStatus = "riconnessione…";
+            await ConnectAndSync();
+        }
     }
 
     private NetKind Net => Enum.Parse<NetKind>(SelectedNetwork, ignoreCase: true);
@@ -121,13 +172,37 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedNetworkChanged(string value) => RefreshSetupState();
 
+    private ServerRegistry Registry => new(Profile, AppPaths.ServersPath(Net));
+
     private void RefreshSetupState()
     {
         WalletFileExists = WalletStore.Exists(AppPaths.DefaultWalletPath(Net));
         StatusMessage = WalletFileExists
             ? "Trovato un wallet esistente: inserisci la password (se impostata) e apri."
             : "Nessun wallet su questa rete: creane uno nuovo o ripristina da seed.";
-        ServerInput = $"127.0.0.1:{Profile.DefaultTcpPort}";
+        RefreshServers();
+    }
+
+    private void RefreshServers()
+    {
+        KnownServers.Clear();
+        foreach (var server in Registry.All)
+            KnownServers.Add(server);
+        SelectedKnownServer = KnownServers.FirstOrDefault();
+        if (SelectedKnownServer is null)
+            ServerInput = $"127.0.0.1:{Profile.DefaultTcpPort}";
+    }
+
+    partial void OnSelectedKnownServerChanged(KnownServer? value)
+    {
+        if (value is not null)
+            ServerInput = $"{value.Host}:{value.PortFor(UseSsl)}";
+    }
+
+    partial void OnUseSslChanged(bool value)
+    {
+        if (SelectedKnownServer is { } server)
+            ServerInput = $"{server.Host}:{server.PortFor(value)}";
     }
 
     // ---------- comandi setup ----------
@@ -149,7 +224,10 @@ public partial class MainWindowViewModel : ViewModelBase
                 string.IsNullOrEmpty(PassphraseInput) ? null : PassphraseInput,
                 ScriptKind.NativeSegwit,
                 Profile);
+            // Mai sovrascrivere un wallet esistente: si cerca il primo nome libero.
             var path = AppPaths.DefaultWalletPath(Net);
+            for (var n = 2; WalletStore.Exists(path); n++)
+                path = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
             var password = string.IsNullOrEmpty(PasswordInput) ? null : PasswordInput;
             WalletStore.Save(doc, path, password);
             OpenLoaded(doc, account, path, password);
@@ -165,9 +243,10 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            var path = AppPaths.DefaultWalletPath(Net);
+            var path = _pendingOpenPath ?? AppPaths.DefaultWalletPath(Net);
             var password = string.IsNullOrEmpty(PasswordInput) ? null : PasswordInput;
             var doc = WalletStore.Load(path, password);
+            _pendingOpenPath = null;
             OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password);
         }
         catch (WrongPasswordException)
@@ -180,8 +259,45 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    /// <summary>Apertura di un file wallet qualunque (menu File → Apri, multi-wallet §8).</summary>
+    public void OpenFromPath(string path)
+    {
+        try
+        {
+            if (IsWalletOpen)
+                CloseWallet();
+            var doc = WalletStore.Load(path);
+            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password: null);
+        }
+        catch (WrongPasswordException)
+        {
+            // Cifrato: si chiede la password nel pannello di apertura.
+            if (IsWalletOpen)
+                CloseWallet();
+            _pendingOpenPath = path;
+            WalletFileExists = true;
+            StatusMessage = $"Il wallet \"{Path.GetFileName(path)}\" è cifrato: inserisci la password e premi Apri.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Errore: {ex.Message}";
+        }
+    }
+
+    /// <summary>Torna al pannello di setup per creare/ripristinare un altro wallet.</summary>
+    [RelayCommand]
+    private void NewWallet()
+    {
+        if (IsWalletOpen)
+            CloseWallet();
+        _pendingOpenPath = null;
+        StatusMessage = "Crea un nuovo wallet o ripristina da seed. ATTENZIONE: sovrascrive il wallet di default della rete selezionata.";
+    }
+
     private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password)
     {
+        // La rete del wallet comanda (registry, pin TLS, indirizzi).
+        SelectedNetwork = doc.Network;
         _doc = doc;
         _account = account;
         _walletPath = path;
@@ -207,11 +323,19 @@ public partial class MainWindowViewModel : ViewModelBase
             UnconfirmedText = "";
             ReceiveAddress = _account.GetReceiveAddress(0).ToString();
             History.Clear();
+            // Prima della sincronizzazione si mostrano i primi indirizzi derivati.
+            Addresses.Clear();
+            for (var i = 0; i < 10; i++)
+                Addresses.Add(new AddressRow("ricezione", i,
+                    _account.GetReceiveAddress(i).ToString(), "—", "—"));
             return;
         }
         BalanceText = CoinAmount.Format(cache.ConfirmedSats, Profile.CoinUnit);
-        UnconfirmedText = cache.UnconfirmedSats != 0
-            ? $"+ {CoinAmount.Format(cache.UnconfirmedSats)} non confermato"
+        // Saldo in attesa: somma delle tx in mempool (può essere negativo per
+        // gli invii in uscita non ancora confermati).
+        var pending = cache.History.Where(t => t.Height <= 0).Sum(t => t.DeltaSats);
+        UnconfirmedText = pending != 0
+            ? $"in mempool: {(pending > 0 ? "+" : "")}{CoinAmount.Format(pending)} (in attesa di conferma)"
             : "";
         ReceiveAddress = _account.GetReceiveAddress(cache.NextReceiveIndex).ToString();
         History.Clear();
@@ -221,6 +345,15 @@ public partial class MainWindowViewModel : ViewModelBase
                 (tx.DeltaSats >= 0 ? "+" : "") + CoinAmount.Format(tx.DeltaSats),
                 tx.Txid,
                 tx.Verified ? "✓ SPV" : "—"));
+
+        Addresses.Clear();
+        foreach (var a in cache.Addresses)
+            Addresses.Add(new AddressRow(
+                a.IsChange ? "change" : "ricezione",
+                a.Index,
+                a.Address,
+                a.BalanceSats > 0 ? CoinAmount.Format(a.BalanceSats) : (a.TxCount > 0 ? "0" : "—"),
+                a.TxCount > 0 ? a.TxCount.ToString() : "—"));
     }
 
     // ---------- comandi wallet ----------
@@ -242,7 +375,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 _client = await ElectrumClient.ConnectAsync(host, port, UseSsl, pins);
                 _client.NotificationReceived += OnServerNotification;
                 _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
-                    ConnectionStatus = "disconnesso");
+                {
+                    IsConnected = false;
+                    ConnectionStatus = "disconnesso";
+                });
+                IsConnected = true;
+                _autoReconnect = true;
                 ConnectionStatus = $"connesso a {host}:{port}{(UseSsl ? " (TLS)" : "")}";
             }
 
@@ -260,6 +398,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 NextChangeIndex = result.NextChangeIndex,
                 History = [.. result.History],
                 Utxos = [.. result.Utxos],
+                Addresses = [.. result.AddressRows],
             };
             WalletStore.Save(_doc, _walletPath!, _password);
             ApplyCache(_doc.Cache);
@@ -268,17 +407,45 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (CertificatePinMismatchException ex)
         {
+            IsConnected = false;
             ConnectionStatus = "certificato cambiato";
             StatusMessage = ex.Message;
         }
         catch (Exception ex)
         {
-            ConnectionStatus = "errore";
+            IsConnected = _client?.IsConnected == true;
+            ConnectionStatus = IsConnected ? ConnectionStatus : "errore di connessione";
             StatusMessage = $"Errore: {ex.Message}";
         }
         finally
         {
             IsSyncing = false;
+        }
+    }
+
+    /// <summary>Scopre nuovi server dai peer annunciati dal server connesso (§9).</summary>
+    [RelayCommand]
+    private async Task DiscoverServers()
+    {
+        if (_client is null || !_client.IsConnected)
+        {
+            StatusMessage = "Connettiti a un server prima di cercare i peer.";
+            return;
+        }
+        try
+        {
+            var added = await Registry.DiscoverAsync(_client);
+            var selected = SelectedKnownServer;
+            RefreshServers();
+            SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == selected?.Host)
+                ?? KnownServers.FirstOrDefault();
+            StatusMessage = added > 0
+                ? $"Trovati {added} nuovi server dai peer (totale {KnownServers.Count})."
+                : $"Nessun nuovo server annunciato (totale {KnownServers.Count}).";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Errore nella scoperta peer: {ex.Message}";
         }
     }
 
@@ -380,6 +547,7 @@ public partial class MainWindowViewModel : ViewModelBase
         HasPendingSend = false;
         History.Clear();
         IsWalletOpen = false;
+        IsConnected = false;
         ConnectionStatus = "non connesso";
         RefreshSetupState();
     }
