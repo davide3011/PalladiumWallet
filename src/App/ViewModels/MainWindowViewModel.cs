@@ -21,8 +21,24 @@ namespace PalladiumWallet.App.ViewModels;
 /// <summary>Riga dello storico transazioni per la vista.</summary>
 public sealed record HistoryRow(string Conferma, string Importo, string Txid, string Verificata);
 
-/// <summary>Riga della vista indirizzi (stile Electrum): saldo e uso per indirizzo.</summary>
-public sealed record AddressRow(string Tipo, int Indice, string Indirizzo, string Saldo, string NumTx);
+/// <summary>Riga della vista indirizzi con chiavi e derivation path pre-calcolati.</summary>
+public sealed record AddressRow(
+    string Tipo, int Indice, string Indirizzo, string Saldo, string NumTx,
+    bool IsChange = false, string PubKey = "", string PrivKey = "", string DerivPath = "")
+{
+    public bool HasPrivKey => !string.IsNullOrEmpty(PrivKey);
+}
+
+/// <summary>Dati completi di un indirizzo passati alla finestra di dettaglio.</summary>
+public sealed record AddressInfo(
+    Localization.Loc Loc,
+    string Address, string DerivPath, string PubKey, string PrivKey)
+{
+    public bool HasPrivKey => !string.IsNullOrEmpty(PrivKey);
+}
+
+/// <summary>Contatto in rubrica: nome + indirizzo blockchain.</summary>
+public sealed record ContactEntry(string Name, string Address);
 
 /// <summary>
 /// ViewModel unico dell'applicazione (wizard §15 ridotto + dashboard):
@@ -107,6 +123,18 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Formatta un importo nell'unità scelta nelle impostazioni.</summary>
     private string Fmt(long sats, bool withLabel = true) =>
         CoinAmount.FormatIn(sats, _config.Unit, withLabel);
+
+    /// <summary>Chiave privata WIF per un indirizzo; stringa vuota se watch-only.</summary>
+    private string KeyWif(bool isChange, int index)
+    {
+        if (_account is null or { IsWatchOnly: true }) return "";
+        try
+        {
+            return _account.GetExtPrivateKey(isChange, index)
+                .PrivateKey.GetWif(PalladiumNetworks.For(Net)).ToString();
+        }
+        catch { return ""; }
+    }
 
     /// <summary>File in attesa di password (apertura da menu File → Apri).</summary>
     private string? _pendingOpenPath;
@@ -215,6 +243,73 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<HistoryRow> History { get; } = [];
 
     public ObservableCollection<AddressRow> Addresses { get; } = [];
+
+    // ---- tab indirizzi ----
+
+    [ObservableProperty]
+    private AddressRow? selectedAddressRow;
+
+    // ---- rubrica contatti ----
+
+    public ObservableCollection<ContactEntry> Contacts { get; } = [];
+
+    [ObservableProperty]
+    private ContactEntry? selectedContactInList;
+
+    /// <summary>Contatto selezionato nella ComboBox del pannello Invia: riempie SendTo.</summary>
+    [ObservableProperty]
+    private ContactEntry? sendToContact;
+
+    partial void OnSendToContactChanged(ContactEntry? value)
+    {
+        if (value is not null)
+            SendTo = value.Address;
+    }
+
+    [ObservableProperty]
+    private string newContactName = "";
+
+    [ObservableProperty]
+    private string newContactAddress = "";
+
+    [RelayCommand]
+    private void AddContact()
+    {
+        var name = NewContactName.Trim();
+        var addr = NewContactAddress.Trim();
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(addr)) return;
+        Contacts.Add(new ContactEntry(name, addr));
+        NewContactName = NewContactAddress = "";
+        PersistContacts();
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedContact()
+    {
+        if (SelectedContactInList is { } c)
+        {
+            Contacts.Remove(c);
+            SelectedContactInList = null;
+            PersistContacts();
+        }
+    }
+
+    private void PersistContacts()
+    {
+        if (_doc is null || _walletPath is null) return;
+        _doc.Contacts = Contacts
+            .Select(c => new PalladiumWallet.Core.Storage.StoredContact { Name = c.Name, Address = c.Address })
+            .ToList();
+        WalletStore.Save(_doc, _walletPath, _password);
+    }
+
+    private void LoadContacts()
+    {
+        Contacts.Clear();
+        if (_doc is null) return;
+        foreach (var c in _doc.Contacts)
+            Contacts.Add(new ContactEntry(c.Name, c.Address));
+    }
 
     // ---- pannello invia ----
 
@@ -495,6 +590,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         NetworkInfo = $"{doc.Network} · {doc.ScriptKind} · m/{doc.AccountPath}"
             + (doc.IsWatchOnly ? " · watch-only" : "");
+        LoadContacts();
         ApplyCache(doc.Cache);
         IsWalletOpen = true;
         StatusMessage = Loc.Tr("msg.opened");
@@ -516,8 +612,12 @@ public partial class MainWindowViewModel : ViewModelBase
             // Prima della sincronizzazione si mostrano i primi indirizzi derivati.
             Addresses.Clear();
             for (var i = 0; i < 10; i++)
-                Addresses.Add(new AddressRow("ricezione", i,
-                    _account.GetReceiveAddress(i).ToString(), "—", "—"));
+                Addresses.Add(new AddressRow(_loc["addr.receive"], i,
+                    _account.GetReceiveAddress(i).ToString(), "—", "—",
+                    false,
+                    _account.GetPublicKey(false, i).ToHex(),
+                    KeyWif(false, i),
+                    $"m/{_doc!.AccountPath}/0/{i}"));
             return;
         }
         BalanceText = Fmt(cache.ConfirmedSats);
@@ -540,11 +640,15 @@ public partial class MainWindowViewModel : ViewModelBase
         Addresses.Clear();
         foreach (var a in cache.Addresses)
             Addresses.Add(new AddressRow(
-                a.IsChange ? "change" : "ricezione",
+                a.IsChange ? _loc["addr.change"] : _loc["addr.receive"],
                 a.Index,
                 a.Address,
                 a.BalanceSats > 0 ? Fmt(a.BalanceSats, withLabel: false) : (a.TxCount > 0 ? "0" : "—"),
-                a.TxCount > 0 ? a.TxCount.ToString() : "—"));
+                a.TxCount > 0 ? a.TxCount.ToString() : "—",
+                a.IsChange,
+                _account.GetPublicKey(a.IsChange, a.Index).ToHex(),
+                KeyWif(a.IsChange, a.Index),
+                $"m/{_doc!.AccountPath}/{(a.IsChange ? 1 : 0)}/{a.Index}"));
     }
 
     // ---------- comandi wallet ----------
@@ -757,6 +861,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _pendingSend = null;
         HasPendingSend = false;
         History.Clear();
+        Contacts.Clear();
+        SelectedContactInList = null;
+        SendToContact = null;
+        SelectedAddressRow = null;
         IsWalletOpen = false;
         IsConnected = false;
         ConnectionStatus = Loc.Tr("conn.none");

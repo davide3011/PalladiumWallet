@@ -222,18 +222,10 @@
                 </Grid>
             </Border>
 
-            <!-- Tab: Ricevi / Storico / Indirizzi / Invia -->
+            <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
             <TabControl Grid.Row="2">
-                <TabItem Header="{Binding Loc[tab.receive]}">
-                    <StackPanel Spacing="10" Margin="8">
-                        <TextBlock Text="{Binding Loc[receive.next]}"/>
-                        <SelectableTextBlock Text="{Binding ReceiveAddress}"
-                                             FontFamily="monospace" FontSize="16"/>
-                        <TextBlock Text="{Binding Loc[receive.hint]}"
-                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </TabItem>
 
+                <!-- 1. Storico -->
                 <TabItem Header="{Binding Loc[tab.history]}">
                     <ListBox ItemsSource="{Binding History}" Margin="4">
                         <ListBox.ItemTemplate>
@@ -250,34 +242,23 @@
                     </ListBox>
                 </TabItem>
 
-                <TabItem Header="{Binding Loc[tab.addresses]}">
-                    <Grid RowDefinitions="Auto,*" Margin="4">
-                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
-                            <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Loc[addr.index]}" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="2" Text="{Binding Loc[addr.address]}" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="3" Text="{Binding Loc[addr.balance]}" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="4" Text="Tx" FontWeight="Bold"/>
-                        </Grid>
-                        <ListBox Grid.Row="1" ItemsSource="{Binding Addresses}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:AddressRow">
-                                    <Grid ColumnDefinitions="90,60,*,140,60">
-                                        <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
-                                        <SelectableTextBlock Grid.Column="2" Text="{Binding Indirizzo}"
-                                                             FontFamily="monospace" FontSize="13"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
-                                        <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                    </Grid>
-                </TabItem>
-
+                <!-- 2. Invia -->
                 <TabItem Header="{Binding Loc[tab.send]}">
                     <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
+                        <!-- Contatto rapido -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Loc[send.from.contact]}" VerticalAlignment="Center"/>
+                            <ComboBox ItemsSource="{Binding Contacts}"
+                                      SelectedItem="{Binding SendToContact}"
+                                      PlaceholderText="{Binding Loc[send.contact.hint]}"
+                                      MinWidth="220">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ContactEntry">
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
                         <TextBox PlaceholderText="{Binding Loc[send.to]}" Text="{Binding SendTo}"
                                  FontFamily="monospace"/>
                         <Grid ColumnDefinitions="*,Auto,Auto,Auto">
@@ -302,6 +283,90 @@
                                              FontSize="13"/>
                     </StackPanel>
                 </TabItem>
+
+                <!-- 3. Ricevi -->
+                <TabItem Header="{Binding Loc[tab.receive]}">
+                    <StackPanel Spacing="10" Margin="8">
+                        <TextBlock Text="{Binding Loc[receive.next]}"/>
+                        <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                             FontFamily="monospace" FontSize="16"/>
+                        <TextBlock Text="{Binding Loc[receive.hint]}"
+                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- 4. Indirizzi -->
+                <TabItem Header="{Binding Loc[tab.addresses]}">
+                    <Grid RowDefinitions="Auto,*" Margin="4">
+                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
+                            <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loc[addr.index]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Loc[addr.address]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{Binding Loc[addr.balance]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="4" Text="Tx" FontWeight="Bold"/>
+                        </Grid>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Addresses}"
+                                 SelectedItem="{Binding SelectedAddressRow}"
+                                 x:Name="AddressesListBox"
+                                 Tapped="OnAddressListTapped"
+                                 PointerPressed="OnAddressListPointerPressed">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AddressRow">
+                                    <Grid ColumnDefinitions="90,60,*,140,60">
+                                        <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Indirizzo}"
+                                                   FontFamily="monospace" FontSize="13"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </TabItem>
+
+                <!-- 5. Contatti -->
+                <TabItem Header="{Binding Loc[tab.contacts]}">
+                    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="4">
+                        <!-- Intestazioni colonne -->
+                        <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4">
+                            <TextBlock Grid.Column="0" Text="{Binding Loc[contacts.name]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loc[contacts.address]}" FontWeight="Bold"/>
+                        </Grid>
+                        <!-- Lista contatti -->
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Contacts}"
+                                 SelectedItem="{Binding SelectedContactInList}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ContactEntry">
+                                    <Grid ColumnDefinitions="180,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                   VerticalAlignment="Center"/>
+                                        <SelectableTextBlock Grid.Column="1" Text="{Binding Address}"
+                                                             FontFamily="monospace" FontSize="12"
+                                                             VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <!-- Pulsante rimuovi selezionato -->
+                        <Button Grid.Row="2" Content="{Binding Loc[contacts.remove]}"
+                                Command="{Binding RemoveSelectedContactCommand}"
+                                IsEnabled="{Binding SelectedContactInList, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Margin="0,6,0,0"/>
+                        <!-- Form aggiungi contatto -->
+                        <Grid Grid.Row="3" ColumnDefinitions="180,*,Auto" Margin="0,8,0,0">
+                            <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[contacts.name.ph]}"
+                                     Text="{Binding NewContactName}" Margin="0,0,6,0"/>
+                            <TextBox Grid.Column="1" PlaceholderText="{Binding Loc[contacts.address.ph]}"
+                                     Text="{Binding NewContactAddress}" FontFamily="monospace"
+                                     Margin="0,0,6,0"/>
+                            <Button Grid.Column="2" Content="{Binding Loc[contacts.add]}"
+                                    Command="{Binding AddContactCommand}"/>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
             </TabControl>
         </Grid>
 
