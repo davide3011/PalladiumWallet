@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NBitcoin;
+using PalladiumWallet.App.Localization;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Crypto;
 using PalladiumWallet.Core.Net;
@@ -41,6 +42,60 @@ public partial class MainWindowViewModel : ViewModelBase
 
     /// <summary>Notifica arrivata durante una sync: si risincronizza appena finita.</summary>
     private bool _resyncRequested;
+
+    /// <summary>Configurazione globale (§8): lingua e unità.</summary>
+    private AppConfig _config = AppConfig.Load();
+
+    /// <summary>Stringhe localizzate, bindabili da XAML come Loc[chiave].</summary>
+    public Loc Loc => Loc.Instance;
+
+    /// <summary>Unità corrente per il campo importo del pannello Invia.</summary>
+    public string UnitLabel => _config.Unit;
+
+    public AppConfig CurrentConfig => _config;
+
+    // Spunte del menu Impostazioni (ToggleType Radio).
+    public bool IsLangIt => _config.Language == "it";
+    public bool IsLangEn => _config.Language == "en";
+    public bool IsUnitPlm => _config.Unit == "PLM";
+    public bool IsUnitMilli => _config.Unit == "mPLM";
+    public bool IsUnitMicro => _config.Unit == "µPLM";
+    public bool IsUnitSat => _config.Unit == "sat";
+
+    [RelayCommand]
+    private void SetLanguage(string language)
+    {
+        _config.Language = language;
+        ApplySettings(_config);
+    }
+
+    [RelayCommand]
+    private void SetUnit(string unit)
+    {
+        _config.Unit = unit;
+        ApplySettings(_config);
+    }
+
+    /// <summary>Applica e persiste le impostazioni (§8).</summary>
+    public void ApplySettings(AppConfig config)
+    {
+        _config = config;
+        _config.Save();
+        Loc.SetLanguage(config.Language);
+        OnPropertyChanged(nameof(UnitLabel));
+        OnPropertyChanged(nameof(IsLangIt));
+        OnPropertyChanged(nameof(IsLangEn));
+        OnPropertyChanged(nameof(IsUnitPlm));
+        OnPropertyChanged(nameof(IsUnitMilli));
+        OnPropertyChanged(nameof(IsUnitMicro));
+        OnPropertyChanged(nameof(IsUnitSat));
+        ApplyCache(_doc?.Cache);
+        StatusMessage = Loc.Tr("msg.settings.saved");
+    }
+
+    /// <summary>Formatta un importo nell'unità scelta nelle impostazioni.</summary>
+    private string Fmt(long sats, bool withLabel = true) =>
+        CoinAmount.FormatIn(sats, _config.Unit, withLabel);
 
     /// <summary>File in attesa di password (apertura da menu File → Apri).</summary>
     private string? _pendingOpenPath;
@@ -133,7 +188,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private bool useSsl;
 
     [ObservableProperty]
-    private string connectionStatus = "non connesso";
+    private string connectionStatus = Loc.Tr("conn.none");
 
     [ObservableProperty]
     private bool isConnected;
@@ -198,7 +253,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         else if (_autoReconnect)
         {
-            ConnectionStatus = "riconnessione…";
+            ConnectionStatus = Loc.Tr("conn.reconnecting");
             await ConnectAndSync();
         }
     }
@@ -216,8 +271,8 @@ public partial class MainWindowViewModel : ViewModelBase
         MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = "";
         WalletFileExists = WalletStore.Exists(AppPaths.DefaultWalletPath(Net));
         StatusMessage = WalletFileExists
-            ? "Trovato un wallet esistente su questa rete: aprilo, oppure creane un altro."
-            : "Benvenuto: crea un nuovo wallet o ripristina da seed.";
+            ? Loc.Tr("msg.welcome.existing")
+            : Loc.Tr("msg.welcome.new");
         RefreshServers();
     }
 
@@ -250,7 +305,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         PasswordInput = "";
         SetupStep = StepOpen;
-        StatusMessage = "Inserisci la password del file (lascia vuoto se non impostata).";
+        StatusMessage = Loc.Tr("msg.open.password");
     }
 
     [RelayCommand]
@@ -259,7 +314,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _isRestoreFlow = false;
         MnemonicInput = Bip39.Generate(MnemonicLength.Twelve).ToString();
         SetupStep = StepShowSeed;
-        StatusMessage = "Scrivi le 12 parole SU CARTA, nell'ordine. Sono l'unico backup del wallet.";
+        StatusMessage = Loc.Tr("msg.seed.write");
     }
 
     [RelayCommand]
@@ -268,7 +323,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _isRestoreFlow = true;
         MnemonicInput = "";
         SetupStep = StepWords;
-        StatusMessage = "Inserisci la mnemonica BIP39 (12 o 24 parole separate da spazi).";
+        StatusMessage = Loc.Tr("msg.words.enter");
     }
 
     [RelayCommand]
@@ -276,7 +331,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ConfirmMnemonicInput = "";
         SetupStep = StepConfirmSeed;
-        StatusMessage = "Reinserisci le 12 parole per confermare di averle scritte.";
+        StatusMessage = Loc.Tr("msg.seed.retype");
     }
 
     [RelayCommand]
@@ -286,7 +341,7 @@ public partial class MainWindowViewModel : ViewModelBase
             ConfirmMnemonicInput.Split(' ', StringSplitOptions.RemoveEmptyEntries));
         if (!string.Equals(normalized, MnemonicInput, StringComparison.OrdinalIgnoreCase))
         {
-            StatusMessage = "Le parole non corrispondono: ricontrolla quello che hai scritto su carta.";
+            StatusMessage = Loc.Tr("msg.seed.mismatch");
             return;
         }
         GoToPassphraseStep();
@@ -297,7 +352,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (!Bip39.TryParse(MnemonicInput, out _))
         {
-            StatusMessage = "Mnemonica non valida (parole o checksum errati): ricontrolla.";
+            StatusMessage = Loc.Tr("msg.words.invalid");
             return;
         }
         GoToPassphraseStep();
@@ -307,9 +362,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         PassphraseInput = "";
         SetupStep = StepPassphrase;
-        StatusMessage = "Passphrase BIP39 opzionale: cambia completamente il wallet. " +
-            "Se la usi, annotala A PARTE dal seed; se la perdi i fondi sono irrecuperabili. " +
-            "Lascia vuoto per non usarla.";
+        StatusMessage = Loc.Tr("msg.passphrase.info");
     }
 
     [RelayCommand]
@@ -317,8 +370,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         PasswordInput = "";
         SetupStep = StepPassword;
-        StatusMessage = "Password di cifratura del file wallet su disco (consigliata). " +
-            "Non sostituisce il seed: serve solo a proteggere il file.";
+        StatusMessage = Loc.Tr("msg.password.info");
     }
 
     [RelayCommand]
@@ -373,7 +425,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (WrongPasswordException)
         {
-            StatusMessage = "Password errata.";
+            StatusMessage = Loc.Tr("msg.wrongpassword");
         }
         catch (Exception ex)
         {
@@ -415,7 +467,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (IsWalletOpen)
             CloseWallet();
         _pendingOpenPath = null;
-        StatusMessage = "Crea un nuovo wallet o ripristina da seed. ATTENZIONE: sovrascrive il wallet di default della rete selezionata.";
+        StatusMessage = Loc.Tr("msg.welcome.new");
     }
 
     private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password)
@@ -433,7 +485,7 @@ public partial class MainWindowViewModel : ViewModelBase
             + (doc.IsWatchOnly ? " · watch-only" : "");
         ApplyCache(doc.Cache);
         IsWalletOpen = true;
-        StatusMessage = "Wallet aperto: connessione al server…";
+        StatusMessage = Loc.Tr("msg.opened");
         // Come Electrum: ci si connette da soli al server selezionato,
         // senza aspettare un click.
         _ = ConnectAndSync();
@@ -456,20 +508,20 @@ public partial class MainWindowViewModel : ViewModelBase
                     _account.GetReceiveAddress(i).ToString(), "—", "—"));
             return;
         }
-        BalanceText = CoinAmount.Format(cache.ConfirmedSats, Profile.CoinUnit);
+        BalanceText = Fmt(cache.ConfirmedSats);
         // Saldo in attesa: somma delle tx in mempool (può essere negativo per
         // gli invii in uscita non ancora confermati). Non è spendibile finché
         // non conferma: la TransactionFactory usa solo UTXO confermati.
         var pending = cache.History.Where(t => t.Height <= 0).Sum(t => t.DeltaSats);
         UnconfirmedText = pending != 0
-            ? $"in attesa di conferma: {(pending > 0 ? "+" : "")}{CoinAmount.Format(pending)} — non ancora spendibile"
+            ? $"{Loc.Tr("msg.pending")}: {(pending > 0 ? "+" : "")}{Fmt(pending)} — {Loc.Tr("msg.notspendable")}"
             : "";
         ReceiveAddress = _account.GetReceiveAddress(cache.NextReceiveIndex).ToString();
         History.Clear();
         foreach (var tx in cache.History)
             History.Add(new HistoryRow(
                 tx.Height > 0 ? tx.Height.ToString() : "mempool",
-                (tx.DeltaSats >= 0 ? "+" : "") + CoinAmount.Format(tx.DeltaSats),
+                (tx.DeltaSats >= 0 ? "+" : "") + Fmt(tx.DeltaSats, withLabel: false),
                 tx.Txid,
                 tx.Verified ? "✓ SPV" : "—"));
 
@@ -479,7 +531,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 a.IsChange ? "change" : "ricezione",
                 a.Index,
                 a.Address,
-                a.BalanceSats > 0 ? CoinAmount.Format(a.BalanceSats) : (a.TxCount > 0 ? "0" : "—"),
+                a.BalanceSats > 0 ? Fmt(a.BalanceSats, withLabel: false) : (a.TxCount > 0 ? "0" : "—"),
                 a.TxCount > 0 ? a.TxCount.ToString() : "—"));
     }
 
@@ -502,18 +554,18 @@ public partial class MainWindowViewModel : ViewModelBase
             if (_client is null || !_client.IsConnected)
             {
                 var (host, port) = ParseServer();
-                ConnectionStatus = $"connessione a {host}:{port}…";
+                ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {host}:{port}…";
                 var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
                 _client = await ElectrumClient.ConnectAsync(host, port, UseSsl, pins);
                 _client.NotificationReceived += OnServerNotification;
                 _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
                 {
                     IsConnected = false;
-                    ConnectionStatus = "disconnesso";
+                    ConnectionStatus = Loc.Tr("conn.disconnected");
                 });
                 IsConnected = true;
                 _autoReconnect = true;
-                ConnectionStatus = $"connesso a {host}:{port}{(UseSsl ? " (TLS)" : "")}";
+                ConnectionStatus = $"{Loc.Tr("conn.connectedto")} {host}:{port}{(UseSsl ? " (TLS)" : "")}";
                 // Synchronizer per connessione: conserva la cache di tx e
                 // prove verificate, così le risincronizzazioni sono incrementali.
                 _synchronizer = new WalletSynchronizer(_account, _client, _doc.GapLimit);
@@ -541,20 +593,20 @@ public partial class MainWindowViewModel : ViewModelBase
                 };
                 WalletStore.Save(_doc, _walletPath!, _password);
                 ApplyCache(_doc.Cache);
-                StatusMessage = $"Sincronizzato: altezza {result.TipHeight}, " +
-                    $"{result.History.Count} transazioni verificate SPV. Aggiornamento in tempo reale attivo.";
+                StatusMessage = $"{Loc.Tr("msg.synced")}: {Loc.Tr("msg.height")} {result.TipHeight}, " +
+                    $"{result.History.Count} {Loc.Tr("msg.synced.detail")}";
             } while (_resyncRequested);
         }
         catch (CertificatePinMismatchException ex)
         {
             IsConnected = false;
-            ConnectionStatus = "certificato cambiato";
+            ConnectionStatus = Loc.Tr("conn.certchanged");
             StatusMessage = ex.Message;
         }
         catch (Exception ex)
         {
             IsConnected = _client?.IsConnected == true;
-            ConnectionStatus = IsConnected ? ConnectionStatus : "errore di connessione";
+            ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.error");
             StatusMessage = $"Errore: {ex.Message}";
         }
         finally
@@ -569,7 +621,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (_client is null || !_client.IsConnected)
         {
-            StatusMessage = "Connettiti a un server prima di cercare i peer.";
+            StatusMessage = Loc.Tr("conn.none") + ".";
             return;
         }
         try
@@ -608,7 +660,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ResetCertificates()
     {
         new CertificatePinStore(AppPaths.CertificatePinsPath(Net)).ResetAll();
-        StatusMessage = "Certificati SSL azzerati: riprova la connessione.";
+        StatusMessage = Loc.Tr("msg.certreset");
     }
 
     [RelayCommand]
@@ -629,7 +681,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var destination = BitcoinAddress.Create(SendTo.Trim(), PalladiumNetworks.For(Net));
             long amount = 0;
-            if (!SendAll && !CoinAmount.TryParseCoins(SendAmount, out amount))
+            if (!SendAll && !CoinAmount.TryParseIn(SendAmount, _config.Unit, out amount))
             {
                 SendPreview = "Importo non valido.";
                 return;
@@ -645,7 +697,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 _doc.Cache.NextChangeIndex, SendAll);
 
             SendPreview = $"txid {_pendingSend.Txid[..16]}… · " +
-                $"fee {CoinAmount.Format(_pendingSend.Fee.Satoshi, Profile.CoinUnit)} " +
+                $"fee {Fmt(_pendingSend.Fee.Satoshi)} " +
                 $"({_pendingSend.Transaction.GetVirtualSize()} vB)" +
                 (_pendingSend.Signed ? "" : " · NON firmata (watch-only)");
             HasPendingSend = _pendingSend.Signed;
@@ -695,7 +747,7 @@ public partial class MainWindowViewModel : ViewModelBase
         History.Clear();
         IsWalletOpen = false;
         IsConnected = false;
-        ConnectionStatus = "non connesso";
+        ConnectionStatus = Loc.Tr("conn.none");
         RefreshSetupState();
     }
 

@@ -156,4 +156,53 @@ public class TransactionFactoryTests
         Assert.False(CoinAmount.TryParseCoins("abc", out _));
         Assert.False(CoinAmount.TryParseCoins("-1", out _));
     }
+
+    // 1.5 PLM = 150_000_000 sat, espressi in ciascuna unità (§8).
+    [Theory]
+    [InlineData("PLM", "1.50000000 PLM", "1.5")]
+    [InlineData("mPLM", "1500.00000 mPLM", "1500")]
+    [InlineData("µPLM", "1500000.00 µPLM", "1500000")]
+    [InlineData("sat", "150000000 sat", "150000000")]
+    public void Le_unita_formattano_e_parsano_in_modo_coerente(string unit, string formatted, string input)
+    {
+        const long sats = 150_000_000;
+        Assert.Equal(formatted, CoinAmount.FormatIn(sats, unit));
+        Assert.True(CoinAmount.TryParseIn(input, unit, out var parsed));
+        Assert.Equal(sats, parsed);
+    }
+
+    [Fact]
+    public void La_config_globale_fa_roundtrip_su_file()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"plm-config-{Guid.NewGuid()}.json");
+        try
+        {
+            var config = new PalladiumWallet.Core.Storage.AppConfig { Language = "en", Unit = "sat" };
+            config.Save(path);
+            var loaded = PalladiumWallet.Core.Storage.AppConfig.Load(path);
+            Assert.Equal("en", loaded.Language);
+            Assert.Equal("sat", loaded.Unit);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Una_config_corrotta_torna_ai_default()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"plm-config-{Guid.NewGuid()}.json");
+        try
+        {
+            File.WriteAllText(path, "{ rotto ");
+            var loaded = PalladiumWallet.Core.Storage.AppConfig.Load(path);
+            Assert.Equal("it", loaded.Language);
+            Assert.Equal("PLM", loaded.Unit);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

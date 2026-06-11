@@ -18,16 +18,40 @@
 
         <!-- ============ MENU (stile Electrum) ============ -->
         <Menu Grid.Row="0">
-            <MenuItem Header="_File">
-                <MenuItem Header="Nuovo / ripristina wallet…" Command="{Binding NewWalletCommand}"/>
-                <MenuItem Header="Apri wallet da file…" Click="OnOpenWalletFileClick"/>
+            <MenuItem Header="{Binding Loc[menu.file]}">
+                <MenuItem Header="{Binding Loc[menu.file.new]}" Command="{Binding NewWalletCommand}"/>
+                <MenuItem Header="{Binding Loc[menu.file.open]}" Click="OnOpenWalletFileClick"/>
                 <Separator/>
-                <MenuItem Header="Chiudi wallet" Command="{Binding CloseWalletCommand}"
+                <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
                           IsEnabled="{Binding IsWalletOpen}"/>
             </MenuItem>
-            <MenuItem Header="_Rete">
-                <MenuItem Header="Cerca altri server (peer)" Command="{Binding DiscoverServersCommand}"/>
-                <MenuItem Header="Reset certificati SSL" Command="{Binding ResetCertificatesCommand}"/>
+            <MenuItem Header="{Binding Loc[menu.net]}">
+                <MenuItem Header="{Binding Loc[menu.net.discover]}" Command="{Binding DiscoverServersCommand}"/>
+                <MenuItem Header="{Binding Loc[menu.net.resetcerts]}" Command="{Binding ResetCertificatesCommand}"/>
+            </MenuItem>
+            <MenuItem Header="{Binding Loc[menu.settings]}">
+                <MenuItem Header="{Binding Loc[settings.language]}">
+                    <MenuItem Header="Italiano" ToggleType="Radio"
+                              IsChecked="{Binding IsLangIt, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="it"/>
+                    <MenuItem Header="English" ToggleType="Radio"
+                              IsChecked="{Binding IsLangEn, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
+                </MenuItem>
+                <MenuItem Header="{Binding Loc[settings.unit.short]}">
+                    <MenuItem Header="PLM" ToggleType="Radio"
+                              IsChecked="{Binding IsUnitPlm, Mode=OneWay}"
+                              Command="{Binding SetUnitCommand}" CommandParameter="PLM"/>
+                    <MenuItem Header="mPLM" ToggleType="Radio"
+                              IsChecked="{Binding IsUnitMilli, Mode=OneWay}"
+                              Command="{Binding SetUnitCommand}" CommandParameter="mPLM"/>
+                    <MenuItem Header="µPLM" ToggleType="Radio"
+                              IsChecked="{Binding IsUnitMicro, Mode=OneWay}"
+                              Command="{Binding SetUnitCommand}" CommandParameter="µPLM"/>
+                    <MenuItem Header="sat" ToggleType="Radio"
+                              IsChecked="{Binding IsUnitSat, Mode=OneWay}"
+                              Command="{Binding SetUnitCommand}" CommandParameter="sat"/>
+                </MenuItem>
             </MenuItem>
         </Menu>
 
@@ -41,94 +65,95 @@
                 <!-- Passo 1: scelta iniziale -->
                 <StackPanel IsVisible="{Binding IsStepStart}" Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                        <TextBlock Text="Rete:" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[wiz.net]}" VerticalAlignment="Center"/>
                         <ComboBox ItemsSource="{Binding Networks}"
                                   SelectedItem="{Binding SelectedNetwork}" MinWidth="140"/>
                     </StackPanel>
-                    <Button Content="Apri il wallet esistente" FontSize="16"
+                    <Button Content="{Binding Loc[wiz.open.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             IsVisible="{Binding WalletFileExists}"
                             Command="{Binding WizardStartOpenCommand}"/>
-                    <Button Content="Crea un nuovo wallet" FontSize="16"
+                    <Button Content="{Binding Loc[wiz.new.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             Command="{Binding WizardStartNewCommand}"/>
-                    <Button Content="Ripristina da seed" FontSize="16"
+                    <Button Content="{Binding Loc[wiz.restore.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             Command="{Binding WizardStartRestoreCommand}"/>
                 </StackPanel>
 
                 <!-- Passo: password del wallet esistente -->
                 <StackPanel IsVisible="{Binding IsStepOpen}" Spacing="12">
-                    <TextBlock Text="Apri il wallet" FontSize="18" FontWeight="Bold"/>
-                    <TextBox PlaceholderText="Password del file (vuoto se non impostata)"
+                    <TextBlock Text="{Binding Loc[wiz.open.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.open.placeholder]}"
                              PasswordChar="●" Text="{Binding PasswordInput}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Apri" Classes="accent" Command="{Binding OpenExistingCommand}"/>
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.open.ok]}" Classes="accent"
+                                Command="{Binding OpenExistingCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Passo: mostra il nuovo seed -->
                 <StackPanel IsVisible="{Binding IsStepShowSeed}" Spacing="12">
-                    <TextBlock Text="Il tuo seed (12 parole)" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.seed.title]}" FontSize="18" FontWeight="Bold"/>
                     <Border BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="1"
                             CornerRadius="6" Padding="14">
                         <SelectableTextBlock Text="{Binding MnemonicInput}"
                                              FontFamily="monospace" FontSize="16" TextWrapping="Wrap"/>
                     </Border>
                     <TextBlock Foreground="Orange" TextWrapping="Wrap"
-                               Text="Scrivi le parole su carta, nell'ordine. Chi le possiede controlla i fondi; se le perdi, i fondi sono irrecuperabili."/>
+                               Text="{Binding Loc[wiz.seed.warning]}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Le ho scritte — Avanti" Classes="accent"
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.seed.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromShowSeedCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Passo: conferma del seed -->
                 <StackPanel IsVisible="{Binding IsStepConfirmSeed}" Spacing="12">
-                    <TextBlock Text="Conferma il seed" FontSize="18" FontWeight="Bold"/>
-                    <TextBox PlaceholderText="Reinserisci le 12 parole separate da spazi"
+                    <TextBlock Text="{Binding Loc[wiz.confirm.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.confirm.placeholder]}"
                              AcceptsReturn="False" Text="{Binding ConfirmMnemonicInput}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Avanti" Classes="accent"
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromConfirmSeedCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Passo: inserimento seed (ripristino) -->
                 <StackPanel IsVisible="{Binding IsStepWords}" Spacing="12">
-                    <TextBlock Text="Ripristina da seed" FontSize="18" FontWeight="Bold"/>
-                    <TextBox PlaceholderText="Mnemonica BIP39 (12 o 24 parole separate da spazi)"
+                    <TextBlock Text="{Binding Loc[wiz.words.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.words.placeholder]}"
                              AcceptsReturn="False" Text="{Binding MnemonicInput}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Avanti" Classes="accent"
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromWordsCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Passo: passphrase opzionale -->
                 <StackPanel IsVisible="{Binding IsStepPassphrase}" Spacing="12">
-                    <TextBlock Text="Passphrase opzionale" FontSize="18" FontWeight="Bold"/>
-                    <TextBox PlaceholderText="Lascia vuoto per non usarla"
+                    <TextBlock Text="{Binding Loc[wiz.passphrase.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.passphrase.placeholder]}"
                              Text="{Binding PassphraseInput}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Avanti" Classes="accent"
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromPassphraseCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Passo finale: password del file -->
                 <StackPanel IsVisible="{Binding IsStepPassword}" Spacing="12">
-                    <TextBlock Text="Password del file wallet" FontSize="18" FontWeight="Bold"/>
-                    <TextBox PlaceholderText="Consigliata (vuoto = file in chiaro su disco)"
+                    <TextBlock Text="{Binding Loc[wiz.password.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.password.placeholder]}"
                              PasswordChar="●" Text="{Binding PasswordInput}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Button Content="Indietro" Command="{Binding WizardBackCommand}"/>
-                        <Button Content="Crea il wallet" Classes="accent"
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.password.create]}" Classes="accent"
                                 Command="{Binding CreateOrRestoreCommand}"/>
                     </StackPanel>
                 </StackPanel>
@@ -145,7 +170,7 @@
                     <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
                     <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
                 </StackPanel>
-                <Button Grid.Column="1" Content="Chiudi wallet" VerticalAlignment="Top"
+                <Button Grid.Column="1" Content="{Binding Loc[wallet.close]}" VerticalAlignment="Top"
                         Command="{Binding CloseWalletCommand}"/>
             </Grid>
 
@@ -153,7 +178,7 @@
             <Border Grid.Row="1" Margin="0,12,0,12" Padding="10"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="6">
                 <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto,Auto">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Server:"
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Loc[wallet.server]}"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <ComboBox Grid.Row="0" Grid.Column="1"
                               ItemsSource="{Binding KnownServers}"
@@ -161,16 +186,16 @@
                               HorizontalAlignment="Stretch"/>
                     <CheckBox Grid.Row="0" Grid.Column="2" Content="TLS"
                               IsChecked="{Binding UseSsl}" Margin="8,0"/>
-                    <Button Grid.Row="0" Grid.Column="3" Content="Connetti e sincronizza"
+                    <Button Grid.Row="0" Grid.Column="3" Content="{Binding Loc[wallet.connect]}"
                             Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
 
                     <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal"
                                 Spacing="8" Margin="0,8,0,0">
                         <TextBox Text="{Binding ServerInput}" MinWidth="220"
-                                 PlaceholderText="oppure host:porta manuale"/>
-                        <Button Content="Cerca altri server"
+                                 PlaceholderText="{Binding Loc[wallet.manual]}"/>
+                        <Button Content="{Binding Loc[wallet.discover]}"
                                 Command="{Binding DiscoverServersCommand}"/>
-                        <Button Content="Reset cert."
+                        <Button Content="{Binding Loc[wallet.resetcert]}"
                                 Command="{Binding ResetCertificatesCommand}"/>
                     </StackPanel>
                     <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
@@ -185,19 +210,19 @@
                 </Grid>
             </Border>
 
-            <!-- Tab: Ricevi / Storico / Invia -->
+            <!-- Tab: Ricevi / Storico / Indirizzi / Invia -->
             <TabControl Grid.Row="2">
-                <TabItem Header="Ricevi">
+                <TabItem Header="{Binding Loc[tab.receive]}">
                     <StackPanel Spacing="10" Margin="8">
-                        <TextBlock Text="Prossimo indirizzo non usato:"/>
+                        <TextBlock Text="{Binding Loc[receive.next]}"/>
                         <SelectableTextBlock Text="{Binding ReceiveAddress}"
                                              FontFamily="monospace" FontSize="16"/>
-                        <TextBlock Text="Ogni pagamento ricevuto qui comparirà nello storico alla prossima sincronizzazione."
+                        <TextBlock Text="{Binding Loc[receive.hint]}"
                                    Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
                 </TabItem>
 
-                <TabItem Header="Storico">
+                <TabItem Header="{Binding Loc[tab.history]}">
                     <ListBox ItemsSource="{Binding History}" Margin="4">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:HistoryRow">
@@ -213,13 +238,13 @@
                     </ListBox>
                 </TabItem>
 
-                <TabItem Header="Indirizzi">
+                <TabItem Header="{Binding Loc[tab.addresses]}">
                     <Grid RowDefinitions="Auto,*" Margin="4">
                         <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
-                            <TextBlock Grid.Column="0" Text="Tipo" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="1" Text="Indice" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="2" Text="Indirizzo" FontWeight="Bold"/>
-                            <TextBlock Grid.Column="3" Text="Saldo" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loc[addr.index]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Loc[addr.address]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{Binding Loc[addr.balance]}" FontWeight="Bold"/>
                             <TextBlock Grid.Column="4" Text="Tx" FontWeight="Bold"/>
                         </Grid>
                         <ListBox Grid.Row="1" ItemsSource="{Binding Addresses}">
@@ -239,23 +264,25 @@
                     </Grid>
                 </TabItem>
 
-                <TabItem Header="Invia">
+                <TabItem Header="{Binding Loc[tab.send]}">
                     <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
-                        <TextBox PlaceholderText="Indirizzo destinatario" Text="{Binding SendTo}"
+                        <TextBox PlaceholderText="{Binding Loc[send.to]}" Text="{Binding SendTo}"
                                  FontFamily="monospace"/>
-                        <Grid ColumnDefinitions="*,Auto,Auto">
-                            <TextBox Grid.Column="0" PlaceholderText="Importo (es. 1.5)"
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                            <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
                                      Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
-                            <CheckBox Grid.Column="1" Content="Invia tutto" Margin="10,0"
+                            <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                       VerticalAlignment="Center" Margin="6,0" Foreground="Gray"/>
+                            <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="10,0"
                                       IsChecked="{Binding SendAll}"/>
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="fee sat/vB:" VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center"/>
                                 <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
                             </StackPanel>
                         </Grid>
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button Content="Prepara transazione" Command="{Binding PrepareSendCommand}"/>
-                            <Button Content="CONFERMA E TRASMETTI" Classes="accent"
+                            <Button Content="{Binding Loc[send.prepare]}" Command="{Binding PrepareSendCommand}"/>
+                            <Button Content="{Binding Loc[send.confirm]}" Classes="accent"
                                     Command="{Binding ConfirmSendCommand}"
                                     IsEnabled="{Binding HasPendingSend}"/>
                         </StackPanel>
