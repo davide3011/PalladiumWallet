@@ -1,0 +1,152 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PalladiumWallet.App.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        x:Class="PalladiumWallet.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Width="900" Height="620"
+        Title="Palladium Wallet">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- ============ PANNELLO SETUP: crea / ripristina / apri ============ -->
+        <ScrollViewer Grid.Row="0" IsVisible="{Binding IsSetupVisible}">
+            <StackPanel MaxWidth="560" Margin="24" Spacing="14">
+                <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="Rete:" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding Networks}"
+                              SelectedItem="{Binding SelectedNetwork}"
+                              MinWidth="140"/>
+                </StackPanel>
+
+                <!-- Apri wallet esistente -->
+                <Border IsVisible="{Binding WalletFileExists}"
+                        BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="1"
+                        CornerRadius="6" Padding="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Apri il wallet esistente" FontWeight="Bold"/>
+                        <TextBox PlaceholderText="Password del file (vuoto se non impostata)"
+                                 PasswordChar="●" Text="{Binding PasswordInput}"/>
+                        <Button Content="Apri wallet" Command="{Binding OpenExistingCommand}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Crea / ripristina -->
+                <Border BorderBrush="Gray" BorderThickness="1" CornerRadius="6" Padding="14">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Crea nuovo o ripristina da seed" FontWeight="Bold"/>
+                        <TextBox PlaceholderText="Mnemonica BIP39 (12 o 24 parole)"
+                                 AcceptsReturn="False" Text="{Binding MnemonicInput}"/>
+                        <Button Content="Genera nuova mnemonica" Command="{Binding GenerateMnemonicCommand}"/>
+                        <TextBox PlaceholderText="Passphrase BIP39 opzionale (cambia il wallet! annotala a parte)"
+                                 Text="{Binding PassphraseInput}"/>
+                        <TextBox PlaceholderText="Password di cifratura del file wallet (consigliata)"
+                                 PasswordChar="●" Text="{Binding PasswordInput}"/>
+                        <Button Content="Crea / ripristina wallet" Command="{Binding CreateOrRestoreCommand}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ============ PANNELLO WALLET ============ -->
+        <Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
+
+            <!-- Testata: saldo + rete + chiudi -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2">
+                    <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
+                    <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
+                </StackPanel>
+                <Button Grid.Column="1" Content="Chiudi wallet" VerticalAlignment="Top"
+                        Command="{Binding CloseWalletCommand}"/>
+            </Grid>
+
+            <!-- Server -->
+            <Border Grid.Row="1" Margin="0,12,0,12" Padding="10"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="6">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+                    <TextBlock Grid.Column="0" Text="Server:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding ServerInput}"
+                             PlaceholderText="host:porta del server di indicizzazione"/>
+                    <CheckBox Grid.Column="2" Content="TLS" IsChecked="{Binding UseSsl}" Margin="8,0"/>
+                    <Button Grid.Column="3" Content="Connetti e sincronizza"
+                            Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
+                    <Button Grid.Column="4" Content="Reset cert." Margin="6,0,0,0"
+                            Command="{Binding ResetCertificatesCommand}"/>
+                    <TextBlock Grid.Column="5" Text="{Binding ConnectionStatus}"
+                               VerticalAlignment="Center" Margin="10,0,0,0" Foreground="Gray"/>
+                </Grid>
+            </Border>
+
+            <!-- Tab: Ricevi / Storico / Invia -->
+            <TabControl Grid.Row="2">
+                <TabItem Header="Ricevi">
+                    <StackPanel Spacing="10" Margin="8">
+                        <TextBlock Text="Prossimo indirizzo non usato:"/>
+                        <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                             FontFamily="monospace" FontSize="16"/>
+                        <TextBlock Text="Ogni pagamento ricevuto qui comparirà nello storico alla prossima sincronizzazione."
+                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </TabItem>
+
+                <TabItem Header="Storico">
+                    <ListBox ItemsSource="{Binding History}" Margin="4">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HistoryRow">
+                                <Grid ColumnDefinitions="90,160,*,70">
+                                    <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
+                                    <SelectableTextBlock Grid.Column="2" Text="{Binding Txid}"
+                                                         FontFamily="monospace" FontSize="12"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </TabItem>
+
+                <TabItem Header="Invia">
+                    <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
+                        <TextBox PlaceholderText="Indirizzo destinatario" Text="{Binding SendTo}"
+                                 FontFamily="monospace"/>
+                        <Grid ColumnDefinitions="*,Auto,Auto">
+                            <TextBox Grid.Column="0" PlaceholderText="Importo (es. 1.5)"
+                                     Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
+                            <CheckBox Grid.Column="1" Content="Invia tutto" Margin="10,0"
+                                      IsChecked="{Binding SendAll}"/>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="fee sat/vB:" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="Prepara transazione" Command="{Binding PrepareSendCommand}"/>
+                            <Button Content="CONFERMA E TRASMETTI" Classes="accent"
+                                    Command="{Binding ConfirmSendCommand}"
+                                    IsEnabled="{Binding HasPendingSend}"/>
+                        </StackPanel>
+                        <SelectableTextBlock Text="{Binding SendPreview}" TextWrapping="Wrap"
+                                             FontSize="13"/>
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- Barra di stato -->
+        <Border Grid.Row="1" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                Padding="10,6">
+            <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"/>
+        </Border>
+    </Grid>
+</Window>
