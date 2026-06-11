@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{84E60614-5042-48EC-B349-290FB0CA7BA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PalladiumWallet.Core", "src\Core\PalladiumWallet.Core.csproj", "{A7D0EF95-B206-4646-99DD-1D2BBB7AF978}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PalladiumWallet.App", "src\App\PalladiumWallet.App.csproj", "{13EE9780-5810-4229-BFCF-6003172534DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PalladiumWallet.Cli", "src\Cli\PalladiumWallet.Cli.csproj", "{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{FDF1822C-58D6-4B35-93EA-6A85E1292933}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PalladiumWallet.Tests", "tests\PalladiumWallet.Tests\PalladiumWallet.Tests.csproj", "{C7E79E8E-B1DE-4053-9FB4-853814766CE0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A7D0EF95-B206-4646-99DD-1D2BBB7AF978}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7D0EF95-B206-4646-99DD-1D2BBB7AF978}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7D0EF95-B206-4646-99DD-1D2BBB7AF978}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7D0EF95-B206-4646-99DD-1D2BBB7AF978}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13EE9780-5810-4229-BFCF-6003172534DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13EE9780-5810-4229-BFCF-6003172534DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13EE9780-5810-4229-BFCF-6003172534DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13EE9780-5810-4229-BFCF-6003172534DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7E79E8E-B1DE-4053-9FB4-853814766CE0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7E79E8E-B1DE-4053-9FB4-853814766CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7E79E8E-B1DE-4053-9FB4-853814766CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7E79E8E-B1DE-4053-9FB4-853814766CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A7D0EF95-B206-4646-99DD-1D2BBB7AF978} = {84E60614-5042-48EC-B349-290FB0CA7BA8}
+		{13EE9780-5810-4229-BFCF-6003172534DD} = {84E60614-5042-48EC-B349-290FB0CA7BA8}
+		{D1AE035A-6DAC-46F4-90FB-F1AE2A79D416} = {84E60614-5042-48EC-B349-290FB0CA7BA8}
+		{C7E79E8E-B1DE-4053-9FB4-853814766CE0} = {FDF1822C-58D6-4B35-93EA-6A85E1292933}
+	EndGlobalSection
+EndGlobal
