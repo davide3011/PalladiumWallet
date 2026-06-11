@@ -22,6 +22,7 @@ try
         ["sync", .. var rest] => await Sync(rest),
         ["send", .. var rest] => await Send(rest),
         ["reset-certs", .. var rest] => ResetCerts(rest),
+        ["servers", .. var rest] => await Servers(rest),
         _ => Usage(),
     };
 }
@@ -112,6 +113,14 @@ static int Info(string[] o)
     {
         Console.WriteLine($"ricezione: {account.GetReceiveAddress(0)}   (mai sincronizzato)");
     }
+
+    if (o.Contains("--addresses") && doc.Cache is { } c)
+    {
+        Console.WriteLine("indirizzi:");
+        foreach (var a in c.Addresses)
+            Console.WriteLine($"  {(a.IsChange ? "change " : "ricev. ")}{a.Index,3}  {a.Address}  " +
+                $"{CoinAmount.Format(a.BalanceSats),18}  ({a.TxCount} tx)");
+    }
     return 0;
 }
 
@@ -133,6 +142,7 @@ static async Task<int> Sync(string[] o)
         NextChangeIndex = result.NextChangeIndex,
         History = [.. result.History],
         Utxos = [.. result.Utxos],
+        Addresses = [.. result.AddressRows],
     };
     WalletStore.Save(doc, path, Opt(o, "--password"));
 
@@ -204,6 +214,24 @@ static int ResetCerts(string[] o)
     return 0;
 }
 
+static async Task<int> Servers(string[] o)
+{
+    var profile = Profile(o);
+    var registry = new ServerRegistry(profile, AppPaths.ServersPath(profile.Kind));
+
+    if (o.Contains("--discover"))
+    {
+        await using var client = await Connect(o, profile);
+        var added = await registry.DiscoverAsync(client);
+        Console.WriteLine($"Scoperti {added} nuovi server dai peer.");
+    }
+
+    Console.WriteLine($"Server noti ({profile.NetName}):");
+    foreach (var server in registry.All)
+        Console.WriteLine($"  {server}");
+    return 0;
+}
+
 // ----- helper comuni -----
 
 static ChainProfile Profile(string[] o) => Opt(o, "--net") switch
@@ -265,13 +293,24 @@ static (WalletDocument, HdAccount, string) OpenWallet(string[] o)
 
 static async Task<ElectrumClient> Connect(string[] o, ChainProfile profile)
 {
-    var server = Opt(o, "--server")
-        ?? throw new WalletSpendException("--server host:porta mancante.");
-    var parts = server.Split(':');
-    var host = parts[0];
     var useSsl = o.Contains("--ssl");
-    var port = parts.Length > 1 ? int.Parse(parts[1])
-        : useSsl ? profile.DefaultSslPort : profile.DefaultTcpPort;
+    string host;
+    int port;
+    if (Opt(o, "--server") is { } server)
+    {
+        var parts = server.Split(':');
+        host = parts[0];
+        port = parts.Length > 1 ? int.Parse(parts[1])
+            : useSsl ? profile.DefaultSslPort : profile.DefaultTcpPort;
+    }
+    else
+    {
+        // Senza --server si usa il primo server noto (bootstrap §3 o scoperto §9).
+        var known = new ServerRegistry(profile, AppPaths.ServersPath(profile.Kind)).Default
+            ?? throw new WalletSpendException("Nessun server noto per questa rete: usa --server host:porta.");
+        host = known.Host;
+        port = known.PortFor(useSsl);
+    }
 
     var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(profile.Kind));
     Console.WriteLine($"Connessione a {host}:{port}{(useSsl ? " (TLS)" : "")}…");
@@ -296,10 +335,11 @@ static int Usage()
           restore-xpub  <xpub slip132> [--net ...] [--password P] [--file PATH]   (watch-only)
           info          [--net ...] [--password P] [--file PATH]
 
-        Rete (server di indicizzazione):
-          sync          --server host[:porta] [--ssl] [--net ...] [--password P] [--file PATH]
+        Rete (server di indicizzazione; senza --server usa il primo server noto):
+          sync          [--server host[:porta]] [--ssl] [--net ...] [--password P] [--file PATH]
           send          --to INDIRIZZO (--amount X | --all) [--feerate sat/vB]
-                        --server host[:porta] [--ssl] [--broadcast] [...]
+                        [--server host[:porta]] [--ssl] [--broadcast] [...]
+          servers       [--discover] [--server host[:porta]] [--ssl] [--net ...]
           reset-certs   [--net ...]
 
         Strumenti:
