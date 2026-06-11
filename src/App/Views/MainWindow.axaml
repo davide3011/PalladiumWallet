@@ -37,6 +37,18 @@
                     <MenuItem Header="English" ToggleType="Radio"
                               IsChecked="{Binding IsLangEn, Mode=OneWay}"
                               Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
+                    <MenuItem Header="Español" ToggleType="Radio"
+                              IsChecked="{Binding IsLangEs, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="es"/>
+                    <MenuItem Header="Français" ToggleType="Radio"
+                              IsChecked="{Binding IsLangFr, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="fr"/>
+                    <MenuItem Header="Português" ToggleType="Radio"
+                              IsChecked="{Binding IsLangPt, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="pt"/>
+                    <MenuItem Header="Deutsch" ToggleType="Radio"
+                              IsChecked="{Binding IsLangDe, Mode=OneWay}"
+                              Command="{Binding SetLanguageCommand}" CommandParameter="de"/>
                 </MenuItem>
                 <MenuItem Header="{Binding Loc[settings.unit.short]}">
                     <MenuItem Header="PLM" ToggleType="Radio"

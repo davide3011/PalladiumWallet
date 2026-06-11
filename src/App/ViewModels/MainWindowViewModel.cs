@@ -46,8 +46,10 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Configurazione globale (§8): lingua e unità.</summary>
     private AppConfig _config = AppConfig.Load();
 
-    /// <summary>Stringhe localizzate, bindabili da XAML come Loc[chiave].</summary>
-    public Loc Loc => Loc.Instance;
+    /// <summary>Istanza Loc corrente: viene rimpiazzata ad ogni cambio lingua
+    /// così Avalonia vede un riferimento diverso e rivaluta le binding {Binding Loc[chiave]}.</summary>
+    private Loc _loc = Loc.Instance;
+    public Loc Loc => _loc;
 
     /// <summary>Unità corrente per il campo importo del pannello Invia.</summary>
     public string UnitLabel => _config.Unit;
@@ -57,6 +59,10 @@ public partial class MainWindowViewModel : ViewModelBase
     // Spunte del menu Impostazioni (ToggleType Radio).
     public bool IsLangIt => _config.Language == "it";
     public bool IsLangEn => _config.Language == "en";
+    public bool IsLangEs => _config.Language == "es";
+    public bool IsLangFr => _config.Language == "fr";
+    public bool IsLangPt => _config.Language == "pt";
+    public bool IsLangDe => _config.Language == "de";
     public bool IsUnitPlm => _config.Unit == "PLM";
     public bool IsUnitMilli => _config.Unit == "mPLM";
     public bool IsUnitMicro => _config.Unit == "µPLM";
@@ -81,10 +87,15 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _config = config;
         _config.Save();
-        Loc.SetLanguage(config.Language);
+        _loc = Loc.SwitchTo(config.Language);
+        OnPropertyChanged(nameof(Loc));
         OnPropertyChanged(nameof(UnitLabel));
         OnPropertyChanged(nameof(IsLangIt));
         OnPropertyChanged(nameof(IsLangEn));
+        OnPropertyChanged(nameof(IsLangEs));
+        OnPropertyChanged(nameof(IsLangFr));
+        OnPropertyChanged(nameof(IsLangPt));
+        OnPropertyChanged(nameof(IsLangDe));
         OnPropertyChanged(nameof(IsUnitPlm));
         OnPropertyChanged(nameof(IsUnitMilli));
         OnPropertyChanged(nameof(IsUnitMicro));
@@ -227,6 +238,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public MainWindowViewModel()
     {
+        _loc = Loc.SwitchTo(_config.Language);
         RefreshSetupState();
         // Aggiornamenti continui (§9): ping periodico per tenere viva la
         // connessione e accorgersi subito della caduta; se cade, riconnette
