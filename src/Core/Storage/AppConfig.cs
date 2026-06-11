@@ -9,8 +9,8 @@ namespace PalladiumWallet.Core.Storage;
 /// </summary>
 public sealed class AppConfig
 {
-    /// <summary>Codice lingua UI ("it", "en").</summary>
-    public string Language { get; set; } = "it";
+    /// <summary>Codice lingua UI.</summary>
+    public string Language { get; set; } = "en";
 
     /// <summary>Unità di visualizzazione degli importi (vedi <see cref="Wallet.CoinAmount.Units"/>).</summary>
     public string Unit { get; set; } = "PLM";

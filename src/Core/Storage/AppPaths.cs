@@ -18,9 +18,12 @@ public static class AppPaths
         if (Directory.Exists(portable))
             return portable;
 
-        return OperatingSystem.IsWindows()
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PalladiumWallet")
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".palladium-wallet");
+        // Windows → %APPDATA%\PalladiumWallet
+        // Linux   → $XDG_CONFIG_HOME/PalladiumWallet  (default ~/.config/PalladiumWallet)
+        // macOS   → ~/Library/Application Support/PalladiumWallet
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "PalladiumWallet");
     }
 
     /// <summary>Cartella dati della rete (config, wallet, header, certificati).</summary>
