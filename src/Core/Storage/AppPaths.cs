@@ -44,6 +44,9 @@ public static class AppPaths
     public static string CertificatePinsPath(NetKind net) =>
         Path.Combine(ForNetwork(net), "server-certs.json");
 
+    public static string ServersPath(NetKind net) =>
+        Path.Combine(ForNetwork(net), "servers.json");
+
     public static string ConfigPath() =>
         Path.Combine(DataRoot(), "config.json");
 }

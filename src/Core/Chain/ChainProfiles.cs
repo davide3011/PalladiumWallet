@@ -34,8 +34,15 @@ public static class ChainProfiles
             [ScriptKind.NativeSegwit] = new(0x04b2430c, 0x04b24746),          // zprv / zpub
             [ScriptKind.NativeSegwitMultisig] = new(0x02aa7a99, 0x02aa7ed3),  // Zprv / Zpub
         },
-        // TODO: popolare con i server reali prima della release (host:tcp:ssl).
-        BootstrapServers = [],
+        // Server di indicizzazione noti per il primo contatto (§3/§9); altri
+        // peer vengono scoperti via server.peers.subscribe.
+        BootstrapServers =
+        [
+            new ServerEndpoint("173.212.224.67", 50001, 50002),
+            new ServerEndpoint("144.91.120.225", 50001, 50002),
+            new ServerEndpoint("66.94.115.80", 50001, 50002),
+            new ServerEndpoint("89.117.149.130", 50001, 50002),
+        ],
         // TODO: popolare con [hash, bits] reali della catena (§7.3) prima della release.
         Checkpoints = [],
     };

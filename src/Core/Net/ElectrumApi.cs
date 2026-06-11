@@ -14,6 +14,9 @@ public sealed record MerkleProofResponse(int BlockHeight, int Pos, IReadOnlyList
 /// <summary>Tip della catena notificato da blockchain.headers.subscribe.</summary>
 public readonly record struct ChainTip(int Height, string HeaderHex);
 
+/// <summary>Peer annunciato da server.peers.subscribe (porte null = non offerte).</summary>
+public sealed record PeerInfo(string Host, int? TcpPort, int? SslPort, string? Version);
+
 /// <summary>
 /// Helper tipizzati sui metodi del protocollo (blueprint §10), sopra il
 /// trasporto JSON-RPC generico di <see cref="ElectrumClient"/>.
@@ -108,4 +111,50 @@ public static class ElectrumApi
 
     public static Task PingAsync(this ElectrumClient c, CancellationToken ct = default) =>
         c.RequestAsync("server.ping", ct);
+
+    /// <summary>Peer annunciati dal server (scoperta di altri server, §9).</summary>
+    public static async Task<IReadOnlyList<PeerInfo>> GetPeersAsync(this ElectrumClient c,
+        CancellationToken ct = default)
+    {
+        var r = await c.RequestAsync("server.peers.subscribe", ct);
+        return ParsePeers(r);
+    }
+
+    /// <summary>
+    /// Parsa la risposta di server.peers.subscribe: lista di
+    /// [ip, hostname, ["v1.4.2", "pN", "tPORTA", "sPORTA", ...]];
+    /// "t"/"s" senza numero = porta di default della rete (risolta dal chiamante).
+    /// </summary>
+    public static IReadOnlyList<PeerInfo> ParsePeers(JsonElement response)
+    {
+        var peers = new List<PeerInfo>();
+        foreach (var entry in response.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Array || entry.GetArrayLength() < 3)
+                continue;
+            var host = entry[1].GetString();
+            if (string.IsNullOrWhiteSpace(host))
+                host = entry[0].GetString();
+            if (string.IsNullOrWhiteSpace(host))
+                continue;
+
+            int? tcp = null, ssl = null;
+            string? version = null;
+            foreach (var feature in entry[2].EnumerateArray())
+            {
+                var f = feature.GetString();
+                if (string.IsNullOrEmpty(f))
+                    continue;
+                switch (f[0])
+                {
+                    case 'v': version = f[1..]; break;
+                    case 't': tcp = int.TryParse(f[1..], out var t) ? t : 0; break;
+                    case 's': ssl = int.TryParse(f[1..], out var s) ? s : 0; break;
+                }
+            }
+            if (tcp is not null || ssl is not null)
+                peers.Add(new PeerInfo(host!, tcp, ssl, version));
+        }
+        return peers;
+    }
 }
