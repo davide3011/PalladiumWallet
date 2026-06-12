@@ -192,19 +192,25 @@
 
                 <!-- 1. Storico -->
                 <TabItem Header="{Binding Loc[tab.history]}">
-                    <ListBox ItemsSource="{Binding History}" Margin="4">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:HistoryRow">
-                                <Grid ColumnDefinitions="90,160,*,70">
-                                    <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
-                                    <SelectableTextBlock Grid.Column="2" Text="{Binding Txid}"
-                                                         FontFamily="monospace" FontSize="12"/>
-                                    <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
-                                </Grid>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                    <Grid RowDefinitions="Auto,*" Margin="4">
+                        <TextBlock Grid.Row="0" Text="{Binding Loc[history.hint]}"
+                                   Foreground="Gray" FontSize="11" Margin="6,2"/>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding History}"
+                                 DoubleTapped="OnHistoryRowDoubleTapped">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HistoryRow">
+                                    <Grid ColumnDefinitions="90,160,*,70" Cursor="Hand">
+                                        <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Txid}"
+                                                   FontFamily="monospace" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
                 </TabItem>
 
                 <!-- 2. Invia -->
@@ -422,6 +428,130 @@
                             HorizontalAlignment="Right"
                             Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CloseAddressInfoCommand}"/>
                 </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY DETTAGLIO TRANSAZIONE ============ -->
+        <!-- Overlay in-app (come indirizzo): appare subito con lo spinner, i dati
+             arrivano dal server in background; chiusura istantanea. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnTxDetailsOverlayBackdropTapped"
+                IsVisible="{Binding IsTxDetailsOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="640" MaxHeight="600" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Panel Margin="24">
+
+                    <!-- Caricamento -->
+                    <StackPanel IsVisible="{Binding IsTxDetailsLoading}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                        <ProgressBar IsIndeterminate="True" Width="220"/>
+                        <TextBlock Text="{Binding Loc[tx.loading]}" Foreground="Gray"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Contenuto (IsVisible sul contenitore esterno, così resta
+                         legato al VM principale; il DataContext interno è TxDetails) -->
+                    <Grid IsVisible="{Binding !IsTxDetailsLoading}">
+                    <DockPanel DataContext="{Binding TxDetails}">
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding Loc[tx.title]}"
+                                   FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                        <Button DockPanel.Dock="Bottom" Content="{Binding Loc[tx.close]}"
+                                HorizontalAlignment="Right" Margin="0,12,0,0"
+                                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CloseTransactionDetailsCommand}"/>
+
+                        <ScrollViewer>
+                            <StackPanel Spacing="14">
+
+                                <Grid ColumnDefinitions="170,*" RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.status]}"/>
+                                    <SelectableTextBlock Grid.Row="0" Grid.Column="1" FontSize="13" TextWrapping="Wrap" Text="{Binding StatusText}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.date]}"/>
+                                    <SelectableTextBlock Grid.Row="1" Grid.Column="1" FontSize="13" Text="{Binding DateText}"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding CounterpartyHeader}"/>
+                                    <SelectableTextBlock Grid.Row="2" Grid.Column="1" FontSize="13" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding CounterpartyText}"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding AmountHeader}"/>
+                                    <SelectableTextBlock Grid.Row="3" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding AmountText}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.fee]}"/>
+                                    <SelectableTextBlock Grid.Row="4" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeText}"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.feerate]}"/>
+                                    <SelectableTextBlock Grid.Row="5" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeRateText}"/>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.net]}"/>
+                                    <SelectableTextBlock Grid.Row="6" Grid.Column="1" FontSize="13" FontFamily="monospace" FontWeight="Bold" Text="{Binding NetText}"/>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.id]}"/>
+                                    <SelectableTextBlock Grid.Row="7" Grid.Column="1" FontSize="12" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding Txid}"/>
+
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.total]}"/>
+                                    <SelectableTextBlock Grid.Row="8" Grid.Column="1" FontSize="13" Text="{Binding TotalSizeText}"/>
+
+                                    <TextBlock Grid.Row="9" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.virtual]}"/>
+                                    <SelectableTextBlock Grid.Row="9" Grid.Column="1" FontSize="13" Text="{Binding VirtualSizeText}"/>
+
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.rbf]}"/>
+                                    <SelectableTextBlock Grid.Row="10" Grid.Column="1" FontSize="13" Text="{Binding RbfText}"/>
+
+                                    <TextBlock Grid.Row="11" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.verified]}"/>
+                                    <SelectableTextBlock Grid.Row="11" Grid.Column="1" FontSize="13" Foreground="Green" Text="{Binding VerifiedText}"/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding Loc[tx.inputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Inputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TxIoRow">
+                                            <Grid ColumnDefinitions="170,*,Auto" Margin="0,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="{Binding Loc[tx.outputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Outputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TxIoRow">
+                                            <Grid ColumnDefinitions="60,*,Auto" Margin="0,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                    </Grid>
+                </Panel>
             </Border>
         </Border>
 

@@ -37,6 +37,23 @@ public partial class MainWindow : Window
             vm.OpenFromPath(path);
     }
 
+    private void OnHistoryRowDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;
+        if (lb.SelectedItem is not HistoryRow row) return;
+
+        // Overlay in-app: appare subito con lo spinner, i dati arrivano dal
+        // server in background. Niente top-level window (lenta da aprire/chiudere).
+        _ = vm.ShowTransactionDetailsAsync(row.Txid);
+    }
+
+    private void OnTxDetailsOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.CloseTransactionDetailsCommand.Execute(null);
+    }
+
     private void OnAddressListTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedAddressRow is not { } row)
@@ -115,6 +132,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.Escape && DataContext is MainWindowViewModel vm)
         {
+            if (vm.IsTxDetailsOpen) { vm.CloseTransactionDetailsCommand.Execute(null); e.Handled = true; return; }
             if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
             if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
             if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }

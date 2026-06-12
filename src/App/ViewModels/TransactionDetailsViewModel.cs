@@ -1,0 +1,112 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using PalladiumWallet.App.Localization;
+using PalladiumWallet.Core.Wallet;
+
+namespace PalladiumWallet.App.ViewModels;
+
+/// <summary>Riga input/output per le tabelle della finestra di dettaglio.</summary>
+public sealed record TxIoRow(string Position, string Address, string Amount, bool IsMine);
+
+/// <summary>
+/// ViewModel della finestra di dettaglio transazione: prende un
+/// <see cref="TransactionDetails"/> (assemblato dal server) e ne ricava tutte
+/// le stringhe già formattate e localizzate per la vista. È di sola lettura.
+/// </summary>
+public sealed class TransactionDetailsViewModel
+{
+    private readonly string _unit;
+
+    public Loc Loc { get; }
+
+    public TransactionDetailsViewModel(TransactionDetails d, Loc loc, string unit)
+    {
+        Loc = loc;
+        _unit = unit;
+
+        Txid = d.Txid;
+        StatusText = BuildStatus(d, loc);
+        DateText = d.BlockTime is { } t
+            ? t.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+            : loc["tx.mempool"];
+
+        var counterparties = d.CounterpartyAddresses;
+        CounterpartyHeader = d.IsIncoming ? loc["tx.from"] : loc["tx.to"];
+        CounterpartyText = counterparties.Count > 0
+            ? string.Join(Environment.NewLine, counterparties)
+            : "—";
+
+        // Debito (uscita verso terzi) o Credito (entrata netta sui nostri output).
+        AmountHeader = d.IsIncoming ? loc["tx.credit"] : loc["tx.debit"];
+        AmountText = d.IsIncoming
+            ? Signed(d.ReceivedSats)
+            : Signed(-d.SentToOthersSats);
+
+        FeeText = d.FeeSats is { } fee
+            ? (d.IsIncoming ? Abs(fee) : Signed(-fee))
+            : "—";
+
+        NetText = Signed(d.NetSats);
+
+        TotalSizeText = $"{d.TotalSize} byte";
+        VirtualSizeText = $"{d.VirtualSize} byte";
+        FeeRateText = d.FeeRateSatPerVb is { } r
+            ? r.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " sat/vB"
+            : "—";
+        VersionText = d.Version.ToString();
+        LockTimeText = d.LockTime.ToString();
+        RbfText = loc[d.RbfSignaled ? "tx.yes" : "tx.no"];
+        VerifiedText = d.Verified ? "✓ SPV" : "—";
+
+        Inputs = new ObservableCollection<TxIoRow>(d.Inputs.Select((i, n) => new TxIoRow(
+            i.IsCoinbase ? "coinbase" : $"{Shorten(i.PrevTxid)}:{i.PrevIndex}",
+            i.Address ?? "—",
+            i.AmountSats is { } a ? CoinAmount.FormatIn(a, unit) : "—",
+            i.IsMine)));
+
+        Outputs = new ObservableCollection<TxIoRow>(d.Outputs.Select(o => new TxIoRow(
+            $"#{o.Index}",
+            o.Address ?? $"({o.ScriptType})",
+            CoinAmount.FormatIn(o.AmountSats, unit),
+            o.IsMine)));
+    }
+
+    public string Txid { get; }
+    public string StatusText { get; }
+    public string DateText { get; }
+    public string CounterpartyHeader { get; }
+    public string CounterpartyText { get; }
+    public string AmountHeader { get; }
+    public string AmountText { get; }
+    public string FeeText { get; }
+    public string NetText { get; }
+    public string TotalSizeText { get; }
+    public string VirtualSizeText { get; }
+    public string FeeRateText { get; }
+    public string VersionText { get; }
+    public string LockTimeText { get; }
+    public string RbfText { get; }
+    public string VerifiedText { get; }
+    public ObservableCollection<TxIoRow> Inputs { get; }
+    public ObservableCollection<TxIoRow> Outputs { get; }
+
+    private static string BuildStatus(TransactionDetails d, Loc loc)
+    {
+        if (d.Confirmations <= 0)
+            return loc["tx.status.mempool"];
+        return $"{d.Confirmations} {loc["tx.status.confirmations"]} ({loc["tx.status.block"]} {d.Height})";
+    }
+
+    private string Signed(long sats)
+    {
+        var sign = sats > 0 ? "+" : sats < 0 ? "-" : "";
+        return sign + CoinAmount.FormatIn(Math.Abs(sats), _unit);
+    }
+
+    private string Abs(long sats) => CoinAmount.FormatIn(Math.Abs(sats), _unit);
+
+    private static string Shorten(string txid) =>
+        txid.Length > 16 ? $"{txid[..8]}…{txid[^4..]}" : txid;
+}

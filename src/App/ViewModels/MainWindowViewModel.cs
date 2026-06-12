@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -344,6 +345,122 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void CloseAddressInfo() => AddressInfo = null;
+
+    // ---- overlay dettaglio transazione ----
+
+    /// <summary>Overlay dettaglio transazione aperto.</summary>
+    [ObservableProperty]
+    private bool isTxDetailsOpen;
+
+    /// <summary>Caricamento dei dati in corso (mostra lo spinner nell'overlay).</summary>
+    [ObservableProperty]
+    private bool isTxDetailsLoading;
+
+    /// <summary>Dati della transazione mostrata; null finché non sono pronti.</summary>
+    [ObservableProperty]
+    private TransactionDetailsViewModel? txDetails;
+
+    private CancellationTokenSource? _txDetailsCts;
+
+    /// <summary>
+    /// Apre l'overlay dettaglio transazione: appare subito con lo spinner e i
+    /// dati arrivano dal server in background. Overlay in-app (come indirizzo e
+    /// impostazioni) per apertura/chiusura istantanee, senza una top-level window.
+    /// </summary>
+    public async Task ShowTransactionDetailsAsync(string txid)
+    {
+        if (_client is null || !_client.IsConnected)
+        {
+            StatusMessage = Loc.Tr("tx.needconnection");
+            return;
+        }
+
+        _txDetailsCts?.Cancel();
+        _txDetailsCts = new CancellationTokenSource();
+        var ct = _txDetailsCts.Token;
+
+        TxDetails = null;
+        IsTxDetailsLoading = true;
+        IsTxDetailsOpen = true;
+
+        var details = await BuildTransactionDetailsAsync(txid, ct);
+
+        // L'utente potrebbe aver chiuso l'overlay (o aperto un'altra tx) mentre
+        // caricava: non sovrascrivere lo stato in quel caso.
+        if (ct.IsCancellationRequested || !IsTxDetailsOpen)
+            return;
+
+        if (details is null)
+        {
+            IsTxDetailsOpen = false;
+            IsTxDetailsLoading = false;
+            return;
+        }
+
+        TxDetails = details;
+        IsTxDetailsLoading = false;
+    }
+
+    [RelayCommand]
+    private void CloseTransactionDetails()
+    {
+        _txDetailsCts?.Cancel();
+        IsTxDetailsOpen = false;
+        IsTxDetailsLoading = false;
+        TxDetails = null;
+    }
+
+    /// <summary>
+    /// Recupera dal server tutti i dati della transazione <paramref name="txid"/>
+    /// (importi, fee, indirizzi, dimensioni, data) e li impacchetta per la
+    /// finestra di dettaglio. Restituisce null se non c'è connessione o in errore.
+    /// </summary>
+    public async Task<TransactionDetailsViewModel?> BuildTransactionDetailsAsync(
+        string txid, CancellationToken ct = default)
+    {
+        if (_client is null || !_client.IsConnected)
+        {
+            StatusMessage = Loc.Tr("tx.needconnection");
+            return null;
+        }
+        if (_doc?.Cache is not { } cache)
+            return null;
+
+        // Snapshot dei dati sull'UI thread, poi tutto il lavoro (round-trip al
+        // server + parsing delle transazioni) va su un thread pool: altrimenti i
+        // continuation dei fetch riprendono sull'UI thread e bloccano la finestra
+        // (spinner fermo, chiusura ritardata).
+        var client = _client;
+        var network = PalladiumNetworks.For(Net);
+        var row = cache.History.FirstOrDefault(t => t.Txid == txid);
+        var owned = cache.Addresses.Select(a => a.Address).ToHashSet();
+        var tipHeight = cache.TipHeight;
+        var height = row?.Height ?? 0;
+        var delta = row?.DeltaSats ?? 0;
+        var verified = row?.Verified ?? false;
+        var transactions = _lastTransactions;
+        var loc = _loc;
+        var unit = _config.Unit;
+
+        try
+        {
+            return await Task.Run(async () =>
+            {
+                var details = await TransactionInspector.FetchAsync(
+                    client, network, txid, tipHeight, height, owned, delta, verified, transactions, ct);
+                return new TransactionDetailsViewModel(details, loc, unit);
+            }, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"{Loc.Tr("msg.error")}: {ex.Message}";
+            return null;
+        }
+    }
 
     // ---- rubrica contatti ----
 
