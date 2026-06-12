@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,6 +16,7 @@ using PalladiumWallet.Core.Net;
 using PalladiumWallet.Core.Spv;
 using PalladiumWallet.Core.Storage;
 using PalladiumWallet.Core.Wallet;
+using QRCoder;
 
 namespace PalladiumWallet.App.ViewModels;
 
@@ -239,6 +241,33 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string receiveAddress = "";
+
+    /// <summary>QR code dell'indirizzo di ricezione corrente (PNG in-memory).</summary>
+    [ObservableProperty]
+    private Bitmap? receiveQr;
+
+    // Rigenera il QR ogni volta che l'indirizzo di ricezione cambia.
+    partial void OnReceiveAddressChanged(string value)
+    {
+        var previous = ReceiveQr;
+        ReceiveQr = string.IsNullOrEmpty(value) ? null : GenerateQr(value);
+        previous?.Dispose();
+    }
+
+    private static Bitmap? GenerateQr(string text)
+    {
+        try
+        {
+            using var generator = new QRCodeGenerator();
+            using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
+            var png = new PngByteQRCode(data).GetGraphic(8);
+            return new Bitmap(new MemoryStream(png));
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
     [ObservableProperty]
     private string serverHost = "";

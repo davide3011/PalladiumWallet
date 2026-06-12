@@ -255,6 +255,12 @@
                         <TextBlock Text="{Binding Loc[receive.next]}"/>
                         <SelectableTextBlock Text="{Binding ReceiveAddress}"
                                              FontFamily="monospace" FontSize="16"/>
+                        <Border Background="White" Padding="12" CornerRadius="6"
+                                HorizontalAlignment="Left"
+                                IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <Image Source="{Binding ReceiveQr}" Width="220" Height="220"
+                                   RenderOptions.BitmapInterpolationMode="None"/>
+                        </Border>
                         <TextBlock Text="{Binding Loc[receive.hint]}"
                                    Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
