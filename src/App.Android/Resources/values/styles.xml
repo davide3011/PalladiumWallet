@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DEVE derivare da Theme.AppCompat: AvaloniaActivity estende AppCompatActivity,
+         che con un tema non-AppCompat lancia IllegalStateException all'avvio.
+         Avalonia disegna comunque l'intera UI (NoActionBar). -->
+    <style name="MyTheme.NoActionBar" parent="Theme.AppCompat.Light.NoActionBar" />
+</resources>

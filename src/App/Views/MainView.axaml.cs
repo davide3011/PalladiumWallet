@@ -1,0 +1,156 @@
+using System.Linq;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
+using PalladiumWallet.App.ViewModels;
+
+namespace PalladiumWallet.App.Views;
+
+/// <summary>
+/// Vista radice dell'app, condivisa tra desktop (ospitata in <see cref="MainWindow"/>)
+/// e mobile (root single-view). Tutti gli overlay sono in-app, quindi non servono
+/// finestre separate. Le API legate al top-level (file picker, clipboard) si
+/// raggiungono via <see cref="TopLevel.GetTopLevel"/> perché un UserControl non le espone.
+/// </summary>
+public partial class MainView : UserControl
+{
+    public MainView()
+    {
+        InitializeComponent();
+    }
+
+    private async void OnOpenWalletFileClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
+
+        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Apri file wallet",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Wallet Palladium") { Patterns = ["*.wallet.json", "*.json"] },
+            ],
+        });
+
+        if (files.FirstOrDefault()?.TryGetLocalPath() is { } path)
+            vm.OpenFromPath(path);
+    }
+
+    private void OnHistoryRowDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;
+        if (lb.SelectedItem is not HistoryRow row) return;
+
+        // Overlay in-app: appare subito con lo spinner, i dati arrivano dal
+        // server in background. Niente top-level window (lenta da aprire/chiudere).
+        _ = vm.ShowTransactionDetailsAsync(row.Txid);
+    }
+
+    private void OnTxDetailsOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.CloseTransactionDetailsCommand.Execute(null);
+    }
+
+    private void OnAddressListTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || vm.SelectedAddressRow is not { } row)
+            return;
+        vm.ShowAddressInfo(row);
+    }
+
+    private void OnAddressListPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!e.GetCurrentPoint(null).Properties.IsRightButtonPressed) return;
+        if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;
+
+        var item = (e.Source as Visual)?.FindAncestorOfType<ListBoxItem>();
+        if (item is not { DataContext: AddressRow row }) return;
+
+        lb.SelectedItem = row;
+        vm.ShowAddressInfo(row);
+    }
+
+    // Chiusura dell'overlay dettaglio indirizzo: click sullo sfondo scuro
+    // (solo sullo sfondo, non sulla scheda) o tasto Esc.
+    private void OnAddressOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.AddressInfo = null;
+    }
+
+    private void OnServerOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsServerSettingsOpen = false;
+    }
+
+    private async void OnChooseDataFolderClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
+
+        var folders = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Cartella dati Palladium Wallet",
+            AllowMultiple = false,
+        });
+
+        if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path)
+            vm.ApplyDataLocation(path);
+    }
+
+    private async void OnCopyReceiveAddressClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || string.IsNullOrEmpty(vm.ReceiveAddress))
+            return;
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(vm.ReceiveAddress);
+            vm.NotifyAddressCopied();
+        }
+    }
+
+    private void OnConnectionStatusTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsServerSettingsOpen = true;
+    }
+
+    private void OnSettingsOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsSettingsOpen = false;
+    }
+
+    private void OnHelpOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsHelpOpen = false;
+    }
+
+    // Esc (desktop) o tasto Back (Android) chiudono l'overlay in primo piano.
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if ((e.Key == Key.Escape || e.Key == Key.Back) && DataContext is MainWindowViewModel vm)
+        {
+            if (vm.IsTxDetailsOpen) { vm.CloseTransactionDetailsCommand.Execute(null); e.Handled = true; return; }
+            if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
+            if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
+            if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }
+            if (vm.IsHelpOpen) { vm.IsHelpOpen = false; e.Handled = true; return; }
+        }
+        base.OnKeyDown(e);
+    }
+}

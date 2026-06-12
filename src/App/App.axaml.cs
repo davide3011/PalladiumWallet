@@ -1,8 +1,5 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
-using Avalonia.Data.Core.Plugins;
-using System.Linq;
 using Avalonia.Markup.Xaml;
 using PalladiumWallet.App.ViewModels;
 using PalladiumWallet.App.Views;
@@ -18,12 +15,18 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        var vm = new MainWindowViewModel();
+
+        // Desktop (Windows/Linux): finestra classica. Mobile (Android): vista
+        // singola. Stessa UI condivisa (MainView) e stesso ViewModel.
+        switch (ApplicationLifetime)
         {
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(),
-            };
+            case IClassicDesktopStyleApplicationLifetime desktop:
+                desktop.MainWindow = new MainWindow { DataContext = vm };
+                break;
+            case ISingleViewApplicationLifetime singleView:
+                singleView.MainView = new MainView { DataContext = vm };
+                break;
         }
 
         base.OnFrameworkInitializationCompleted();

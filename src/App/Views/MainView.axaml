@@ -1,0 +1,746 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PalladiumWallet.App.ViewModels"
+        xmlns:net="using:PalladiumWallet.Core.Net"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        x:Class="PalladiumWallet.App.Views.MainView"
+        x:DataType="vm:MainWindowViewModel">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ============ MENU (stile Electrum) ============ -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="{Binding Loc[menu.file]}">
+                <MenuItem Header="{Binding Loc[menu.file.new]}" Command="{Binding NewWalletCommand}"/>
+                <MenuItem Header="{Binding Loc[menu.file.open]}" Click="OnOpenWalletFileClick"
+                          IsVisible="{Binding IsDesktop}"/>
+                <Separator/>
+                <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
+                          IsEnabled="{Binding IsWalletOpen}"/>
+            </MenuItem>
+            <MenuItem Header="{Binding Loc[menu.settings]}"
+                      Command="{Binding OpenSettingsCommand}"/>
+            <MenuItem Header="{Binding Loc[menu.help]}"
+                      Command="{Binding OpenHelpCommand}"/>
+        </Menu>
+
+        <!-- ============ WIZARD DI SETUP (§15): un passo alla volta ============ -->
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSetupVisible}">
+            <StackPanel MaxWidth="560" Margin="24,40" Spacing="18"
+                        HorizontalAlignment="Center">
+                <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"
+                           HorizontalAlignment="Center"/>
+
+                <!-- Passo 0 (primo avvio): dove salvare i dati -->
+                <StackPanel IsVisible="{Binding IsStepDataLocation}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.data.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.data.info]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[wiz.data.default]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding DefaultDataPath}"
+                                             FontFamily="monospace" FontSize="13" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Content="{Binding Loc[wiz.data.usedefault]}" FontSize="16" Classes="accent"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding UseDefaultDataLocationCommand}"/>
+                    <Button Content="{Binding Loc[wiz.data.choose]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Click="OnChooseDataFolderClick"/>
+                </StackPanel>
+
+                <!-- Passo 1: scelta iniziale -->
+                <StackPanel IsVisible="{Binding IsStepStart}" Spacing="12">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="{Binding Loc[wiz.net]}" VerticalAlignment="Center"/>
+                        <ComboBox ItemsSource="{Binding Networks}"
+                                  SelectedItem="{Binding SelectedNetwork}" MinWidth="140"/>
+                    </StackPanel>
+                    <Button Content="{Binding Loc[wiz.open.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            IsVisible="{Binding WalletFileExists}"
+                            Command="{Binding WizardStartOpenCommand}"/>
+                    <Button Content="{Binding Loc[wiz.new.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding WizardStartNewCommand}"/>
+                    <Button Content="{Binding Loc[wiz.restore.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding WizardStartRestoreCommand}"/>
+                </StackPanel>
+
+                <!-- Passo: scelta del wallet (più file presenti) -->
+                <StackPanel IsVisible="{Binding IsStepChooseWallet}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.choose.title]}" FontSize="18" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding WalletList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WalletFileEntry">
+                                <Button Content="{Binding Name}" FontFamily="monospace"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,6"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChooseWalletCommand}"
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                </StackPanel>
+
+                <!-- Passo: password del wallet esistente -->
+                <StackPanel IsVisible="{Binding IsStepOpen}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.open.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.open.placeholder]}"
+                             PasswordChar="●" Text="{Binding PasswordInput}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.open.ok]}" Classes="accent"
+                                Command="{Binding OpenExistingCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: mostra il nuovo seed -->
+                <StackPanel IsVisible="{Binding IsStepShowSeed}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.seed.title]}" FontSize="18" FontWeight="Bold"/>
+                    <Border BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="1"
+                            CornerRadius="6" Padding="14">
+                        <SelectableTextBlock Text="{Binding MnemonicInput}"
+                                             FontFamily="monospace" FontSize="16" TextWrapping="Wrap"/>
+                    </Border>
+                    <TextBlock Foreground="Orange" TextWrapping="Wrap"
+                               Text="{Binding Loc[wiz.seed.warning]}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.seed.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromShowSeedCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: conferma del seed -->
+                <StackPanel IsVisible="{Binding IsStepConfirmSeed}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.confirm.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.confirm.placeholder]}"
+                             AcceptsReturn="False" Text="{Binding ConfirmMnemonicInput}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromConfirmSeedCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: inserimento seed (ripristino) -->
+                <StackPanel IsVisible="{Binding IsStepWords}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.words.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.words.placeholder]}"
+                             AcceptsReturn="False" Text="{Binding MnemonicInput}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromWordsCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: passphrase opzionale -->
+                <StackPanel IsVisible="{Binding IsStepPassphrase}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.passphrase.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.passphrase.placeholder]}"
+                             Text="{Binding PassphraseInput}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromPassphraseCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo finale: password del file (cifratura, stile Electrum) -->
+                <StackPanel IsVisible="{Binding IsStepPassword}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.password.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.password.placeholder]}"
+                             PasswordChar="●" Text="{Binding PasswordInput}"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.password.confirm]}"
+                             PasswordChar="●" Text="{Binding ConfirmPasswordInput}"/>
+                    <CheckBox Content="{Binding Loc[wiz.password.encrypt]}"
+                              IsChecked="{Binding EncryptWallet}"/>
+                    <TextBlock Text="{Binding Loc[wiz.password.encrypt.hint]}"
+                               Foreground="Gray" FontSize="12" TextWrapping="Wrap"
+                               IsVisible="{Binding !EncryptWallet}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.password.create]}" Classes="accent"
+                                Command="{Binding CreateOrRestoreCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ============ PANNELLO WALLET ============ -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
+
+            <!-- Testata: saldo + rete. Connetti/sincronizza è automatico; chiudi
+                 wallet è in File. Lo stato connessione è nella barra in basso. -->
+            <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,12">
+                <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
+                <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
+                <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
+            </StackPanel>
+
+            <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
+            <TabControl Grid.Row="1">
+
+                <!-- 1. Storico -->
+                <TabItem Header="{Binding Loc[tab.history]}">
+                    <Grid RowDefinitions="Auto,*" Margin="4">
+                        <TextBlock Grid.Row="0" Text="{Binding Loc[history.hint]}"
+                                   Foreground="Gray" FontSize="11" Margin="6,2"/>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding History}"
+                                 DoubleTapped="OnHistoryRowDoubleTapped">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:HistoryRow">
+                                    <Grid ColumnDefinitions="90,160,*,70" Cursor="Hand">
+                                        <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Txid}"
+                                                   FontFamily="monospace" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </TabItem>
+
+                <!-- 2. Invia -->
+                <TabItem Header="{Binding Loc[tab.send]}">
+                    <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
+                        <!-- Contatto rapido -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Loc[send.from.contact]}" VerticalAlignment="Center"/>
+                            <ComboBox ItemsSource="{Binding Contacts}"
+                                      SelectedItem="{Binding SendToContact}"
+                                      PlaceholderText="{Binding Loc[send.contact.hint]}"
+                                      MinWidth="220">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ContactEntry">
+                                        <TextBlock Text="{Binding Name}"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBox PlaceholderText="{Binding Loc[send.to]}" Text="{Binding SendTo}"
+                                 FontFamily="monospace"/>
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                            <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
+                                     Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                       VerticalAlignment="Center" Margin="6,0" Foreground="Gray"/>
+                            <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="10,0"
+                                      IsChecked="{Binding SendAll}"/>
+                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="{Binding Loc[send.prepare]}" Command="{Binding PrepareSendCommand}"/>
+                            <Button Content="{Binding Loc[send.confirm]}" Classes="accent"
+                                    Command="{Binding ConfirmSendCommand}"
+                                    IsEnabled="{Binding HasPendingSend}"/>
+                        </StackPanel>
+                        <SelectableTextBlock Text="{Binding SendPreview}" TextWrapping="Wrap"
+                                             FontSize="13"/>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- 3. Ricevi -->
+                <TabItem Header="{Binding Loc[tab.receive]}">
+                    <StackPanel Spacing="10" Margin="8">
+                        <TextBlock Text="{Binding Loc[receive.next]}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                                 FontFamily="monospace" FontSize="16"
+                                                 VerticalAlignment="Center"/>
+                            <Button Content="{Binding Loc[receive.copy]}"
+                                    Click="OnCopyReceiveAddressClick"
+                                    VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Border Background="White" Padding="12" CornerRadius="6"
+                                HorizontalAlignment="Left"
+                                IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
+                            <Image Source="{Binding ReceiveQr}" Width="220" Height="220"
+                                   RenderOptions.BitmapInterpolationMode="None"/>
+                        </Border>
+                        <TextBlock Text="{Binding Loc[receive.hint]}"
+                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </TabItem>
+
+                <!-- 4. Indirizzi -->
+                <TabItem Header="{Binding Loc[tab.addresses]}">
+                    <Grid RowDefinitions="Auto,*" Margin="4">
+                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
+                            <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loc[addr.index]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Loc[addr.address]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="3" Text="{Binding Loc[addr.balance]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="4" Text="Tx" FontWeight="Bold"/>
+                        </Grid>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Addresses}"
+                                 SelectedItem="{Binding SelectedAddressRow}"
+                                 x:Name="AddressesListBox"
+                                 Tapped="OnAddressListTapped"
+                                 PointerPressed="OnAddressListPointerPressed">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AddressRow">
+                                    <Grid ColumnDefinitions="90,60,*,140,60">
+                                        <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Indirizzo}"
+                                                   FontFamily="monospace" FontSize="13"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </TabItem>
+
+                <!-- 5. Contatti -->
+                <TabItem Header="{Binding Loc[tab.contacts]}">
+                    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="4">
+                        <!-- Intestazioni colonne -->
+                        <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4">
+                            <TextBlock Grid.Column="0" Text="{Binding Loc[contacts.name]}" FontWeight="Bold"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Loc[contacts.address]}" FontWeight="Bold"/>
+                        </Grid>
+                        <!-- Lista contatti -->
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Contacts}"
+                                 SelectedItem="{Binding SelectedContactInList}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ContactEntry">
+                                    <Grid ColumnDefinitions="180,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                   VerticalAlignment="Center"/>
+                                        <SelectableTextBlock Grid.Column="1" Text="{Binding Address}"
+                                                             FontFamily="monospace" FontSize="12"
+                                                             VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <!-- Pulsante rimuovi selezionato -->
+                        <Button Grid.Row="2" Content="{Binding Loc[contacts.remove]}"
+                                Command="{Binding RemoveSelectedContactCommand}"
+                                IsEnabled="{Binding SelectedContactInList, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Margin="0,6,0,0"/>
+                        <!-- Form aggiungi contatto -->
+                        <Grid Grid.Row="3" ColumnDefinitions="180,*,Auto" Margin="0,8,0,0">
+                            <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[contacts.name.ph]}"
+                                     Text="{Binding NewContactName}" Margin="0,0,6,0"/>
+                            <TextBox Grid.Column="1" PlaceholderText="{Binding Loc[contacts.address.ph]}"
+                                     Text="{Binding NewContactAddress}" FontFamily="monospace"
+                                     Margin="0,0,6,0"/>
+                            <Button Grid.Column="2" Content="{Binding Loc[contacts.add]}"
+                                    Command="{Binding AddContactCommand}"/>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+            </TabControl>
+        </Grid>
+
+        <!-- Barra di stato: messaggio a sinistra, stato connessione a destra.
+             Lo stato connessione è cliccabile e apre le impostazioni del server. -->
+        <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                Padding="10,6">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" FontSize="12"
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                            Margin="12,0,0,0" VerticalAlignment="Center"
+                            Cursor="Hand" Background="Transparent"
+                            ToolTip.Tip="{Binding Loc[server.title]}"
+                            Tapped="OnConnectionStatusTapped">
+                    <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
+                             IsVisible="{Binding IsConnected}"/>
+                    <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
+                             IsVisible="{Binding !IsConnected}"/>
+                    <TextBlock Text="{Binding ConnectionStatus}" FontSize="12"
+                               Foreground="{DynamicResource SystemAccentColor}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============ OVERLAY DETTAGLIO INDIRIZZO ============ -->
+        <!-- Overlay in-app invece di una Window separata: apertura/chiusura
+             istantanee (niente create/destroy di una top-level window). -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnAddressOverlayBackdropTapped"
+                IsVisible="{Binding AddressInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="560" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    DataContext="{Binding AddressInfo}">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[addr.info.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- Indirizzo -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.address]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding Address}"
+                                             FontFamily="monospace" FontSize="13"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Derivation path -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.derivpath]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding DerivPath}"
+                                             FontFamily="monospace" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Chiave pubblica -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.pubkey]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding PubKey}"
+                                             FontFamily="monospace" FontSize="12"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Chiave privata (solo se disponibile) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding HasPrivKey}">
+                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="OrangeRed"/>
+                        <SelectableTextBlock Text="{Binding PrivKey}"
+                                             FontFamily="monospace" FontSize="12"
+                                             Foreground="OrangeRed"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseAddressInfoCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY DETTAGLIO TRANSAZIONE ============ -->
+        <!-- Overlay in-app (come indirizzo): appare subito con lo spinner, i dati
+             arrivano dal server in background; chiusura istantanea. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnTxDetailsOverlayBackdropTapped"
+                IsVisible="{Binding IsTxDetailsOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="640" MaxHeight="600" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Panel Margin="24">
+
+                    <!-- Caricamento -->
+                    <StackPanel IsVisible="{Binding IsTxDetailsLoading}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
+                        <ProgressBar IsIndeterminate="True" Width="220"/>
+                        <TextBlock Text="{Binding Loc[tx.loading]}" Foreground="Gray"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Contenuto (IsVisible sul contenitore esterno, così resta
+                         legato al VM principale; il DataContext interno è TxDetails) -->
+                    <Grid IsVisible="{Binding !IsTxDetailsLoading}">
+                    <DockPanel DataContext="{Binding TxDetails}">
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding Loc[tx.title]}"
+                                   FontSize="18" FontWeight="Bold" Margin="0,0,0,12"/>
+
+                        <Button DockPanel.Dock="Bottom" Content="{Binding Loc[tx.close]}"
+                                HorizontalAlignment="Right" Margin="0,12,0,0"
+                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseTransactionDetailsCommand}"/>
+
+                        <ScrollViewer>
+                            <StackPanel Spacing="14">
+
+                                <Grid ColumnDefinitions="170,*" RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.status]}"/>
+                                    <SelectableTextBlock Grid.Row="0" Grid.Column="1" FontSize="13" TextWrapping="Wrap" Text="{Binding StatusText}"/>
+
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.date]}"/>
+                                    <SelectableTextBlock Grid.Row="1" Grid.Column="1" FontSize="13" Text="{Binding DateText}"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding CounterpartyHeader}"/>
+                                    <SelectableTextBlock Grid.Row="2" Grid.Column="1" FontSize="13" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding CounterpartyText}"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding AmountHeader}"/>
+                                    <SelectableTextBlock Grid.Row="3" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding AmountText}"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.fee]}"/>
+                                    <SelectableTextBlock Grid.Row="4" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeText}"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.feerate]}"/>
+                                    <SelectableTextBlock Grid.Row="5" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeRateText}"/>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.net]}"/>
+                                    <SelectableTextBlock Grid.Row="6" Grid.Column="1" FontSize="13" FontFamily="monospace" FontWeight="Bold" Text="{Binding NetText}"/>
+
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.id]}"/>
+                                    <SelectableTextBlock Grid.Row="7" Grid.Column="1" FontSize="12" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding Txid}"/>
+
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.total]}"/>
+                                    <SelectableTextBlock Grid.Row="8" Grid.Column="1" FontSize="13" Text="{Binding TotalSizeText}"/>
+
+                                    <TextBlock Grid.Row="9" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.virtual]}"/>
+                                    <SelectableTextBlock Grid.Row="9" Grid.Column="1" FontSize="13" Text="{Binding VirtualSizeText}"/>
+
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.rbf]}"/>
+                                    <SelectableTextBlock Grid.Row="10" Grid.Column="1" FontSize="13" Text="{Binding RbfText}"/>
+
+                                    <TextBlock Grid.Row="11" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.verified]}"/>
+                                    <SelectableTextBlock Grid.Row="11" Grid.Column="1" FontSize="13" Foreground="Green" Text="{Binding VerifiedText}"/>
+                                </Grid>
+
+                                <TextBlock Text="{Binding Loc[tx.inputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Inputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TxIoRow">
+                                            <Grid ColumnDefinitions="170,*,Auto" Margin="0,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <TextBlock Text="{Binding Loc[tx.outputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
+                                <ItemsControl ItemsSource="{Binding Outputs}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:TxIoRow">
+                                            <Grid ColumnDefinitions="60,*,Auto" Margin="0,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </DockPanel>
+                    </Grid>
+                </Panel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY IMPOSTAZIONI SERVER ============ -->
+        <!-- Stesso pattern dell'overlay indirizzo: apertura/chiusura istantanee.
+             Accessibile da Impostazioni → Server. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnServerOverlayBackdropTapped"
+                IsVisible="{Binding IsServerSettingsOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="560" MaxHeight="540"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="14">
+                    <TextBlock Text="{Binding Loc[server.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- Host + porta separati -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Loc[server.host]}"
+                                   FontSize="11" Foreground="Gray"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Loc[server.port]}"
+                                   FontSize="11" Foreground="Gray" Margin="10,0,0,0" Width="90"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="TLS"
+                                   FontSize="11" Foreground="Gray" Margin="10,0,0,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ServerHost}"
+                                 FontFamily="monospace" Margin="0,2,0,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ServerPort}"
+                                 FontFamily="monospace" Width="90" Margin="10,2,0,0"/>
+                        <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding UseSsl}"
+                                  Margin="10,2,0,0" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- Azioni -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
+                                Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
+                        <Button Content="{Binding Loc[wallet.discover]}"
+                                Command="{Binding DiscoverServersCommand}"/>
+                        <Button Content="{Binding Loc[wallet.resetcert]}"
+                                Command="{Binding ResetCertificatesCommand}"/>
+                    </StackPanel>
+
+                    <!-- Stato connessione -->
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
+                                 IsVisible="{Binding IsConnected}"/>
+                        <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
+                                 IsVisible="{Binding !IsConnected}"/>
+                        <TextBlock Text="{Binding ConnectionStatus}" Foreground="Gray"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Server conosciuti: clicca per riempire host/porta -->
+                    <TextBlock Text="{Binding Loc[server.known]}" FontSize="11" Foreground="Gray"/>
+                    <ListBox ItemsSource="{Binding KnownServers}"
+                             SelectedItem="{Binding SelectedKnownServer}"
+                             MaxHeight="200">
+                        <ListBox.Styles>
+                            <Style Selector="ListBox:empty">
+                                <Setter Property="Template">
+                                    <ControlTemplate>
+                                        <TextBlock Text="{Binding Loc[server.empty]}"
+                                                   Foreground="Gray" FontSize="12"
+                                                   TextWrapping="Wrap" Margin="8"/>
+                                    </ControlTemplate>
+                                </Setter>
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="net:KnownServer">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="{Binding Host}"
+                                               FontFamily="monospace" FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" FontSize="11" Foreground="Gray"
+                                               VerticalAlignment="Center">
+                                        <Run Text="tcp"/><Run Text="{Binding TcpPort}"/>
+                                        <Run Text=" / ssl"/><Run Text="{Binding SslPort}"/>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding CloseServerSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY IMPOSTAZIONI ============ -->
+        <!-- In-app invece dei sottomenu annidati: niente popup OS lenti su WSLg. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnSettingsOverlayBackdropTapped"
+                IsVisible="{Binding IsSettingsOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="460"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[settings.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- Lingua -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Loc[settings.language]}" FontSize="11" Foreground="Gray"/>
+                        <WrapPanel>
+                            <RadioButton GroupName="lang" Content="Italiano" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangIt, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="it"/>
+                            <RadioButton GroupName="lang" Content="English" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangEn, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
+                            <RadioButton GroupName="lang" Content="Español" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangEs, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="es"/>
+                            <RadioButton GroupName="lang" Content="Français" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangFr, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="fr"/>
+                            <RadioButton GroupName="lang" Content="Português" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangPt, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="pt"/>
+                            <RadioButton GroupName="lang" Content="Deutsch" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangDe, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="de"/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Unità -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Loc[settings.unit]}" FontSize="11" Foreground="Gray"/>
+                        <WrapPanel>
+                            <RadioButton GroupName="unit" Content="PLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitPlm, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="PLM"/>
+                            <RadioButton GroupName="unit" Content="mPLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitMilli, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="mPLM"/>
+                            <RadioButton GroupName="unit" Content="µPLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitMicro, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="µPLM"/>
+                            <RadioButton GroupName="unit" Content="sat" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitSat, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="sat"/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Server di indicizzazione (configurabile anche prima di aprire un wallet) -->
+                    <Button Content="{Binding Loc[settings.server]}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding OpenServerSettingsCommand}"/>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding CloseSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY HELP / INFORMAZIONI ============ -->
+        <!-- Stesso pattern dell'overlay impostazioni: apertura/chiusura istantanee. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnHelpOverlayBackdropTapped"
+                IsVisible="{Binding IsHelpOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="460"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[help.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Palladium Wallet" FontSize="16" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding WindowTitle}" FontSize="12" Foreground="Gray"/>
+                    </StackPanel>
+
+                    <TextBlock Text="{Binding Loc[help.info]}" TextWrapping="Wrap"/>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding CloseHelpCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

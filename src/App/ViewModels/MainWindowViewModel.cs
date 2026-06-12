@@ -82,6 +82,11 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Titolo della finestra con la versione, es. "Palladium Wallet 0.9.0".</summary>
     public string WindowTitle => $"Palladium Wallet {AppVersion}";
 
+    /// <summary>true su desktop (Windows/Linux); false su mobile. Nasconde le funzioni
+    /// legate al filesystem libero (apri-da-file, scelta cartella dati) non valide nel
+    /// sandbox Android.</summary>
+    public bool IsDesktop => !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS();
+
     /// <summary>Unità corrente per il campo importo del pannello Invia.</summary>
     public string UnitLabel => _config.Unit;
 

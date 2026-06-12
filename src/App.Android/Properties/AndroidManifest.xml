@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- Necessario per parlare col server di indicizzazione (TCP/TLS).
+	     L'elemento <application> (label, allowBackup) è generato dall'attributo
+	     [Application] su MainApplication. usesCleartextTraffic resta al default
+	     (bloccato su Android 9+): il wallet preferisce comunque TLS. -->
+	<uses-permission android:name="android.permission.INTERNET" />
+</manifest>
