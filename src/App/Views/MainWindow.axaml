@@ -151,13 +151,17 @@
                     <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
                     <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
                 </StackPanel>
+                <!-- Cliccabile: apre le impostazioni del server -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
-                            VerticalAlignment="Top">
+                            VerticalAlignment="Top" Cursor="Hand" Background="Transparent"
+                            ToolTip.Tip="{Binding Loc[server.title]}"
+                            Tapped="OnConnectionStatusTapped">
                     <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
                              IsVisible="{Binding IsConnected}"/>
                     <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
                              IsVisible="{Binding !IsConnected}"/>
-                    <TextBlock Text="{Binding ConnectionStatus}" Foreground="Gray"
+                    <TextBlock Text="{Binding ConnectionStatus}"
+                               Foreground="{DynamicResource SystemAccentColor}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
             </Grid>

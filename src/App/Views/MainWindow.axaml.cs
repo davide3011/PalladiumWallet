@@ -72,6 +72,12 @@ public partial class MainWindow : Window
             vm.IsServerSettingsOpen = false;
     }
 
+    private void OnConnectionStatusTapped(object? sender, TappedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsServerSettingsOpen = true;
+    }
+
     private void OnSettingsOverlayBackdropTapped(object? sender, TappedEventArgs e)
     {
         if (!ReferenceEquals(e.Source, sender)) return;
