@@ -40,6 +40,9 @@ public sealed record AddressInfo(
 /// <summary>Contatto in rubrica: nome + indirizzo blockchain.</summary>
 public sealed record ContactEntry(string Name, string Address);
 
+/// <summary>Voce della lista di scelta wallet: nome file + percorso completo.</summary>
+public sealed record WalletFileEntry(string Name, string Path);
+
 /// <summary>
 /// ViewModel unico dell'applicazione (wizard §15 ridotto + dashboard):
 /// pannello di setup (crea/ripristina/apri) e pannello wallet
@@ -167,6 +170,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public const string StepDataLocation = "data-location";
     public const string StepStart = "start";
+    public const string StepChooseWallet = "choose-wallet";
     public const string StepOpen = "open";
     public const string StepShowSeed = "show-seed";
     public const string StepConfirmSeed = "confirm-seed";
@@ -177,6 +181,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsStepDataLocation))]
     [NotifyPropertyChangedFor(nameof(IsStepStart))]
+    [NotifyPropertyChangedFor(nameof(IsStepChooseWallet))]
     [NotifyPropertyChangedFor(nameof(IsStepOpen))]
     [NotifyPropertyChangedFor(nameof(IsStepShowSeed))]
     [NotifyPropertyChangedFor(nameof(IsStepConfirmSeed))]
@@ -187,6 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsStepDataLocation => SetupStep == StepDataLocation;
     public bool IsStepStart => SetupStep == StepStart;
+    public bool IsStepChooseWallet => SetupStep == StepChooseWallet;
     public bool IsStepOpen => SetupStep == StepOpen;
     public bool IsStepShowSeed => SetupStep == StepShowSeed;
     public bool IsStepConfirmSeed => SetupStep == StepConfirmSeed;
@@ -211,6 +217,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string passwordInput = "";
+
+    /// <summary>Conferma password alla creazione (stile Electrum: digitata due volte).</summary>
+    [ObservableProperty]
+    private string confirmPasswordInput = "";
+
+    /// <summary>Se true il file wallet viene cifrato con la password (default, stile Electrum).</summary>
+    [ObservableProperty]
+    private bool encryptWallet = true;
 
     // ---- pannello wallet ----
 
@@ -279,6 +293,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public ObservableCollection<HistoryRow> History { get; } = [];
 
     public ObservableCollection<AddressRow> Addresses { get; } = [];
+
+    /// <summary>Wallet disponibili nella cartella della rete, per la schermata di scelta.</summary>
+    public ObservableCollection<WalletFileEntry> WalletList { get; } = [];
 
     // ---- tab indirizzi ----
 
@@ -457,8 +474,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private void RefreshSetupState()
     {
         SetupStep = StepStart;
-        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = "";
-        WalletFileExists = WalletStore.Exists(AppPaths.DefaultWalletPath(Net));
+        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
+        WalletFileExists = AppPaths.WalletFiles(Net).Count > 0;
         StatusMessage = WalletFileExists
             ? Loc.Tr("msg.welcome.existing")
             : Loc.Tr("msg.welcome.new");
@@ -535,6 +552,31 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void WizardStartOpen()
     {
+        // Con più wallet nella cartella della rete si sceglie quale aprire;
+        // con uno solo si va dritti alla password (multi-wallet §8).
+        var files = AppPaths.WalletFiles(Net);
+        if (files.Count > 1)
+        {
+            WalletList.Clear();
+            foreach (var path in files)
+                WalletList.Add(new WalletFileEntry(Path.GetFileName(path), path));
+            SetupStep = StepChooseWallet;
+            StatusMessage = Loc.Tr("msg.choose.wallet");
+            return;
+        }
+        _pendingOpenPath = files.Count == 1 ? files[0] : AppPaths.DefaultWalletPath(Net);
+        PasswordInput = "";
+        SetupStep = StepOpen;
+        StatusMessage = Loc.Tr("msg.open.password");
+    }
+
+    /// <summary>Sceglie quale wallet aprire dalla lista e passa alla password.</summary>
+    [RelayCommand]
+    private void ChooseWallet(WalletFileEntry? entry)
+    {
+        if (entry is null)
+            return;
+        _pendingOpenPath = entry.Path;
         PasswordInput = "";
         SetupStep = StepOpen;
         StatusMessage = Loc.Tr("msg.open.password");
@@ -600,7 +642,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void WizardNextFromPassphrase()
     {
-        PasswordInput = "";
+        PasswordInput = ConfirmPasswordInput = "";
+        EncryptWallet = true;
         SetupStep = StepPassword;
         StatusMessage = Loc.Tr("msg.password.info");
     }
@@ -610,7 +653,8 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         SetupStep = SetupStep switch
         {
-            StepOpen or StepShowSeed or StepWords => StepStart,
+            StepOpen => WalletList.Count > 1 ? StepChooseWallet : StepStart,
+            StepChooseWallet or StepShowSeed or StepWords => StepStart,
             StepConfirmSeed => StepShowSeed,
             StepPassphrase => _isRestoreFlow ? StepWords : StepConfirmSeed,
             StepPassword => StepPassphrase,
@@ -623,6 +667,29 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void CreateOrRestore()
     {
+        // Scelta cifratura stile Electrum: con cifratura attiva serve una
+        // password non vuota, digitata due volte e coincidente. Solo se la
+        // cifratura è disattivata il file resta in chiaro (avviso esplicito).
+        string? password;
+        if (EncryptWallet)
+        {
+            if (string.IsNullOrEmpty(PasswordInput))
+            {
+                StatusMessage = Loc.Tr("msg.password.required");
+                return;
+            }
+            if (PasswordInput != ConfirmPasswordInput)
+            {
+                StatusMessage = Loc.Tr("msg.password.mismatch");
+                return;
+            }
+            password = PasswordInput;
+        }
+        else
+        {
+            password = null;
+        }
+
         try
         {
             var (doc, account) = WalletLoader.NewFromMnemonic(
@@ -634,7 +701,6 @@ public partial class MainWindowViewModel : ViewModelBase
             var path = AppPaths.DefaultWalletPath(Net);
             for (var n = 2; WalletStore.Exists(path); n++)
                 path = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
-            var password = string.IsNullOrEmpty(PasswordInput) ? null : PasswordInput;
             WalletStore.Save(doc, path, password);
             OpenLoaded(doc, account, path, password);
         }
@@ -710,7 +776,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _account = account;
         _walletPath = path;
         _password = password;
-        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = "";
+        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
         SetupStep = StepStart;
 
         NetworkInfo = $"{doc.Network} · {doc.ScriptKind} · m/{doc.AccountPath}"

@@ -73,6 +73,23 @@
                             Command="{Binding WizardStartRestoreCommand}"/>
                 </StackPanel>
 
+                <!-- Passo: scelta del wallet (più file presenti) -->
+                <StackPanel IsVisible="{Binding IsStepChooseWallet}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.choose.title]}" FontSize="18" FontWeight="Bold"/>
+                    <ItemsControl ItemsSource="{Binding WalletList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:WalletFileEntry">
+                                <Button Content="{Binding Name}" FontFamily="monospace"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                        Margin="0,0,0,6"
+                                        Command="{Binding $parent[ItemsControl].((vm:MainWindowViewModel)DataContext).ChooseWalletCommand}"
+                                        CommandParameter="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                </StackPanel>
+
                 <!-- Passo: password del wallet esistente -->
                 <StackPanel IsVisible="{Binding IsStepOpen}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.open.title]}" FontSize="18" FontWeight="Bold"/>
@@ -138,11 +155,18 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo finale: password del file -->
+                <!-- Passo finale: password del file (cifratura, stile Electrum) -->
                 <StackPanel IsVisible="{Binding IsStepPassword}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.password.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.password.placeholder]}"
                              PasswordChar="●" Text="{Binding PasswordInput}"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.password.confirm]}"
+                             PasswordChar="●" Text="{Binding ConfirmPasswordInput}"/>
+                    <CheckBox Content="{Binding Loc[wiz.password.encrypt]}"
+                              IsChecked="{Binding EncryptWallet}"/>
+                    <TextBlock Text="{Binding Loc[wiz.password.encrypt.hint]}"
+                               Foreground="Gray" FontSize="12" TextWrapping="Wrap"
+                               IsVisible="{Binding !EncryptWallet}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
                         <Button Content="{Binding Loc[wiz.password.create]}" Classes="accent"
