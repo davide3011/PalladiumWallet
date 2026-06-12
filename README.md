@@ -1,6 +1,6 @@
 # Palladium Wallet
 
-**An SPV desktop wallet built specifically for the Palladium (PLM) cryptocurrency** and optimized for its chain.
+**An SPV wallet built specifically for the Palladium (PLM) cryptocurrency** and optimized for its chain. Runs on desktop (Windows/Linux) and Android from a single shared codebase.
 
 Unlike generic wallets adapted to many coins, Palladium Wallet is designed around Palladium's consensus parameters — a Bitcoin-derived UTXO chain with 2-minute blocks and LWMA difficulty — and centralizes them in a single network profile. This keeps it lightweight, predictable and faithful to the chain: no client-side difficulty recalculation (trust is anchored to hardcoded checkpoints), mandatory Merkle verification on every confirmed transaction, and a network client written specifically for Palladium's indexing server.
 
@@ -11,34 +11,39 @@ Unlike generic wallets adapted to many coins, Palladium Wallet is designed aroun
 - **HD wallet** (BIP39/BIP32), SegWit/wrapped/legacy addresses, watch-only from xpub.
 - **PSBT-centric**: signing flows go through PSBT (offline / air-gapped / multisig).
 - **Multi-network**: mainnet, testnet, regtest.
-- **GUI** (Avalonia) and **CLI** on the same core.
+- **Cross-platform**: desktop (Windows/Linux) and Android share one Avalonia UI; a **CLI** runs on the same core.
 - **Multilingual**: Italian, English, Spanish, French, Portuguese, German.
 
 ## Architecture
 
 ```
 PalladiumWallet.sln
-├─ src/Core/   Chain/ Crypto/ Wallet/ Spv/ Net/ Storage/  (no UI dependency)
-├─ src/App/    Avalonia GUI
-├─ src/Cli/    CLI on the same Core
-└─ tests/      xUnit
+├─ src/Core/          Chain/ Crypto/ Wallet/ Spv/ Net/ Storage/  (no UI dependency)
+├─ src/App/           shared Avalonia UI library (Views, ViewModels, Loc, Assets)
+├─ src/App.Desktop/   desktop head (Windows/Linux) → runnable
+├─ src/App.Android/   Android head → apk
+├─ src/Cli/           CLI on the same Core
+└─ tests/             xUnit
 ```
 
-Stack: **.NET 8 + Avalonia UI + NBitcoin**.
+The UI is written **once** in `src/App`; the desktop and Android heads only add the per-platform
+entry point and packages.
+
+Stack: **.NET 10 + Avalonia UI 12 + NBitcoin**.
 
 ---
 
 ## Development environment
 
-You only need the **.NET 8 SDK**. The core and crypto are fully testable without the GUI or a real network.
+For desktop and the CLI you only need the **.NET 10 SDK**. The core and crypto are fully testable without the GUI or a real network.
 
 ### Windows
 
-1. Install the .NET 8 SDK:
+1. Install the .NET 10 SDK:
    ```powershell
-   winget install Microsoft.DotNet.SDK.8
+   winget install Microsoft.DotNet.SDK.10
    ```
-   (alternatively, the installer from <https://dotnet.microsoft.com/download/dotnet/8.0>)
+   (alternatively, the installer from <https://dotnet.microsoft.com/download/dotnet/10.0>)
 2. Clone the repository and restore dependencies:
    ```powershell
    git clone <repo-URL>
@@ -48,9 +53,9 @@ You only need the **.NET 8 SDK**. The core and crypto are fully testable without
 
 ### Linux
 
-1. Install the .NET 8 SDK through your distro's package manager, or without root via the official script:
+1. Install the .NET 10 SDK through your distro's package manager, or without root via the official script:
    ```bash
-   curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0
+   curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
    export PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="$HOME/.dotnet"
    ```
    (add the two `export` lines to your `~/.bashrc` to make them permanent)
@@ -61,26 +66,57 @@ You only need the **.NET 8 SDK**. The core and crypto are fully testable without
    dotnet restore
    ```
 
-> The GUI uses Avalonia, which runs natively on both platforms with no extra graphics dependencies.
+> The GUI uses Avalonia, which runs natively on Windows and Linux with no extra graphics dependencies.
+
+### Android (additional setup)
+
+Building the apk also requires the Android workload, a JDK, and the Android SDK:
+
+```bash
+dotnet workload install android          # .NET Android build packs
+# JDK 17+ must be available (set JAVA_HOME)
+# Provision the Android SDK once into ~/android-sdk:
+dotnet build src/App.Android -t:InstallAndroidDependencies \
+  -p:AndroidSdkDirectory=$HOME/android-sdk -p:AcceptAndroidSDKLicenses=true
+```
+
+To run the apk on an emulator (instead of a physical device), see
+[*Android emulator (developer setup)*](#android-emulator-developer-setup) below.
 
 ---
 
 ## Running it
 
-**GUI** (with hot reload for development):
+### Desktop GUI in debug (Linux & Windows)
+
+The desktop head runs the same way on both OSes (`Debug` is the default configuration). Run it from
+the repo root:
+
 ```bash
-dotnet watch --project src/App
-```
-or a single run:
-```bash
-dotnet run --project src/App
+dotnet run --project src/App.Desktop                 # single run (Debug)
+dotnet watch --project src/App.Desktop               # with hot reload (edit XAML/C# and see changes live)
+dotnet run --project src/App.Desktop -c Release      # to try the Release config
 ```
 
-**CLI** (same core, useful for scripts and headless environments):
+- **Linux** — runs natively on X11/Wayland, no extra graphics packages. On **WSL2** the window
+  appears on the Windows desktop through WSLg (already working here, nothing to install).
+- **Windows** — runs natively; use the same commands from PowerShell or a terminal.
+
+The app writes its data under the per-user data folder (see *User guide → First launch*); delete it
+to start from a clean first-run wizard.
+
+### CLI
+
+Same core, useful for scripts and headless environments:
 ```bash
 dotnet run --project src/Cli -- <command>
 ```
 Run without arguments for the full list of commands.
+
+### Android
+
+There is no `dotnet run` for a phone: build the apk and install it (see *Building → Android apk*),
+or run it on an emulator (see *Android emulator (developer setup)*).
 
 ---
 
@@ -109,34 +145,140 @@ dotnet test tests/PalladiumWallet.Tests
 
 ## Building
 
-**Development build:**
+### Development build
+
 ```bash
-dotnet build
+dotnet build                              # whole solution (debug)
+dotnet build src/App.Desktop              # desktop head only
 ```
 
-**Windows publish** (single self-contained executable):
+> A solution-wide `dotnet build` also builds the Android head, which needs the Android SDK
+> (see *Android emulator (developer setup)* below). If you don't have it, build the specific
+> non-Android projects (`src/App.Desktop`, `src/Cli`, `tests/...`).
+
+### Desktop release (self-contained)
+
 ```bash
-dotnet publish src/App -r win-x64 -p:PublishSingleFile=true --self-contained
+# Windows — single self-contained .exe (output: src/App.Desktop/bin/Release/net10.0/win-x64/publish/PalladiumWallet.exe)
+dotnet publish src/App.Desktop -c Release -r win-x64 -p:PublishSingleFile=true --self-contained
+
+# Linux — self-contained; AppImage then produced with PupNet Deploy
+# (output: src/App.Desktop/bin/Release/net10.0/linux-x64/publish/PalladiumWallet)
+dotnet publish src/App.Desktop -c Release -r linux-x64 --self-contained
 ```
 
-**Linux publish** (self-contained; the AppImage is then produced with [PupNet Deploy](https://github.com/kuiperzone/PupNet-Deploy)):
+[PupNet Deploy](https://github.com/kuiperzone/PupNet-Deploy) turns the Linux publish into an AppImage.
+The executable is named `PalladiumWallet` (set via `<AssemblyName>` in the desktop head).
+
+### Android apk
+
+Prerequisites: the Android workload + SDK (see *Development environment → Android*). The Android
+head already sets `<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>`, so the apk is
+**self-contained** and installs/runs standalone (a Fast-Deployment debug apk crashes at launch
+with "No assemblies found" when installed without `adb`).
+
 ```bash
-dotnet publish src/App -r linux-x64 --self-contained
+# Default debug apk — all ABIs (arm64-v8a + x86_64): runs on phones AND the x86_64 emulator.
+# ~79 MB. Output: src/App.Android/bin/Debug/net10.0-android/*-Signed.apk
+JAVA_HOME=<jdk-path> dotnet build src/App.Android -c Debug -t:SignAndroidPackage \
+  -p:AndroidSdkDirectory=$HOME/android-sdk
+
+# Smaller apk for a real phone — arm64 only (~41 MB):
+JAVA_HOME=<jdk-path> dotnet build src/App.Android -c Debug -t:SignAndroidPackage \
+  -p:AndroidSdkDirectory=$HOME/android-sdk -p:AbiArm64Only=true
 ```
 
-The application **version** is set in a single place: the `<Version>` tag in [`src/App/PalladiumWallet.App.csproj`](src/App/PalladiumWallet.App.csproj). It appears in the window title and is stamped into the published binaries.
+The ABI restriction uses the `AbiArm64Only` flag, which is scoped to the Android head's
+`<RuntimeIdentifiers>` in its csproj — do **not** pass `-p:RuntimeIdentifiers=android-arm64` on the
+command line, it leaks to the `net10.0` projects (`Core`/`App`) and breaks the build. (The legacy
+`AndroidSupportedAbis` property is deprecated and ignored.)
+
+(Set `ANDROID_HOME` to skip the `-p:AndroidSdkDirectory` flag.) Release signing with your own
+keystore is not set up yet; the debug apk is fine for personal sideloading.
+
+> **Verification status.** The default multi-ABI apk is verified running on the x86_64 emulator
+> (UI renders, connects to a server over TLS). The arm64-only apk builds correctly (41 MB,
+> `arm64-v8a` only) but is meant for a physical arm64 phone — on the x86_64 emulator it only runs
+> through slow ARM translation and stalls on the splash, so **verify it on a real device**.
+
+### Version
+
+The application **version** is set in a single place: the `<Version>` tag in
+[`src/App/PalladiumWallet.App.csproj`](src/App/PalladiumWallet.App.csproj). It appears in the desktop
+window title, in the Help dialog, and is stamped into the published binaries (and the apk's versionName).
+
+---
+
+## Android emulator (developer setup)
+
+How to run the apk without a physical device. Paths assume the Android SDK in `~/android-sdk`
+and a JDK at `JAVA_HOME` (JDK 17+). Tested on Linux / WSL2.
+
+**1. Install the emulator, a system image and the matching platform** (once):
+```bash
+SDK=$HOME/android-sdk
+$SDK/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SDK \
+  "emulator" "system-images;android-34;google_apis;x86_64" "platforms;android-34"
+```
+Use an `x86_64` image so the emulator runs with hardware acceleration (KVM); the app's min SDK is 23.
+
+**2. Hardware acceleration (Linux/WSL2)** — the emulator needs access to `/dev/kvm`. Add yourself
+to the `kvm` group once, then start a new shell (or prefix the launch with `sg kvm -c '…'`):
+```bash
+sudo usermod -aG kvm $USER
+```
+On WSL2, KVM must be enabled on the Windows host (nested virtualization); the emulator window is
+shown on the Windows desktop through WSLg.
+
+**3. Create an AVD** (virtual device):
+```bash
+echo no | $SDK/cmdline-tools/latest/bin/avdmanager create avd \
+  -n plm -k "system-images;android-34;google_apis;x86_64" -d pixel
+```
+
+**4. Launch the emulator** (software GL is the most robust under WSLg):
+```bash
+$SDK/emulator/emulator -avd plm -gpu swiftshader_indirect -no-snapshot -no-audio &
+$SDK/platform-tools/adb wait-for-device
+# wait for full boot:
+until [ "$($SDK/platform-tools/adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ]; do sleep 2; done
+```
+If the window won't render, add `-no-window` and rely on `adb` + screenshots
+(`adb exec-out screencap -p > shot.png`).
+
+**5. Install and run the apk; capture logs to debug crashes:**
+```bash
+ADB=$SDK/platform-tools/adb
+$ADB install -r src/App.Android/bin/Debug/net10.0-android/*-Signed.apk
+$ADB shell monkey -p io.github.davide3011.palladiumwallet -c android.intent.category.LAUNCHER 1
+$ADB logcat -d | grep -iE "monodroid|exception|fatal|avalonia"
+```
+
+**VS Code "Android iOS Emulator" extension** (optional, click-to-launch): it only starts an
+existing AVD, so create one first (step 3). Point it at the emulator binary:
+```jsonc
+// VS Code settings.json
+"emulator.emulatorPathLinux": "/home/<user>/android-sdk/emulator"
+// on WSL, use: "emulator.emulatorPathWSL": "/home/<user>/android-sdk/emulator"
+```
 
 ---
 
 ## User guide (quick)
 
 ### First launch
-1. On first launch, choose **where to store data** (wallet, configuration, certificates) — the default path or a folder of your choice.
-2. Create a new wallet, restore from seed, or open an existing wallet.
+1. On first launch (desktop), choose **where to store data** (wallet, configuration, certificates) — the default path or a folder of your choice. On Android this step is skipped: data lives in the app's private sandbox.
+2. Create a new wallet, restore from seed, or open one of the wallets already in your data folder.
 3. If you create a wallet, **write the seed phrase down on paper**: it will not be shown again. You can protect the file with a password.
 
+> **Desktop vs Android.** The UI and features are the same on both. Differences: on Android the
+> data-location step is skipped (fixed app sandbox) and *File → Open wallet from file* (importing a
+> wallet from an arbitrary file) is hidden — open wallets from the in-app chooser instead. The
+> version is shown in the desktop window title and, on every platform, in the Help dialog. The CLI
+> is desktop/headless only.
+
 ### Main tabs
-- **History** — list of transactions. *Double-click* a row to open the full detail (amount, fee, addresses, sizes, confirmations).
+- **History** — list of transactions. *Double-click* (double-tap on touch) a row to open the full detail (amount, fee, addresses, sizes, confirmations).
 - **Send** — recipient + amount (or "send all"), adjustable fee; for watch-only wallets a PSBT is produced to be signed offline.
 - **Receive** — next unused address, with a **QR code** and a **Copy** button.
 - **Addresses** — all derived addresses with balances; click for details (keys, derivation path).
