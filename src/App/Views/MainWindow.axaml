@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
         x:Class="PalladiumWallet.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/logo.ico"
         Width="900" Height="620"
         Title="Palladium Wallet">
 
