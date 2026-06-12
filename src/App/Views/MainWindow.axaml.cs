@@ -65,13 +65,19 @@ public partial class MainWindow : Window
             vm.AddressInfo = null;
     }
 
+    private void OnServerOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsServerSettingsOpen = false;
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && DataContext is MainWindowViewModel { AddressInfo: not null } vm)
+        if (e.Key == Key.Escape && DataContext is MainWindowViewModel vm)
         {
-            vm.AddressInfo = null;
-            e.Handled = true;
-            return;
+            if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
+            if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
         }
         base.OnKeyDown(e);
     }

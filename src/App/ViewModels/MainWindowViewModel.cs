@@ -221,10 +221,25 @@ public partial class MainWindowViewModel : ViewModelBase
     private string receiveAddress = "";
 
     [ObservableProperty]
-    private string serverInput = "";
+    private string serverHost = "";
 
     [ObservableProperty]
-    private bool useSsl;
+    private string serverPort = "";
+
+    /// <summary>Si predilige TLS: la connessione automatica all'apertura del
+    /// wallet usa la porta SSL del server. L'utente può disattivarlo.</summary>
+    [ObservableProperty]
+    private bool useSsl = true;
+
+    /// <summary>Overlay impostazioni server: aperto da menu Impostazioni → Server.</summary>
+    [ObservableProperty]
+    private bool isServerSettingsOpen;
+
+    [RelayCommand]
+    private void OpenServerSettings() => IsServerSettingsOpen = true;
+
+    [RelayCommand]
+    private void CloseServerSettings() => IsServerSettingsOpen = false;
 
     [ObservableProperty]
     private string connectionStatus = Loc.Tr("conn.none");
@@ -401,19 +416,59 @@ public partial class MainWindowViewModel : ViewModelBase
             KnownServers.Add(server);
         SelectedKnownServer = KnownServers.FirstOrDefault();
         if (SelectedKnownServer is null)
-            ServerInput = $"127.0.0.1:{Profile.DefaultTcpPort}";
+        {
+            ServerHost = "127.0.0.1";
+            ServerPort = (UseSsl ? Profile.DefaultSslPort : Profile.DefaultTcpPort).ToString();
+        }
     }
+
+    /// <summary>Evita la ricorsione tra OnUseSslChanged e OnServerPortChanged
+    /// mentre tengono coerenti porta e flag TLS.</summary>
+    private bool _syncingServerFields;
 
     partial void OnSelectedKnownServerChanged(KnownServer? value)
     {
-        if (value is not null)
-            ServerInput = $"{value.Host}:{value.PortFor(UseSsl)}";
+        if (value is null)
+            return;
+        _syncingServerFields = true;
+        ServerHost = value.Host;
+        ServerPort = value.PortFor(UseSsl).ToString();
+        _syncingServerFields = false;
     }
 
     partial void OnUseSslChanged(bool value)
     {
-        if (SelectedKnownServer is { } server)
-            ServerInput = $"{server.Host}:{server.PortFor(value)}";
+        if (_syncingServerFields)
+            return;
+        // Attivare/disattivare TLS allinea la porta: porta SSL del server
+        // selezionato (o default di profilo) quando TLS è on, porta TCP quando off.
+        _syncingServerFields = true;
+        ServerPort = SelectedKnownServer is { } server
+            ? server.PortFor(value).ToString()
+            : (value ? Profile.DefaultSslPort : Profile.DefaultTcpPort).ToString();
+        _syncingServerFields = false;
+    }
+
+    partial void OnServerPortChanged(string value)
+    {
+        if (_syncingServerFields)
+            return;
+        if (!int.TryParse(value.Trim(), out var port))
+            return;
+        // Scegliere una porta nota allinea il flag TLS, così non si tenta mai
+        // una connessione in chiaro sulla porta SSL (causa di "connection error").
+        bool? wantSsl =
+            SelectedKnownServer is { } s && port == s.SslPort ? true :
+            SelectedKnownServer is { } t && port == t.TcpPort ? false :
+            port == Profile.DefaultSslPort ? true :
+            port == Profile.DefaultTcpPort ? false :
+            null;
+        if (wantSsl is bool b && b != UseSsl)
+        {
+            _syncingServerFields = true;
+            UseSsl = b;
+            _syncingServerFields = false;
+        }
     }
 
     // ---------- comandi del wizard (§15): un passo alla volta ----------
@@ -678,9 +733,19 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "";
         try
         {
+            var (host, port) = ParseServer();
+
+            // Se l'endpoint richiesto (host/porta/TLS) è diverso da quello della
+            // connessione attiva, la chiudo: l'utente ha cambiato server o ha
+            // attivato TLS e si aspetta che la nuova scelta abbia effetto.
+            if (_client is { } current &&
+                (current.Host != host || current.Port != port || current.UseSsl != UseSsl))
+            {
+                await DisconnectAsync();
+            }
+
             if (_client is null || !_client.IsConnected)
             {
-                var (host, port) = ParseServer();
                 ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {host}:{port}…";
                 var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
                 _client = await ElectrumClient.ConnectAsync(host, port, UseSsl, pins);
@@ -858,6 +923,22 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// Chiude la connessione corrente lasciando il wallet aperto: usata quando
+    /// l'utente cambia server o attiva TLS e serve riconnettersi al nuovo
+    /// endpoint. Attende la chiusura del socket prima di tornare.
+    /// </summary>
+    private async Task DisconnectAsync()
+    {
+        if (_client is { } client)
+        {
+            _client = null;
+            _synchronizer = null;
+            try { await client.DisposeAsync(); } catch { /* in chiusura */ }
+        }
+        IsConnected = false;
+    }
+
     [RelayCommand]
     private void CloseWallet()
     {
@@ -884,9 +965,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private (string Host, int Port) ParseServer()
     {
-        var parts = ServerInput.Trim().Split(':');
-        var host = parts[0];
-        var port = parts.Length > 1 && int.TryParse(parts[1], out var p)
+        var host = ServerHost.Trim();
+        var port = int.TryParse(ServerPort.Trim(), out var p)
             ? p
             : UseSsl ? Profile.DefaultSslPort : Profile.DefaultTcpPort;
         return (host, port);
