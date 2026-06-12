@@ -128,6 +128,13 @@ public partial class MainWindow : Window
             vm.IsSettingsOpen = false;
     }
 
+    private void OnHelpOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsHelpOpen = false;
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if (e.Key == Key.Escape && DataContext is MainWindowViewModel vm)
@@ -136,6 +143,7 @@ public partial class MainWindow : Window
             if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
             if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
             if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }
+            if (vm.IsHelpOpen) { vm.IsHelpOpen = false; e.Handled = true; return; }
         }
         base.OnKeyDown(e);
     }

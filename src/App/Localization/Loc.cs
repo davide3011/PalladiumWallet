@@ -51,6 +51,15 @@ public sealed class Loc
         ["menu.net.discover"]     = ["Cerca altri server (peer)",                                         "Discover servers (peers)",     "Buscar otros servidores (peers)",      "Rechercher d'autres serveurs (pairs)",     "Procurar outros servidores (peers)",        "Weitere Server suchen (Peers)"],
         ["menu.net.resetcerts"]   = ["Reset certificati SSL",                                             "Reset SSL certificates",       "Restablecer certificados SSL",         "Réinitialiser les certificats SSL",        "Redefinir certificados SSL",               "SSL-Zertifikate zurücksetzen"],
         ["menu.settings"]         = ["_Impostazioni",                                                     "_Settings",                    "_Configuración",                       "_Paramètres",                              "_Configurações",                           "_Einstellungen"],
+        ["menu.help"]             = ["_Help",                                                             "_Help",                        "_Ayuda",                               "_Aide",                                    "_Ajuda",                                   "_Hilfe"],
+        ["help.title"]            = ["Informazioni sul software",                                         "About this software",          "Información del software",             "À propos du logiciel",                     "Sobre o software",                         "Über die Software"],
+        ["help.info"]             = [
+            "Wallet SPV per la criptovaluta Palladium (PLM).",
+            "SPV wallet for the Palladium (PLM) cryptocurrency.",
+            "Monedero SPV para la criptomoneda Palladium (PLM).",
+            "Portefeuille SPV pour la cryptomonnaie Palladium (PLM).",
+            "Carteira SPV para a criptomoeda Palladium (PLM).",
+            "SPV-Wallet für die Kryptowährung Palladium (PLM)."],
         ["settings.unit.short"]   = ["Unità",                                                             "Unit",                         "Unidad",                               "Unité",                                    "Unidade",                                  "Einheit"],
 
         // Wizard

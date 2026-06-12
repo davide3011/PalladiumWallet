@@ -73,6 +73,15 @@ public partial class MainWindowViewModel : ViewModelBase
     private Loc _loc = Loc.Instance;
     public Loc Loc => _loc;
 
+    /// <summary>Versione dell'app (da &lt;Version&gt; nel csproj), formato Major.Minor.Patch.</summary>
+    public static string AppVersion =>
+        typeof(MainWindowViewModel).Assembly.GetName().Version is { } v
+            ? $"{v.Major}.{v.Minor}.{v.Build}"
+            : "";
+
+    /// <summary>Titolo della finestra con la versione, es. "Palladium Wallet 0.9.0".</summary>
+    public string WindowTitle => $"Palladium Wallet {AppVersion}";
+
     /// <summary>Unità corrente per il campo importo del pannello Invia.</summary>
     public string UnitLabel => _config.Unit;
 
@@ -308,6 +317,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void CloseSettings() => IsSettingsOpen = false;
+
+    /// <summary>Overlay informazioni sul software (menu Help).</summary>
+    [ObservableProperty]
+    private bool isHelpOpen;
+
+    [RelayCommand]
+    private void OpenHelp() => IsHelpOpen = true;
+
+    [RelayCommand]
+    private void CloseHelp() => IsHelpOpen = false;
 
     [ObservableProperty]
     private string connectionStatus = Loc.Tr("conn.none");
