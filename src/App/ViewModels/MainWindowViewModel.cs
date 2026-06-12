@@ -649,9 +649,7 @@ public partial class MainWindowViewModel : ViewModelBase
         SetupStep = StepStart;
         MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
         WalletFileExists = AppPaths.WalletFiles(Net).Count > 0;
-        StatusMessage = WalletFileExists
-            ? Loc.Tr("msg.welcome.existing")
-            : Loc.Tr("msg.welcome.new");
+        StatusMessage = "";
         RefreshServers();
         // Come Electrum: ci si connette al server già durante il setup, senza
         // aspettare l'apertura di un wallet (la sync parte poi all'apertura).
@@ -734,13 +732,13 @@ public partial class MainWindowViewModel : ViewModelBase
             foreach (var path in files)
                 WalletList.Add(new WalletFileEntry(Path.GetFileName(path), path));
             SetupStep = StepChooseWallet;
-            StatusMessage = Loc.Tr("msg.choose.wallet");
+            StatusMessage = "";
             return;
         }
         _pendingOpenPath = files.Count == 1 ? files[0] : AppPaths.DefaultWalletPath(Net);
         PasswordInput = "";
         SetupStep = StepOpen;
-        StatusMessage = Loc.Tr("msg.open.password");
+        StatusMessage = "";
     }
 
     /// <summary>Sceglie quale wallet aprire dalla lista e passa alla password.</summary>
@@ -752,7 +750,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _pendingOpenPath = entry.Path;
         PasswordInput = "";
         SetupStep = StepOpen;
-        StatusMessage = Loc.Tr("msg.open.password");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -761,7 +759,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _isRestoreFlow = false;
         MnemonicInput = Bip39.Generate(MnemonicLength.Twelve).ToString();
         SetupStep = StepShowSeed;
-        StatusMessage = Loc.Tr("msg.seed.write");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -770,7 +768,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _isRestoreFlow = true;
         MnemonicInput = "";
         SetupStep = StepWords;
-        StatusMessage = Loc.Tr("msg.words.enter");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -778,7 +776,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ConfirmMnemonicInput = "";
         SetupStep = StepConfirmSeed;
-        StatusMessage = Loc.Tr("msg.seed.retype");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -809,7 +807,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         PassphraseInput = "";
         SetupStep = StepPassphrase;
-        StatusMessage = Loc.Tr("msg.passphrase.info");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -818,7 +816,7 @@ public partial class MainWindowViewModel : ViewModelBase
         PasswordInput = ConfirmPasswordInput = "";
         EncryptWallet = true;
         SetupStep = StepPassword;
-        StatusMessage = Loc.Tr("msg.password.info");
+        StatusMessage = "";
     }
 
     [RelayCommand]
@@ -923,7 +921,7 @@ public partial class MainWindowViewModel : ViewModelBase
             WalletFileExists = true;
             PasswordInput = "";
             SetupStep = StepOpen;
-            StatusMessage = $"Il wallet \"{Path.GetFileName(path)}\" è cifrato: inserisci la password e premi Apri.";
+            StatusMessage = "";
         }
         catch (Exception ex)
         {
@@ -938,7 +936,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (IsWalletOpen)
             CloseWallet();
         _pendingOpenPath = null;
-        StatusMessage = Loc.Tr("msg.welcome.new");
+        StatusMessage = "";
     }
 
     private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password)
