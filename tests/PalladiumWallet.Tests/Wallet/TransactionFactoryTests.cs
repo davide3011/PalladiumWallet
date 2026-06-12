@@ -197,7 +197,7 @@ public class TransactionFactoryTests
         {
             File.WriteAllText(path, "{ rotto ");
             var loaded = PalladiumWallet.Core.Storage.AppConfig.Load(path);
-            Assert.Equal("it", loaded.Language);
+            Assert.Equal("en", loaded.Language);
             Assert.Equal("PLM", loaded.Unit);
         }
         finally

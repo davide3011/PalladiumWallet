@@ -3,27 +3,104 @@ using PalladiumWallet.Core.Chain;
 namespace PalladiumWallet.Core.Storage;
 
 /// <summary>
-/// Percorsi dati per piattaforma (blueprint §8): ~/.palladium-wallet (Linux) o
-/// %APPDATA%/PalladiumWallet (Windows), con sottocartella per rete. La modalità
-/// portable (dati accanto all'eseguibile) si attiva se accanto all'eseguibile
-/// esiste una cartella "palladium-data".
+/// Percorsi dati per piattaforma (blueprint §8). La radice dati può essere:
+/// 1. <b>portable</b>: cartella "palladium-data" accanto all'eseguibile;
+/// 2. <b>personalizzata</b>: scelta dall'utente al primo avvio e memorizzata in
+///    un piccolo file "puntatore" in una posizione di bootstrap fissa;
+/// 3. <b>legacy</b>: vecchia posizione (%APPDATA%/PalladiumWallet) se contiene già dati;
+/// 4. <b>default</b>: ~/.PalladiumWallet (Linux/macOS) o %ProgramFiles%\PalladiumWallet (Windows).
+/// Sotto la radice c'è una sottocartella per rete (config, wallet, header, certificati).
 /// </summary>
 public static class AppPaths
 {
     public const string PortableDirName = "palladium-data";
 
+    /// <summary>Nome cartella applicazione, usato nei vari percorsi.</summary>
+    public const string AppDirName = "PalladiumWallet";
+
+    /// <summary>Override esplicito della radice dati (es. CLI --data-dir). Ha priorità su tutto.</summary>
+    public static string? OverrideDataRoot { get; set; }
+
+    /// <summary>
+    /// Radice dati predefinita: cartella nascosta nella home dell'utente
+    /// (%USERPROFILE%\.PalladiumWallet su Windows, ~/.PalladiumWallet su Linux/macOS).
+    /// Per-utente e sempre scrivibile, senza privilegi di amministratore.
+    /// </summary>
+    public static string DefaultDataRoot()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return Path.Combine(home, "." + AppDirName);
+    }
+
+    /// <summary>Vecchia radice (%APPDATA%/PalladiumWallet, ~/.config su Linux): mantenuta
+    /// per non orfanizzare i dati di installazioni precedenti.</summary>
+    private static string LegacyDataRoot() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            AppDirName);
+
+    /// <summary>File puntatore alla radice dati scelta dall'utente. Vive in una
+    /// posizione di bootstrap sempre scrivibile e indipendente dalla radice dati.</summary>
+    private static string LocationPointerPath() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            AppDirName, "data-location");
+
+    private static string PortableRoot() =>
+        Path.Combine(AppContext.BaseDirectory, PortableDirName);
+
+    private static bool HasData(string root) =>
+        Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any();
+
+    /// <summary>Radice dati effettiva, secondo l'ordine di precedenza documentato in classe.</summary>
     public static string DataRoot()
     {
-        var portable = Path.Combine(AppContext.BaseDirectory, PortableDirName);
+        if (!string.IsNullOrEmpty(OverrideDataRoot))
+            return OverrideDataRoot;
+
+        var portable = PortableRoot();
         if (Directory.Exists(portable))
             return portable;
 
-        // Windows → %APPDATA%\PalladiumWallet
-        // Linux   → $XDG_CONFIG_HOME/PalladiumWallet  (default ~/.config/PalladiumWallet)
-        // macOS   → ~/Library/Application Support/PalladiumWallet
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "PalladiumWallet");
+        if (ReadPointer() is { } custom)
+            return custom;
+
+        var legacy = LegacyDataRoot();
+        if (HasData(legacy))
+            return legacy;
+
+        return DefaultDataRoot();
+    }
+
+    /// <summary>
+    /// true se la posizione dei dati è già determinata e non serve chiederla
+    /// all'utente: modalità portable, override, puntatore già scritto, oppure
+    /// dati già presenti nella posizione legacy o nella default.
+    /// </summary>
+    public static bool IsDataLocationConfigured() =>
+        !string.IsNullOrEmpty(OverrideDataRoot)
+        || Directory.Exists(PortableRoot())
+        || ReadPointer() is not null
+        || HasData(LegacyDataRoot())
+        || HasData(DefaultDataRoot());
+
+    /// <summary>Memorizza la radice dati scelta dall'utente e la crea su disco.</summary>
+    public static void ConfigureDataLocation(string root)
+    {
+        root = Path.GetFullPath(root.Trim());
+        Directory.CreateDirectory(root);
+        var pointer = LocationPointerPath();
+        Directory.CreateDirectory(Path.GetDirectoryName(pointer)!);
+        File.WriteAllText(pointer, root);
+    }
+
+    private static string? ReadPointer()
+    {
+        var pointer = LocationPointerPath();
+        if (!File.Exists(pointer))
+            return null;
+        var path = File.ReadAllText(pointer).Trim();
+        return string.IsNullOrEmpty(path) ? null : path;
     }
 
     /// <summary>Cartella dati della rete (config, wallet, header, certificati).</summary>

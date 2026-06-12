@@ -165,6 +165,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // ---- wizard di setup (§15): un passo alla volta ----
 
+    public const string StepDataLocation = "data-location";
     public const string StepStart = "start";
     public const string StepOpen = "open";
     public const string StepShowSeed = "show-seed";
@@ -174,6 +175,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public const string StepPassword = "password";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsStepDataLocation))]
     [NotifyPropertyChangedFor(nameof(IsStepStart))]
     [NotifyPropertyChangedFor(nameof(IsStepOpen))]
     [NotifyPropertyChangedFor(nameof(IsStepShowSeed))]
@@ -183,6 +185,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [NotifyPropertyChangedFor(nameof(IsStepPassword))]
     private string setupStep = StepStart;
 
+    public bool IsStepDataLocation => SetupStep == StepDataLocation;
     public bool IsStepStart => SetupStep == StepStart;
     public bool IsStepOpen => SetupStep == StepOpen;
     public bool IsStepShowSeed => SetupStep == StepShowSeed;
@@ -190,6 +193,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public bool IsStepWords => SetupStep == StepWords;
     public bool IsStepPassphrase => SetupStep == StepPassphrase;
     public bool IsStepPassword => SetupStep == StepPassword;
+
+    /// <summary>Percorso dati predefinito, mostrato al primo avvio.</summary>
+    public string DefaultDataPath => AppPaths.DefaultDataRoot();
 
     /// <summary>True quando il flusso è "ripristina" (parole inserite dall'utente).</summary>
     private bool _isRestoreFlow;
@@ -375,7 +381,12 @@ public partial class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _loc = Loc.SwitchTo(_config.Language);
-        RefreshSetupState();
+        // Primo avvio: se la posizione dei dati non è ancora determinata,
+        // chiediamola prima di tutto il resto del wizard.
+        if (!AppPaths.IsDataLocationConfigured())
+            SetupStep = StepDataLocation;
+        else
+            RefreshSetupState();
         // Aggiornamenti continui (§9): ping periodico per tenere viva la
         // connessione e accorgersi subito della caduta; se cade, riconnette
         // e risincronizza da solo. Le notifiche push restano la via principale.
@@ -412,6 +423,34 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnSelectedNetworkChanged(string value) => RefreshSetupState();
 
     private ServerRegistry Registry => new(Profile, AppPaths.ServersPath(Net));
+
+    /// <summary>Primo avvio: usa il percorso dati predefinito di piattaforma.</summary>
+    [RelayCommand]
+    private void UseDefaultDataLocation() => ApplyDataLocation(AppPaths.DefaultDataRoot());
+
+    /// <summary>
+    /// Memorizza la radice dati scelta (default o personalizzata), ricarica la
+    /// configurazione dalla nuova posizione e prosegue col wizard. Chiamata anche
+    /// dalla View dopo la scelta di una cartella.
+    /// </summary>
+    public void ApplyDataLocation(string root)
+    {
+        try
+        {
+            AppPaths.ConfigureDataLocation(root);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"{Loc.Tr("msg.error")}: {ex.Message}";
+            return;
+        }
+        // La config globale vive nella radice dati: ricaricala da lì.
+        _config = AppConfig.Load();
+        _loc = Loc.SwitchTo(_config.Language);
+        OnPropertyChanged(nameof(Loc));
+        OnPropertyChanged(nameof(UnitLabel));
+        RefreshSetupState();
+    }
 
     private void RefreshSetupState()
     {

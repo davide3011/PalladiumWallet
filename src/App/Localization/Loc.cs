@@ -27,7 +27,7 @@ public sealed class Loc
     /// </summary>
     internal static Loc SwitchTo(string language)
     {
-        if (System.Array.IndexOf(Languages, language) < 0) language = "it";
+        if (System.Array.IndexOf(Languages, language) < 0) language = "en";
         var loc = new Loc(language);
         Instance = loc;
         return loc;
@@ -54,6 +54,17 @@ public sealed class Loc
         ["settings.unit.short"]   = ["Unità",                                                             "Unit",                         "Unidad",                               "Unité",                                    "Unidade",                                  "Einheit"],
 
         // Wizard
+        ["wiz.data.title"]        = ["Dove salvare i dati",                                               "Where to store data",          "Dónde guardar los datos",              "Où enregistrer les données",               "Onde salvar os dados",                     "Wo Daten gespeichert werden"],
+        ["wiz.data.info"]         = [
+            "Scegli la cartella in cui salvare wallet, configurazione e certificati. Puoi usare il percorso predefinito o sceglierne uno tuo.",
+            "Choose the folder where wallets, configuration and certificates are stored. Use the default path or pick your own.",
+            "Elige la carpeta donde se guardarán wallets, configuración y certificados. Usa la ruta predeterminada o elige la tuya.",
+            "Choisissez le dossier où enregistrer les wallets, la configuration et les certificats. Utilisez le chemin par défaut ou le vôtre.",
+            "Escolha a pasta onde salvar carteiras, configuração e certificados. Use o caminho padrão ou escolha o seu.",
+            "Wählen Sie den Ordner für Wallets, Konfiguration und Zertifikate. Nutzen Sie den Standardpfad oder einen eigenen."],
+        ["wiz.data.default"]      = ["Percorso predefinito:",                                             "Default path:",                "Ruta predeterminada:",                 "Chemin par défaut :",                      "Caminho padrão:",                          "Standardpfad:"],
+        ["wiz.data.usedefault"]   = ["Usa il percorso predefinito",                                       "Use the default path",         "Usar la ruta predeterminada",          "Utiliser le chemin par défaut",            "Usar o caminho padrão",                    "Standardpfad verwenden"],
+        ["wiz.data.choose"]       = ["Scegli una cartella…",                                              "Choose a folder…",             "Elegir una carpeta…",                  "Choisir un dossier…",                      "Escolher uma pasta…",                      "Ordner wählen…"],
         ["wiz.net"]               = ["Rete:",                                                             "Network:",                     "Red:",                                 "Réseau :",                                 "Rede:",                                    "Netzwerk:"],
         ["wiz.open.btn"]          = ["Apri il wallet esistente",                                          "Open existing wallet",         "Abrir wallet existente",               "Ouvrir le wallet existant",                "Abrir carteira existente",                 "Vorhandenes Wallet öffnen"],
         ["wiz.new.btn"]           = ["Crea un nuovo wallet",                                              "Create a new wallet",          "Crear nuevo wallet",                   "Créer un nouveau wallet",                  "Criar nova carteira",                      "Neues Wallet erstellen"],

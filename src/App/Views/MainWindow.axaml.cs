@@ -72,6 +72,21 @@ public partial class MainWindow : Window
             vm.IsServerSettingsOpen = false;
     }
 
+    private async void OnChooseDataFolderClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Cartella dati Palladium Wallet",
+            AllowMultiple = false,
+        });
+
+        if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path)
+            vm.ApplyDataLocation(path);
+    }
+
     private void OnConnectionStatusTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)

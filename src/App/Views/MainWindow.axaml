@@ -41,6 +41,23 @@
                 <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"
                            HorizontalAlignment="Center"/>
 
+                <!-- Passo 0 (primo avvio): dove salvare i dati -->
+                <StackPanel IsVisible="{Binding IsStepDataLocation}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.data.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.data.info]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[wiz.data.default]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding DefaultDataPath}"
+                                             FontFamily="monospace" FontSize="13" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Button Content="{Binding Loc[wiz.data.usedefault]}" FontSize="16" Classes="accent"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding UseDefaultDataLocationCommand}"/>
+                    <Button Content="{Binding Loc[wiz.data.choose]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Click="OnChooseDataFolderClick"/>
+                </StackPanel>
+
                 <!-- Passo 1: scelta iniziale -->
                 <StackPanel IsVisible="{Binding IsStepStart}" Spacing="12">
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
