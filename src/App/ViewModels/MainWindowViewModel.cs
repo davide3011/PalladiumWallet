@@ -231,15 +231,30 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private bool useSsl = true;
 
-    /// <summary>Overlay impostazioni server: aperto da menu Impostazioni → Server.</summary>
+    /// <summary>Overlay impostazioni server: aperto dall'overlay Impostazioni.</summary>
     [ObservableProperty]
     private bool isServerSettingsOpen;
 
     [RelayCommand]
-    private void OpenServerSettings() => IsServerSettingsOpen = true;
+    private void OpenServerSettings()
+    {
+        IsSettingsOpen = false;
+        IsServerSettingsOpen = true;
+    }
 
     [RelayCommand]
     private void CloseServerSettings() => IsServerSettingsOpen = false;
+
+    /// <summary>Overlay impostazioni (lingua, unità, server): in-app per evitare
+    /// i popup di menu annidati, lenti su WSLg.</summary>
+    [ObservableProperty]
+    private bool isSettingsOpen;
+
+    [RelayCommand]
+    private void OpenSettings() => IsSettingsOpen = true;
+
+    [RelayCommand]
+    private void CloseSettings() => IsSettingsOpen = false;
 
     [ObservableProperty]
     private string connectionStatus = Loc.Tr("conn.none");

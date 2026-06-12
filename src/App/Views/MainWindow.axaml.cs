@@ -72,12 +72,20 @@ public partial class MainWindow : Window
             vm.IsServerSettingsOpen = false;
     }
 
+    private void OnSettingsOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsSettingsOpen = false;
+    }
+
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if (e.Key == Key.Escape && DataContext is MainWindowViewModel vm)
         {
             if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
             if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
+            if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }
         }
         base.OnKeyDown(e);
     }

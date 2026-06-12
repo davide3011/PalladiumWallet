@@ -30,46 +30,8 @@
                 <MenuItem Header="{Binding Loc[menu.net.discover]}" Command="{Binding DiscoverServersCommand}"/>
                 <MenuItem Header="{Binding Loc[menu.net.resetcerts]}" Command="{Binding ResetCertificatesCommand}"/>
             </MenuItem>
-            <MenuItem Header="{Binding Loc[menu.settings]}">
-                <MenuItem Header="{Binding Loc[settings.language]}">
-                    <MenuItem Header="Italiano" ToggleType="Radio"
-                              IsChecked="{Binding IsLangIt, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="it"/>
-                    <MenuItem Header="English" ToggleType="Radio"
-                              IsChecked="{Binding IsLangEn, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
-                    <MenuItem Header="Español" ToggleType="Radio"
-                              IsChecked="{Binding IsLangEs, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="es"/>
-                    <MenuItem Header="Français" ToggleType="Radio"
-                              IsChecked="{Binding IsLangFr, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="fr"/>
-                    <MenuItem Header="Português" ToggleType="Radio"
-                              IsChecked="{Binding IsLangPt, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="pt"/>
-                    <MenuItem Header="Deutsch" ToggleType="Radio"
-                              IsChecked="{Binding IsLangDe, Mode=OneWay}"
-                              Command="{Binding SetLanguageCommand}" CommandParameter="de"/>
-                </MenuItem>
-                <MenuItem Header="{Binding Loc[settings.unit.short]}">
-                    <MenuItem Header="PLM" ToggleType="Radio"
-                              IsChecked="{Binding IsUnitPlm, Mode=OneWay}"
-                              Command="{Binding SetUnitCommand}" CommandParameter="PLM"/>
-                    <MenuItem Header="mPLM" ToggleType="Radio"
-                              IsChecked="{Binding IsUnitMilli, Mode=OneWay}"
-                              Command="{Binding SetUnitCommand}" CommandParameter="mPLM"/>
-                    <MenuItem Header="µPLM" ToggleType="Radio"
-                              IsChecked="{Binding IsUnitMicro, Mode=OneWay}"
-                              Command="{Binding SetUnitCommand}" CommandParameter="µPLM"/>
-                    <MenuItem Header="sat" ToggleType="Radio"
-                              IsChecked="{Binding IsUnitSat, Mode=OneWay}"
-                              Command="{Binding SetUnitCommand}" CommandParameter="sat"/>
-                </MenuItem>
-                <Separator/>
-                <MenuItem Header="{Binding Loc[settings.server]}"
-                          Command="{Binding OpenServerSettingsCommand}"
-                          IsEnabled="{Binding IsWalletOpen}"/>
-            </MenuItem>
+            <MenuItem Header="{Binding Loc[menu.settings]}"
+                      Command="{Binding OpenSettingsCommand}"/>
         </Menu>
 
         <!-- ============ WIZARD DI SETUP (§15): un passo alla volta ============ -->
@@ -495,6 +457,77 @@
                     <Button Content="{Binding Loc[addr.close]}"
                             HorizontalAlignment="Right"
                             Command="{Binding CloseServerSettingsCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
+
+        <!-- ============ OVERLAY IMPOSTAZIONI ============ -->
+        <!-- In-app invece dei sottomenu annidati: niente popup OS lenti su WSLg. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnSettingsOverlayBackdropTapped"
+                IsVisible="{Binding IsSettingsOpen}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="460"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[settings.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- Lingua -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Loc[settings.language]}" FontSize="11" Foreground="Gray"/>
+                        <WrapPanel>
+                            <RadioButton GroupName="lang" Content="Italiano" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangIt, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="it"/>
+                            <RadioButton GroupName="lang" Content="English" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangEn, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="en"/>
+                            <RadioButton GroupName="lang" Content="Español" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangEs, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="es"/>
+                            <RadioButton GroupName="lang" Content="Français" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangFr, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="fr"/>
+                            <RadioButton GroupName="lang" Content="Português" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangPt, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="pt"/>
+                            <RadioButton GroupName="lang" Content="Deutsch" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangDe, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="de"/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Unità -->
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding Loc[settings.unit]}" FontSize="11" Foreground="Gray"/>
+                        <WrapPanel>
+                            <RadioButton GroupName="unit" Content="PLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitPlm, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="PLM"/>
+                            <RadioButton GroupName="unit" Content="mPLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitMilli, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="mPLM"/>
+                            <RadioButton GroupName="unit" Content="µPLM" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitMicro, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="µPLM"/>
+                            <RadioButton GroupName="unit" Content="sat" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsUnitSat, Mode=OneWay}"
+                                         Command="{Binding SetUnitCommand}" CommandParameter="sat"/>
+                        </WrapPanel>
+                    </StackPanel>
+
+                    <!-- Server di indicizzazione -->
+                    <Button Content="{Binding Loc[settings.server]}"
+                            HorizontalAlignment="Left"
+                            Command="{Binding OpenServerSettingsCommand}"
+                            IsEnabled="{Binding IsWalletOpen}"/>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding CloseSettingsCommand}"/>
                 </StackPanel>
             </Border>
         </Border>
