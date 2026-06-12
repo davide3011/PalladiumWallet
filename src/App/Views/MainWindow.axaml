@@ -26,10 +26,6 @@
                 <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
                           IsEnabled="{Binding IsWalletOpen}"/>
             </MenuItem>
-            <MenuItem Header="{Binding Loc[menu.net]}">
-                <MenuItem Header="{Binding Loc[menu.net.discover]}" Command="{Binding DiscoverServersCommand}"/>
-                <MenuItem Header="{Binding Loc[menu.net.resetcerts]}" Command="{Binding ResetCertificatesCommand}"/>
-            </MenuItem>
             <MenuItem Header="{Binding Loc[menu.settings]}"
                       Command="{Binding OpenSettingsCommand}"/>
         </Menu>
@@ -159,29 +155,13 @@
         <!-- ============ PANNELLO WALLET ============ -->
         <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
 
-            <!-- Testata: saldo + rete · stato connessione.
-                 Connetti/sincronizza è automatico; chiudi wallet è in File.
-                 Le impostazioni del server sono in Impostazioni → Server. -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
-                <StackPanel Grid.Column="0" Spacing="2">
-                    <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
-                    <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
-                </StackPanel>
-                <!-- Cliccabile: apre le impostazioni del server -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
-                            VerticalAlignment="Top" Cursor="Hand" Background="Transparent"
-                            ToolTip.Tip="{Binding Loc[server.title]}"
-                            Tapped="OnConnectionStatusTapped">
-                    <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
-                             IsVisible="{Binding IsConnected}"/>
-                    <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
-                             IsVisible="{Binding !IsConnected}"/>
-                    <TextBlock Text="{Binding ConnectionStatus}"
-                               Foreground="{DynamicResource SystemAccentColor}"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
+            <!-- Testata: saldo + rete. Connetti/sincronizza è automatico; chiudi
+                 wallet è in File. Lo stato connessione è nella barra in basso. -->
+            <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,12">
+                <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
+                <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
+                <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
+            </StackPanel>
 
             <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
             <TabControl Grid.Row="1">
@@ -331,10 +311,27 @@
             </TabControl>
         </Grid>
 
-        <!-- Barra di stato -->
+        <!-- Barra di stato: messaggio a sinistra, stato connessione a destra.
+             Lo stato connessione è cliccabile e apre le impostazioni del server. -->
         <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
                 Padding="10,6">
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" FontSize="12"
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                            Margin="12,0,0,0" VerticalAlignment="Center"
+                            Cursor="Hand" Background="Transparent"
+                            ToolTip.Tip="{Binding Loc[server.title]}"
+                            Tapped="OnConnectionStatusTapped">
+                    <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
+                             IsVisible="{Binding IsConnected}"/>
+                    <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
+                             IsVisible="{Binding !IsConnected}"/>
+                    <TextBlock Text="{Binding ConnectionStatus}" FontSize="12"
+                               Foreground="{DynamicResource SystemAccentColor}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- ============ OVERLAY DETTAGLIO INDIRIZZO ============ -->
@@ -540,11 +537,10 @@
                         </WrapPanel>
                     </StackPanel>
 
-                    <!-- Server di indicizzazione -->
+                    <!-- Server di indicizzazione (configurabile anche prima di aprire un wallet) -->
                     <Button Content="{Binding Loc[settings.server]}"
                             HorizontalAlignment="Left"
-                            Command="{Binding OpenServerSettingsCommand}"
-                            IsEnabled="{Binding IsWalletOpen}"/>
+                            Command="{Binding OpenServerSettingsCommand}"/>
 
                     <Button Content="{Binding Loc[addr.close]}"
                             HorizontalAlignment="Right"

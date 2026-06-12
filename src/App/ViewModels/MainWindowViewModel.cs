@@ -397,7 +397,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task KeepAliveTickAsync()
     {
-        if (!IsWalletOpen || IsSyncing)
+        // Vale anche senza wallet aperto: se l'utente si è connesso dalle
+        // impostazioni server, la connessione va mantenuta e riconnessa.
+        if (IsSyncing)
             return;
         if (_client is { IsConnected: true })
         {
@@ -461,6 +463,9 @@ public partial class MainWindowViewModel : ViewModelBase
             ? Loc.Tr("msg.welcome.existing")
             : Loc.Tr("msg.welcome.new");
         RefreshServers();
+        // Come Electrum: ci si connette al server già durante il setup, senza
+        // aspettare l'apertura di un wallet (la sync parte poi all'apertura).
+        _ = ConnectAndSync();
     }
 
     private void RefreshServers()
@@ -776,8 +781,6 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task ConnectAndSync()
     {
-        if (_account is null || _doc is null)
-            return;
         if (IsSyncing)
         {
             _resyncRequested = true;
@@ -812,8 +815,18 @@ public partial class MainWindowViewModel : ViewModelBase
                 IsConnected = true;
                 _autoReconnect = true;
                 ConnectionStatus = $"{Loc.Tr("conn.connectedto")} {host}:{port}{(UseSsl ? " (TLS)" : "")}";
-                // Synchronizer per connessione: conserva la cache di tx e
-                // prove verificate, così le risincronizzazioni sono incrementali.
+            }
+
+            // Senza un wallet aperto ci si limita a stabilire/verificare la
+            // connessione: la sincronizzazione richiede un account.
+            if (_account is null || _doc is null)
+                return;
+
+            // Synchronizer legato all'account corrente, creato alla prima sync
+            // dopo la connessione: conserva la cache di tx e prove verificate,
+            // così le risincronizzazioni sono incrementali.
+            if (_synchronizer is null)
+            {
                 _synchronizer = new WalletSynchronizer(_account, _client, _doc.GapLimit);
                 _synchronizer.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
             }
@@ -823,7 +836,7 @@ public partial class MainWindowViewModel : ViewModelBase
             do
             {
                 _resyncRequested = false;
-                var result = await _synchronizer!.SyncOnceAsync();
+                var result = await _synchronizer.SyncOnceAsync();
                 _lastTransactions = result.Transactions;
 
                 _doc.Cache = new SyncCache
