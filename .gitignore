@@ -91,6 +91,3 @@ settings.local.json
 # Local agent/tooling metadata
 .agents/
 .codex/
-CLAUDE.md
-
-blueprint.md
