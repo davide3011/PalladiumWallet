@@ -249,6 +249,17 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private AddressRow? selectedAddressRow;
 
+    /// <summary>Dettaglio indirizzo mostrato nell'overlay in-app; null = nascosto.</summary>
+    [ObservableProperty]
+    private AddressInfo? addressInfo;
+
+    /// <summary>Apre l'overlay con i dati dell'indirizzo passato.</summary>
+    public void ShowAddressInfo(AddressRow row) =>
+        AddressInfo = new AddressInfo(Loc, row.Indirizzo, row.DerivPath, row.PubKey, row.PrivKey);
+
+    [RelayCommand]
+    private void CloseAddressInfo() => AddressInfo = null;
+
     // ---- rubrica contatti ----
 
     public ObservableCollection<ContactEntry> Contacts { get; } = [];

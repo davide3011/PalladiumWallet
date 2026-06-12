@@ -375,5 +375,60 @@
                 Padding="10,6">
             <TextBlock Text="{Binding StatusMessage}" FontSize="12" TextWrapping="Wrap"/>
         </Border>
+
+        <!-- ============ OVERLAY DETTAGLIO INDIRIZZO ============ -->
+        <!-- Overlay in-app invece di una Window separata: apertura/chiusura
+             istantanee (niente create/destroy di una top-level window). -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="#99000000"
+                Tapped="OnAddressOverlayBackdropTapped"
+                IsVisible="{Binding AddressInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+                    Width="560" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    DataContext="{Binding AddressInfo}">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[addr.info.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- Indirizzo -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.address]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding Address}"
+                                             FontFamily="monospace" FontSize="13"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Derivation path -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.derivpath]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding DerivPath}"
+                                             FontFamily="monospace" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Chiave pubblica -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding Loc[addr.pubkey]}" FontSize="11" Foreground="Gray"/>
+                        <SelectableTextBlock Text="{Binding PubKey}"
+                                             FontFamily="monospace" FontSize="12"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- Chiave privata (solo se disponibile) -->
+                    <StackPanel Spacing="4" IsVisible="{Binding HasPrivKey}">
+                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="OrangeRed"/>
+                        <SelectableTextBlock Text="{Binding PrivKey}"
+                                             FontFamily="monospace" FontSize="12"
+                                             Foreground="OrangeRed"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).CloseAddressInfoCommand}"/>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>

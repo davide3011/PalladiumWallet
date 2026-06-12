@@ -37,15 +37,14 @@ public partial class MainWindow : Window
             vm.OpenFromPath(path);
     }
 
-    private async void OnAddressListTapped(object? sender, TappedEventArgs e)
+    private void OnAddressListTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || vm.SelectedAddressRow is not { } row)
             return;
-        var info = new AddressInfo(vm.Loc, row.Indirizzo, row.DerivPath, row.PubKey, row.PrivKey);
-        await new AddressInfoWindow(info).ShowDialog(this);
+        vm.ShowAddressInfo(row);
     }
 
-    private async void OnAddressListPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void OnAddressListPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(null).Properties.IsRightButtonPressed) return;
         if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;
@@ -54,8 +53,26 @@ public partial class MainWindow : Window
         if (item is not { DataContext: AddressRow row }) return;
 
         lb.SelectedItem = row;
+        vm.ShowAddressInfo(row);
+    }
 
-        var info = new AddressInfo(vm.Loc, row.Indirizzo, row.DerivPath, row.PubKey, row.PrivKey);
-        await new AddressInfoWindow(info).ShowDialog(this);
+    // Chiusura dell'overlay dettaglio indirizzo: click sullo sfondo scuro
+    // (solo sullo sfondo, non sulla scheda) o tasto Esc.
+    private void OnAddressOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.AddressInfo = null;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && DataContext is MainWindowViewModel { AddressInfo: not null } vm)
+        {
+            vm.AddressInfo = null;
+            e.Handled = true;
+            return;
+        }
+        base.OnKeyDown(e);
     }
 }
