@@ -254,6 +254,9 @@ public partial class MainWindowViewModel : ViewModelBase
         previous?.Dispose();
     }
 
+    /// <summary>Feedback dopo la copia dell'indirizzo negli appunti (chiamato dal code-behind).</summary>
+    public void NotifyAddressCopied() => StatusMessage = Loc.Tr("addr.copied");
+
     private static Bitmap? GenerateQr(string text)
     {
         try

@@ -87,6 +87,17 @@ public partial class MainWindow : Window
             vm.ApplyDataLocation(path);
     }
 
+    private async void OnCopyReceiveAddressClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || string.IsNullOrEmpty(vm.ReceiveAddress))
+            return;
+        if (Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(vm.ReceiveAddress);
+            vm.NotifyAddressCopied();
+        }
+    }
+
     private void OnConnectionStatusTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)

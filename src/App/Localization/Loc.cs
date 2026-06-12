@@ -116,6 +116,7 @@ public sealed class Loc
         ["tab.send"]              = ["Invia",                                                             "Send",                         "Enviar",                               "Envoyer",                                  "Enviar",                                   "Senden"],
         ["tab.contacts"]          = ["Contatti",                                                          "Contacts",                     "Contactos",                            "Contacts",                                 "Contatos",                                 "Kontakte"],
         ["receive.next"]          = ["Prossimo indirizzo non usato:",                                     "Next unused address:",         "Próxima dirección no usada:",          "Prochaine adresse non utilisée :",         "Próximo endereço não usado:",               "Nächste ungenutzte Adresse:"],
+        ["receive.copy"]          = ["Copia",                                                             "Copy",                         "Copiar",                               "Copier",                                   "Copiar",                                   "Kopieren"],
         ["receive.hint"]          = [
             "Ogni pagamento ricevuto qui comparirà nello storico alla prossima sincronizzazione.",
             "Payments received here will appear in the history at the next synchronization.",

@@ -253,8 +253,14 @@
                 <TabItem Header="{Binding Loc[tab.receive]}">
                     <StackPanel Spacing="10" Margin="8">
                         <TextBlock Text="{Binding Loc[receive.next]}"/>
-                        <SelectableTextBlock Text="{Binding ReceiveAddress}"
-                                             FontFamily="monospace" FontSize="16"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                                 FontFamily="monospace" FontSize="16"
+                                                 VerticalAlignment="Center"/>
+                            <Button Content="{Binding Loc[receive.copy]}"
+                                    Click="OnCopyReceiveAddressClick"
+                                    VerticalAlignment="Center"/>
+                        </StackPanel>
                         <Border Background="White" Padding="12" CornerRadius="6"
                                 HorizontalAlignment="Left"
                                 IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
