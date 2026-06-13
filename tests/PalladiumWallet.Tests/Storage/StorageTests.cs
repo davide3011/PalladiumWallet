@@ -92,4 +92,59 @@ public class StorageTests
         doc.Mnemonic = null;
         Assert.True(WalletDocument.FromJson(doc.ToJson()).IsWatchOnly);
     }
+
+    [Fact]
+    public void WalletLock_acquisisce_e_rilascia()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"plm-lock-{Guid.NewGuid()}.wallet.json");
+        try
+        {
+            using var lock1 = WalletLock.TryAcquire(path);
+            Assert.NotNull(lock1);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".lock");
+        }
+    }
+
+    [Fact]
+    public void WalletLock_seconda_istanza_restituisce_null()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"plm-lock-{Guid.NewGuid()}.wallet.json");
+        try
+        {
+            using var lock1 = WalletLock.TryAcquire(path);
+            Assert.NotNull(lock1);
+
+            var lock2 = WalletLock.TryAcquire(path);
+            Assert.Null(lock2);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".lock");
+        }
+    }
+
+    [Fact]
+    public void WalletLock_riacquisibile_dopo_rilascio()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"plm-lock-{Guid.NewGuid()}.wallet.json");
+        try
+        {
+            var lock1 = WalletLock.TryAcquire(path);
+            Assert.NotNull(lock1);
+            lock1!.Dispose();
+
+            using var lock2 = WalletLock.TryAcquire(path);
+            Assert.NotNull(lock2);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".lock");
+        }
+    }
 }
