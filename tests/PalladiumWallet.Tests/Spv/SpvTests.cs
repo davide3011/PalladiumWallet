@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using NBitcoin;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Spv;
@@ -17,12 +20,26 @@ public class ScripthashTests
         var script = Script.FromHex(scriptHex);
         Assert.Equal(expected, Scripthash.FromScript(script));
     }
+
+    [Fact]
+    public void Script_identici_producono_scripthash_identico()
+    {
+        var script = Script.FromHex("76a9140102030405060708090a0b0c0d0e0f101112131488ac");
+        Assert.Equal(Scripthash.FromScript(script), Scripthash.FromScript(script));
+    }
+
+    [Fact]
+    public void Script_diversi_producono_scripthash_diversi()
+    {
+        var s1 = Script.FromHex("76a9140102030405060708090a0b0c0d0e0f101112131488ac");
+        var s2 = Script.FromHex("00140102030405060708090a0b0c0d0e0f1011121314");
+        Assert.NotEqual(Scripthash.FromScript(s1), Scripthash.FromScript(s2));
+    }
 }
 
 public class MerkleProofTests
 {
-    // Blocco Bitcoin 100000: 4 transazioni, merkle root nota — àncora esterna
-    // per la convenzione di hashing/ordinamento.
+    // Blocco Bitcoin 100000: 4 transazioni (pari), merkle root nota.
     private static readonly uint256[] Block100000Txids =
     [
         uint256.Parse("8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87"),
@@ -33,6 +50,8 @@ public class MerkleProofTests
 
     private static readonly uint256 Block100000Root =
         uint256.Parse("f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766");
+
+    // ---- numero pari di transazioni (4 tx) ----
 
     [Fact]
     public void La_radice_calcolata_dalle_foglie_coincide_con_quella_del_blocco()
@@ -51,6 +70,70 @@ public class MerkleProofTests
         Assert.True(MerkleProof.Verify(Block100000Txids[position], position, branch, Block100000Root));
     }
 
+    // ---- singola transazione ----
+
+    [Fact]
+    public void Radice_con_singola_tx_e_la_tx_stessa()
+    {
+        var txid = uint256.Parse("8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87");
+        var root = MerkleProof.ComputeRootFromLeaves([txid]);
+        Assert.Equal(txid, root);
+    }
+
+    [Fact]
+    public void Verify_con_branch_vuoto_e_posizione_0_e_la_tx_stessa()
+    {
+        var txid = uint256.Parse("8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87");
+        var root = MerkleProof.ComputeRootFromLeaves([txid]);
+        Assert.True(MerkleProof.Verify(txid, 0, [], root));
+    }
+
+    // ---- numero dispari di transazioni (duplicazione dell'ultimo) ----
+
+    [Fact]
+    public void Tre_tx_dispari_la_terza_viene_duplicata()
+    {
+        // Con 3 tx: livello 1 = [SHA256d(tx0||tx1), SHA256d(tx2||tx2)]
+        // Verifica che la radice sia deterministica e corretta.
+        var txids = Block100000Txids.Take(3).ToArray();
+        var root = MerkleProof.ComputeRootFromLeaves(txids);
+        var branch2 = BuildBranch(txids, 2);
+        Assert.True(MerkleProof.Verify(txids[2], 2, branch2, root));
+    }
+
+    [Fact]
+    public void Cinque_tx_dispari_verifica_tutte_le_posizioni()
+    {
+        // 5 tx → livello pari (4) → livello pari (2) → radice
+        var txids = new uint256[5];
+        for (var i = 0; i < 5; i++)
+            txids[i] = new uint256(new byte[32].Select((_, j) => (byte)(i * 17 + j)).ToArray());
+        var root = MerkleProof.ComputeRootFromLeaves(txids);
+
+        for (var pos = 0; pos < 5; pos++)
+        {
+            var branch = BuildBranch(txids, pos);
+            Assert.True(MerkleProof.Verify(txids[pos], pos, branch, root),
+                $"posizione {pos} non verifica");
+        }
+    }
+
+    // ---- due transazioni (pari minimo) ----
+
+    [Fact]
+    public void Due_tx_verifica_entrambe_le_posizioni()
+    {
+        var txids = Block100000Txids.Take(2).ToArray();
+        var root = MerkleProof.ComputeRootFromLeaves(txids);
+        for (var pos = 0; pos < 2; pos++)
+        {
+            var branch = BuildBranch(txids, pos);
+            Assert.True(MerkleProof.Verify(txids[pos], pos, branch, root));
+        }
+    }
+
+    // ---- proof errate ----
+
     [Fact]
     public void Una_prova_per_la_posizione_sbagliata_fallisce()
     {
@@ -63,6 +146,29 @@ public class MerkleProofTests
     {
         var branch = BuildBranch(Block100000Txids, 0);
         Assert.False(MerkleProof.Verify(uint256.One, 0, branch, Block100000Root));
+    }
+
+    [Fact]
+    public void Branch_alterato_non_verifica()
+    {
+        var branch = BuildBranch(Block100000Txids, 0);
+        branch[0] = uint256.One; // corrompe il primo elemento del branch
+        Assert.False(MerkleProof.Verify(Block100000Txids[0], 0, branch, Block100000Root));
+    }
+
+    [Fact]
+    public void Radice_alterata_non_verifica()
+    {
+        var branch = BuildBranch(Block100000Txids, 0);
+        Assert.False(MerkleProof.Verify(Block100000Txids[0], 0, branch, uint256.One));
+    }
+
+    // ---- lista vuota lancia eccezione ----
+
+    [Fact]
+    public void Lista_vuota_lancia_ArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => MerkleProof.ComputeRootFromLeaves([]));
     }
 
     /// <summary>Costruisce il branch per una foglia ricostruendo i livelli dell'albero.</summary>
@@ -89,7 +195,6 @@ public class MerkleProofTests
 
 public class BlockHeaderInfoTests
 {
-    // Header del blocco genesi di Bitcoin (riusato dalla mainnet PLM, §3).
     private const string GenesisHeaderHex =
         "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c";
 
@@ -118,10 +223,20 @@ public class BlockHeaderInfoTests
     [Fact]
     public void Con_skip_pow_la_validazione_non_controlla_il_target()
     {
-        // La genesi ha PoW valido, ma il punto è che con SkipPowValidation=true
-        // (LWMA, §3) il check si limita al collegamento.
         var header = BlockHeaderInfo.Parse(GenesisHeaderHex);
         Assert.True(ChainProfiles.Mainnet.SkipPowValidation);
         Assert.True(header.IsValidChild(uint256.Zero, ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void Header_troncato_lancia_eccezione()
+    {
+        Assert.ThrowsAny<Exception>(() => BlockHeaderInfo.Parse("0100000000"));
+    }
+
+    [Fact]
+    public void Header_hex_non_valido_lancia_eccezione()
+    {
+        Assert.ThrowsAny<Exception>(() => BlockHeaderInfo.Parse("ZZZ"));
     }
 }

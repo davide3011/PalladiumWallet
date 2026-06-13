@@ -69,6 +69,42 @@ public class ChainProfileTests
         Assert.StartsWith("tpub", EncodeWithHeader(headers.Public));
     }
 
+    [Fact]
+    public void Rete_sconosciuta_lancia_ArgumentException()
+    {
+        Assert.ThrowsAny<ArgumentException>(() => ChainProfiles.For((NetKind)99));
+    }
+
+    [Fact]
+    public void I_tre_profili_sono_istanze_distinte()
+    {
+        Assert.NotSame(ChainProfiles.Mainnet, ChainProfiles.Testnet);
+        Assert.NotSame(ChainProfiles.Mainnet, ChainProfiles.Regtest);
+        Assert.NotSame(ChainProfiles.Testnet, ChainProfiles.Regtest);
+    }
+
+    [Fact]
+    public void Tutti_i_profili_hanno_gli_stessi_porti_tcp_ssl()
+    {
+        foreach (var profile in new[] { ChainProfiles.Mainnet, ChainProfiles.Testnet, ChainProfiles.Regtest })
+        {
+            Assert.Equal(50001, profile.DefaultTcpPort);
+            Assert.Equal(50002, profile.DefaultSslPort);
+        }
+    }
+
+    [Fact]
+    public void Coin_type_mainnet_e_746()
+    {
+        Assert.Equal(746, ChainProfiles.Mainnet.Bip44CoinType);
+    }
+
+    [Fact]
+    public void Coin_type_testnet_e_1()
+    {
+        Assert.Equal(1, ChainProfiles.Testnet.Bip44CoinType);
+    }
+
     // Serializza header (4 byte BE) + payload BIP32 di 74 byte e codifica Base58Check:
     // il prefisso testuale risultante dipende solo dall'header.
     private static string EncodeWithHeader(uint header)
