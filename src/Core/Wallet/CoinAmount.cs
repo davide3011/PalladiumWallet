@@ -46,7 +46,10 @@ public static class CoinAmount
             return false;
         try
         {
-            sats = (long)(value * factor);
+            var satsDecimal = value * factor;
+            if (satsDecimal % 1 != 0)
+                return false;
+            sats = (long)satsDecimal;
         }
         catch (OverflowException)
         {
@@ -65,7 +68,10 @@ public static class CoinAmount
             return false;
         try
         {
-            sats = (long)(coins * SatsPerCoin);
+            var satsDecimal = coins * SatsPerCoin;
+            if (satsDecimal % 1 != 0)
+                return false;
+            sats = (long)satsDecimal;
         }
         catch (OverflowException)
         {
