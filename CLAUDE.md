@@ -36,8 +36,8 @@ by `MainWindow` on desktop and as the single-view root on Android.
 
 ## Commands
 
-.NET 10 SDK lives in `~/.dotnet`: in non-interactive shells, before any `dotnet` command run
-`export PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="$HOME/.dotnet"`.
+.NET 10 SDK lives in `~/.dotnet10`: in non-interactive shells, before any `dotnet` command run
+`export PATH="$HOME/.dotnet10:$PATH" DOTNET_ROOT="$HOME/.dotnet10"`.
 
 - Build: `dotnet build`
 - Tests (headless, the primary verification layer): `dotnet test` — single: `dotnet test --filter "FullyQualifiedName~TestName"`
