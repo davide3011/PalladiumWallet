@@ -57,6 +57,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private HdAccount? _account;
     private string? _walletPath;
     private string? _password;
+    private WalletLock? _walletLock;
     private ElectrumClient? _client;
     private WalletSynchronizer? _synchronizer;
     private IReadOnlyDictionary<string, Transaction>? _lastTransactions;
@@ -896,6 +897,10 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             StatusMessage = Loc.Tr("msg.wrongpassword");
         }
+        catch (UnauthorizedAccessException)
+        {
+            StatusMessage = Loc.Tr("msg.wallet.noaccess");
+        }
         catch (Exception ex)
         {
             StatusMessage = $"Errore: {ex.Message}";
@@ -923,6 +928,10 @@ public partial class MainWindowViewModel : ViewModelBase
             SetupStep = StepOpen;
             StatusMessage = "";
         }
+        catch (UnauthorizedAccessException)
+        {
+            StatusMessage = Loc.Tr("msg.wallet.noaccess");
+        }
         catch (Exception ex)
         {
             StatusMessage = $"Errore: {ex.Message}";
@@ -939,8 +948,24 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "";
     }
 
+    private bool TryAcquireWalletLock(string path)
+    {
+        var acquired = WalletLock.TryAcquire(path);
+        if (acquired is null)
+        {
+            StatusMessage = Loc.Tr("msg.wallet.locked");
+            return false;
+        }
+        _walletLock?.Dispose();
+        _walletLock = acquired;
+        return true;
+    }
+
     private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password)
     {
+        if (!TryAcquireWalletLock(path))
+            return;
+
         // La rete del wallet comanda (registry, pin TLS, indirizzi).
         SelectedNetwork = doc.Network;
         _doc = doc;
@@ -1246,6 +1271,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void CloseWallet()
     {
+        _walletLock?.Dispose();
+        _walletLock = null;
         _ = _client?.DisposeAsync().AsTask();
         _client = null;
         _synchronizer = null;
