@@ -1,0 +1,70 @@
+using System.Collections.ObjectModel;
+using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using PalladiumWallet.Core.Storage;
+
+namespace PalladiumWallet.App.ViewModels;
+
+public partial class MainWindowViewModel
+{
+    public ObservableCollection<ContactEntry> Contacts { get; } = [];
+
+    [ObservableProperty]
+    private ContactEntry? selectedContactInList;
+
+    /// <summary>Contatto selezionato nella ComboBox del pannello Invia: riempie SendTo.</summary>
+    [ObservableProperty]
+    private ContactEntry? sendToContact;
+
+    partial void OnSendToContactChanged(ContactEntry? value)
+    {
+        if (value is not null)
+            SendTo = value.Address;
+    }
+
+    [ObservableProperty]
+    private string newContactName = "";
+
+    [ObservableProperty]
+    private string newContactAddress = "";
+
+    [RelayCommand]
+    private void AddContact()
+    {
+        var name = NewContactName.Trim();
+        var addr = NewContactAddress.Trim();
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(addr)) return;
+        Contacts.Add(new ContactEntry(name, addr));
+        NewContactName = NewContactAddress = "";
+        PersistContacts();
+    }
+
+    [RelayCommand]
+    private void RemoveSelectedContact()
+    {
+        if (SelectedContactInList is { } c)
+        {
+            Contacts.Remove(c);
+            SelectedContactInList = null;
+            PersistContacts();
+        }
+    }
+
+    private void PersistContacts()
+    {
+        if (_doc is null || _walletPath is null) return;
+        _doc.Contacts = Contacts
+            .Select(c => new StoredContact { Name = c.Name, Address = c.Address })
+            .ToList();
+        WalletStore.Save(_doc, _walletPath, _password);
+    }
+
+    private void LoadContacts()
+    {
+        Contacts.Clear();
+        if (_doc is null) return;
+        foreach (var c in _doc.Contacts)
+            Contacts.Add(new ContactEntry(c.Name, c.Address));
+    }
+}
