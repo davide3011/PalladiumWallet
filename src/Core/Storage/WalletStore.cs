@@ -25,6 +25,8 @@ public static class WalletStore
         return WalletDocument.FromJson(content);
     }
 
+    /// <param name="password">Null saves in plaintext. Only omit when the user has
+    /// explicitly opted out of encryption (UI must show a clear warning).</param>
     public static void Save(WalletDocument doc, string path, string? password = null)
     {
         var content = doc.ToJson();
