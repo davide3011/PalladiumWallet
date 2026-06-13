@@ -16,10 +16,11 @@ public static class CoinAmount
     /// <summary>(satoshi per unità, decimali mostrati) di ciascuna unità.</summary>
     private static (long Factor, int Decimals) Of(string unit) => unit switch
     {
+        "PLM"  => (SatsPerCoin, 8),
         "mPLM" => (100_000, 5),
         "µPLM" => (100, 2),
-        "sat" => (1, 0),
-        _ => (SatsPerCoin, 8), // PLM
+        "sat"  => (1, 0),
+        _ => throw new ArgumentException($"Unknown coin unit: {unit}", nameof(unit)),
     };
 
     public static string Format(long sats, string unit = "") =>

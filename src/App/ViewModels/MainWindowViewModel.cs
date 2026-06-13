@@ -874,7 +874,9 @@ public partial class MainWindowViewModel : ViewModelBase
             for (var n = 2; WalletStore.Exists(path); n++)
                 path = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
             WalletStore.Save(doc, path, password);
-            OpenLoaded(doc, account, path, password);
+            var newLock = WalletLock.TryAcquire(path);
+            if (newLock is null) { StatusMessage = Loc.Tr("msg.wallet.locked"); return; }
+            OpenLoaded(doc, account, path, password, newLock);
         }
         catch (Exception ex)
         {
@@ -885,24 +887,33 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void OpenExisting()
     {
+        var path = _pendingOpenPath ?? AppPaths.DefaultWalletPath(Net);
+        var password = string.IsNullOrEmpty(PasswordInput) ? null : PasswordInput;
+
+        // Il lock viene acquisito prima del caricamento: se il wallet è già aperto
+        // altrove, non ha senso nemmeno tentare la decifrazione.
+        var newLock = WalletLock.TryAcquire(path);
+        if (newLock is null) { StatusMessage = Loc.Tr("msg.wallet.locked"); return; }
+
         try
         {
-            var path = _pendingOpenPath ?? AppPaths.DefaultWalletPath(Net);
-            var password = string.IsNullOrEmpty(PasswordInput) ? null : PasswordInput;
             var doc = WalletStore.Load(path, password);
             _pendingOpenPath = null;
-            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password);
+            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password, newLock);
         }
         catch (WrongPasswordException)
         {
+            newLock.Dispose();
             StatusMessage = Loc.Tr("msg.wrongpassword");
         }
         catch (UnauthorizedAccessException)
         {
+            newLock.Dispose();
             StatusMessage = Loc.Tr("msg.wallet.noaccess");
         }
         catch (Exception ex)
         {
+            newLock.Dispose();
             StatusMessage = $"Errore: {ex.Message}";
         }
     }
@@ -910,16 +921,22 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Apertura di un file wallet qualunque (menu File → Apri, multi-wallet §8).</summary>
     public void OpenFromPath(string path)
     {
+        // Il lock viene acquisito prima di chiudere l'eventuale wallet aperto:
+        // se il nuovo wallet non è disponibile, la sessione corrente resta intatta.
+        var newLock = WalletLock.TryAcquire(path);
+        if (newLock is null) { StatusMessage = Loc.Tr("msg.wallet.locked"); return; }
+
         try
         {
+            var doc = WalletStore.Load(path);
             if (IsWalletOpen)
                 CloseWallet();
-            var doc = WalletStore.Load(path);
-            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password: null);
+            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password: null, newLock);
         }
         catch (WrongPasswordException)
         {
             // Cifrato: si chiede la password nel passo di apertura del wizard.
+            newLock.Dispose();
             if (IsWalletOpen)
                 CloseWallet();
             _pendingOpenPath = path;
@@ -930,10 +947,12 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (UnauthorizedAccessException)
         {
+            newLock.Dispose();
             StatusMessage = Loc.Tr("msg.wallet.noaccess");
         }
         catch (Exception ex)
         {
+            newLock.Dispose();
             StatusMessage = $"Errore: {ex.Message}";
         }
     }
@@ -948,23 +967,10 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = "";
     }
 
-    private bool TryAcquireWalletLock(string path)
+    private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password, WalletLock walletLock)
     {
-        var acquired = WalletLock.TryAcquire(path);
-        if (acquired is null)
-        {
-            StatusMessage = Loc.Tr("msg.wallet.locked");
-            return false;
-        }
         _walletLock?.Dispose();
-        _walletLock = acquired;
-        return true;
-    }
-
-    private void OpenLoaded(WalletDocument doc, HdAccount account, string path, string? password)
-    {
-        if (!TryAcquireWalletLock(path))
-            return;
+        _walletLock = walletLock;
 
         // La rete del wallet comanda (registry, pin TLS, indirizzi).
         SelectedNetwork = doc.Network;
