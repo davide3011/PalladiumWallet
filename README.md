@@ -141,6 +141,8 @@ dotnet test tests/PalladiumWallet.Tests
 
 > Cross-implementation tests compare addresses, txids and PSBTs against reference golden vectors: a different address or txid is a blocking bug.
 
+The suite includes **property-based tests** ([CsCheck](https://github.com/AnthonyLloyd/CsCheck)) in `tests/PalladiumWallet.Tests/PropertyTests.cs`. These generate hundreds of random inputs per test and verify invariants that must hold universally — no crash on arbitrary strings, encrypt/decrypt roundtrip for any plaintext and password, every leaf in a randomly-built Merkle tree verifies against its root. They run automatically with `dotnet test` and take ~30 s.
+
 ---
 
 ## Building

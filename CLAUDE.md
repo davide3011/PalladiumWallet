@@ -40,7 +40,7 @@ by `MainWindow` on desktop and as the single-view root on Android.
 `export PATH="$HOME/.dotnet10:$PATH" DOTNET_ROOT="$HOME/.dotnet10"`.
 
 - Build: `dotnet build`
-- Tests (headless, the primary verification layer): `dotnet test` — single: `dotnet test --filter "FullyQualifiedName~TestName"`
+- Tests (headless, the primary verification layer): `dotnet test` — single: `dotnet test --filter "FullyQualifiedName~TestName"`; property-based tests (CsCheck, `PropertyTests.cs`) run in the same command and take ~30 s
 - GUI hot reload: `dotnet watch --project src/App.Desktop` (on WSL2/WSLg the window shows on the Windows desktop, no graphics dependencies to install)
 - CLI: `dotnet run --project src/Cli -- <command>` (no args → usage)
 - Windows publish: `dotnet publish src/App.Desktop -r win-x64 -p:PublishSingleFile=true --self-contained`
