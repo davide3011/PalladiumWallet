@@ -15,7 +15,7 @@
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- ============ MENU (stile Electrum) ============ -->
-        <Menu Grid.Row="0">
+        <Menu Grid.Row="0" IsVisible="{Binding IsDesktop}">
             <MenuItem Header="{Binding Loc[menu.file]}">
                 <MenuItem Header="{Binding Loc[menu.file.new]}" Command="{Binding NewWalletCommand}"/>
                 <MenuItem Header="{Binding Loc[menu.file.open]}" Click="OnOpenWalletFileClick"
@@ -29,6 +29,14 @@
             <MenuItem Header="{Binding Loc[menu.help]}"
                       Command="{Binding OpenHelpCommand}"/>
         </Menu>
+
+        <!-- Pulsanti Settings/Help mobile-only (il menu è nascosto su mobile) -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8"
+                    HorizontalAlignment="Right" Margin="8,4"
+                    IsVisible="{Binding IsMobile}">
+            <Button Content="{Binding Loc[menu.settings]}" Command="{Binding OpenSettingsCommand}"/>
+            <Button Content="{Binding Loc[menu.help]}"     Command="{Binding OpenHelpCommand}"/>
+        </StackPanel>
 
         <!-- ============ WIZARD DI SETUP (§15): un passo alla volta ============ -->
         <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSetupVisible}">
@@ -188,25 +196,44 @@
             </StackPanel>
 
             <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
-            <TabControl Grid.Row="1">
+            <TabControl Grid.Row="1"
+                        TabStripPlacement="{Binding IsMobile, Converter={x:Static vm:BoolToTabPlacementConverter.Instance}}">
 
                 <!-- 1. Storico -->
                 <TabItem Header="{Binding Loc[tab.history]}">
                     <Grid RowDefinitions="Auto,*" Margin="4">
                         <TextBlock Grid.Row="0" Text="{Binding Loc[history.hint]}"
+                                   IsVisible="{Binding IsDesktop}"
                                    Foreground="Gray" FontSize="11" Margin="6,2"/>
                         <ListBox Grid.Row="1" ItemsSource="{Binding History}"
                                  DoubleTapped="OnHistoryRowDoubleTapped">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryRow">
-                                    <Grid ColumnDefinitions="90,160,*,70" Cursor="Hand">
-                                        <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Txid}"
-                                                   FontFamily="monospace" FontSize="12"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
-                                    </Grid>
+                                    <Panel Cursor="Hand">
+                                        <!-- Desktop: 4 colonne fisse -->
+                                        <Grid ColumnDefinitions="90,160,*,70"
+                                              IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
+                                            <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Txid}"
+                                                       FontFamily="monospace" FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
+                                        </Grid>
+                                        <!-- Mobile: card verticale -->
+                                        <StackPanel Spacing="2"
+                                                    IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0" Text="{Binding Importo}"
+                                                           FontFamily="monospace" FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Verificata}"
+                                                           Foreground="Green" FontSize="11"/>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Conferma}" Foreground="Gray" FontSize="11"/>
+                                            <TextBlock Text="{Binding Txid}" FontFamily="monospace" FontSize="11"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Panel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -221,8 +248,7 @@
                             <TextBlock Text="{Binding Loc[send.from.contact]}" VerticalAlignment="Center"/>
                             <ComboBox ItemsSource="{Binding Contacts}"
                                       SelectedItem="{Binding SendToContact}"
-                                      PlaceholderText="{Binding Loc[send.contact.hint]}"
-                                      MinWidth="220">
+                                      PlaceholderText="{Binding Loc[send.contact.hint]}">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate x:DataType="vm:ContactEntry">
                                         <TextBlock Text="{Binding Name}"/>
@@ -232,7 +258,8 @@
                         </StackPanel>
                         <TextBox PlaceholderText="{Binding Loc[send.to]}" Text="{Binding SendTo}"
                                  FontFamily="monospace"/>
-                        <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                        <!-- Desktop: riga amount + fee in 4 colonne -->
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding IsDesktop}">
                             <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
                                      Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
                             <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
@@ -244,6 +271,21 @@
                                 <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
                             </StackPanel>
                         </Grid>
+                        <!-- Mobile: amount e fee su righe separate -->
+                        <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
+                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
+                                         Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
+                                <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                           VerticalAlignment="Center" Margin="6,0" Foreground="Gray"/>
+                                <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="6,0"
+                                          IsChecked="{Binding SendAll}"/>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center"/>
+                                <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
+                            </StackPanel>
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <Button Content="{Binding Loc[send.prepare]}" Command="{Binding PrepareSendCommand}"/>
                             <Button Content="{Binding Loc[send.confirm]}" Classes="accent"
@@ -259,7 +301,8 @@
                 <TabItem Header="{Binding Loc[tab.receive]}">
                     <StackPanel Spacing="10" Margin="8">
                         <TextBlock Text="{Binding Loc[receive.next]}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!-- Desktop: indirizzo + copia su una riga -->
+                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
                             <SelectableTextBlock Text="{Binding ReceiveAddress}"
                                                  FontFamily="monospace" FontSize="16"
                                                  VerticalAlignment="Center"/>
@@ -267,8 +310,18 @@
                                     Click="OnCopyReceiveAddressClick"
                                     VerticalAlignment="Center"/>
                         </StackPanel>
+                        <!-- Mobile: indirizzo su riga intera + copia sotto -->
+                        <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
+                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                                 FontFamily="monospace" FontSize="13"
+                                                 TextWrapping="Wrap"/>
+                            <Button Content="{Binding Loc[receive.copy]}"
+                                    Click="OnCopyReceiveAddressClick"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"/>
+                        </StackPanel>
                         <Border Background="White" Padding="12" CornerRadius="6"
-                                HorizontalAlignment="Left"
+                                HorizontalAlignment="Center"
                                 IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
                             <Image Source="{Binding ReceiveQr}" Width="220" Height="220"
                                    RenderOptions.BitmapInterpolationMode="None"/>
@@ -281,7 +334,9 @@
                 <!-- 4. Indirizzi -->
                 <TabItem Header="{Binding Loc[tab.addresses]}">
                     <Grid RowDefinitions="Auto,*" Margin="4">
-                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4">
+                        <!-- Intestazione colonne — solo desktop -->
+                        <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4"
+                              IsVisible="{Binding IsDesktop}">
                             <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
                             <TextBlock Grid.Column="1" Text="{Binding Loc[addr.index]}" FontWeight="Bold"/>
                             <TextBlock Grid.Column="2" Text="{Binding Loc[addr.address]}" FontWeight="Bold"/>
@@ -295,14 +350,31 @@
                                  PointerPressed="OnAddressListPointerPressed">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:AddressRow">
-                                    <Grid ColumnDefinitions="90,60,*,140,60">
-                                        <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Indirizzo}"
-                                                   FontFamily="monospace" FontSize="13"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
-                                        <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
-                                    </Grid>
+                                    <Panel>
+                                        <!-- Desktop: 5 colonne fisse -->
+                                        <Grid ColumnDefinitions="90,60,*,140,60"
+                                              IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
+                                            <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Indirizzo}"
+                                                       FontFamily="monospace" FontSize="13"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
+                                        </Grid>
+                                        <!-- Mobile: card verticale -->
+                                        <StackPanel Spacing="1" Margin="0,3"
+                                                    IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
+                                            <TextBlock Text="{Binding Indirizzo}"
+                                                       FontFamily="monospace" FontSize="12"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="{Binding Tipo}" Foreground="Gray" FontSize="11"/>
+                                                <TextBlock Text="{Binding Indice}" Foreground="Gray" FontSize="11"/>
+                                                <TextBlock Text="{Binding Saldo}" FontFamily="monospace" FontSize="11"/>
+                                                <TextBlock Text="{Binding NumTx}" Foreground="Gray" FontSize="11"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Panel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -312,8 +384,9 @@
                 <!-- 5. Contatti -->
                 <TabItem Header="{Binding Loc[tab.contacts]}">
                     <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="4">
-                        <!-- Intestazioni colonne -->
-                        <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4">
+                        <!-- Intestazioni colonne — solo desktop -->
+                        <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4"
+                              IsVisible="{Binding IsDesktop}">
                             <TextBlock Grid.Column="0" Text="{Binding Loc[contacts.name]}" FontWeight="Bold"/>
                             <TextBlock Grid.Column="1" Text="{Binding Loc[contacts.address]}" FontWeight="Bold"/>
                         </Grid>
@@ -322,13 +395,25 @@
                                  SelectedItem="{Binding SelectedContactInList}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ContactEntry">
-                                    <Grid ColumnDefinitions="180,*">
-                                        <TextBlock Grid.Column="0" Text="{Binding Name}"
-                                                   VerticalAlignment="Center"/>
-                                        <SelectableTextBlock Grid.Column="1" Text="{Binding Address}"
-                                                             FontFamily="monospace" FontSize="12"
-                                                             VerticalAlignment="Center"/>
-                                    </Grid>
+                                    <Panel>
+                                        <!-- Desktop: 2 colonne -->
+                                        <Grid ColumnDefinitions="180,*"
+                                              IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
+                                            <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                       VerticalAlignment="Center"/>
+                                            <SelectableTextBlock Grid.Column="1" Text="{Binding Address}"
+                                                                 FontFamily="monospace" FontSize="12"
+                                                                 VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <!-- Mobile: card verticale -->
+                                        <StackPanel Spacing="1" Margin="0,3"
+                                                    IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"/>
+                                            <SelectableTextBlock Text="{Binding Address}"
+                                                                 FontFamily="monospace" FontSize="11"
+                                                                 TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Panel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -337,8 +422,9 @@
                                 Command="{Binding RemoveSelectedContactCommand}"
                                 IsEnabled="{Binding SelectedContactInList, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 Margin="0,6,0,0"/>
-                        <!-- Form aggiungi contatto -->
-                        <Grid Grid.Row="3" ColumnDefinitions="180,*,Auto" Margin="0,8,0,0">
+                        <!-- Form aggiungi contatto — Desktop: 3 colonne -->
+                        <Grid Grid.Row="3" ColumnDefinitions="180,*,Auto" Margin="0,8,0,0"
+                              IsVisible="{Binding IsDesktop}">
                             <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[contacts.name.ph]}"
                                      Text="{Binding NewContactName}" Margin="0,0,6,0"/>
                             <TextBox Grid.Column="1" PlaceholderText="{Binding Loc[contacts.address.ph]}"
@@ -347,6 +433,18 @@
                             <Button Grid.Column="2" Content="{Binding Loc[contacts.add]}"
                                     Command="{Binding AddContactCommand}"/>
                         </Grid>
+                        <!-- Form aggiungi contatto — Mobile: verticale -->
+                        <StackPanel Grid.Row="3" Spacing="6" Margin="0,8,0,0"
+                                    IsVisible="{Binding IsMobile}">
+                            <TextBox PlaceholderText="{Binding Loc[contacts.name.ph]}"
+                                     Text="{Binding NewContactName}"/>
+                            <TextBox PlaceholderText="{Binding Loc[contacts.address.ph]}"
+                                     Text="{Binding NewContactAddress}" FontFamily="monospace"/>
+                            <Button Content="{Binding Loc[contacts.add]}"
+                                    Command="{Binding AddContactCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Center"/>
+                        </StackPanel>
                     </Grid>
                 </TabItem>
 
@@ -385,9 +483,10 @@
                 IsVisible="{Binding AddressInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    Width="560" Padding="0"
+                    MaxWidth="540" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     DataContext="{Binding AddressInfo}">
+                <ScrollViewer MaxHeight="640">
                 <StackPanel Margin="24" Spacing="16">
                     <TextBlock Text="{Binding Loc[addr.info.title]}"
                                FontSize="18" FontWeight="Bold"/>
@@ -428,6 +527,7 @@
                             HorizontalAlignment="Right"
                             Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseAddressInfoCommand}"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Border>
 
@@ -440,7 +540,7 @@
                 IsVisible="{Binding IsTxDetailsOpen}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    Width="640" MaxHeight="600" Padding="0"
+                    MaxWidth="540" MaxHeight="600" Margin="16" Padding="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Panel Margin="24">
 
@@ -564,8 +664,9 @@
                 IsVisible="{Binding IsServerSettingsOpen}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    Width="560" MaxHeight="540"
+                    MaxWidth="540" MaxHeight="540" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ScrollViewer>
                 <StackPanel Margin="24" Spacing="14">
                     <TextBlock Text="{Binding Loc[server.title]}"
                                FontSize="18" FontWeight="Bold"/>
@@ -642,6 +743,7 @@
                             HorizontalAlignment="Right"
                             Command="{Binding CloseServerSettingsCommand}"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Border>
 
@@ -653,8 +755,9 @@
                 IsVisible="{Binding IsSettingsOpen}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    Width="460"
+                    MaxWidth="440" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ScrollViewer MaxHeight="640">
                 <StackPanel Margin="24" Spacing="16">
                     <TextBlock Text="{Binding Loc[settings.title]}"
                                FontSize="18" FontWeight="Bold"/>
@@ -712,6 +815,7 @@
                             HorizontalAlignment="Right"
                             Command="{Binding CloseSettingsCommand}"/>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Border>
 
@@ -723,7 +827,7 @@
                 IsVisible="{Binding IsHelpOpen}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    Width="460"
+                    MaxWidth="440" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Margin="24" Spacing="16">
                     <TextBlock Text="{Binding Loc[help.title]}"

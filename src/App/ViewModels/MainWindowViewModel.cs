@@ -94,6 +94,8 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>true su desktop; false su Android/iOS — nasconde le funzioni legate al filesystem libero.</summary>
     public bool IsDesktop => !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS();
 
+    public bool IsMobile => !IsDesktop;
+
     public string UnitLabel => _config.Unit;
     public AppConfig CurrentConfig => _config;
 
