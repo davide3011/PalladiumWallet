@@ -52,7 +52,7 @@ public sealed class Loc
         ["menu.net.resetcerts"]   = ["Reset certificati SSL",                                             "Reset SSL certificates",       "Restablecer certificados SSL",         "Réinitialiser les certificats SSL",        "Redefinir certificados SSL",               "SSL-Zertifikate zurücksetzen"],
         ["menu.settings"]         = ["_Impostazioni",                                                     "_Settings",                    "_Configuración",                       "_Paramètres",                              "_Configurações",                           "_Einstellungen"],
         ["menu.help"]             = ["_Help",                                                             "_Help",                        "_Ayuda",                               "_Aide",                                    "_Ajuda",                                   "_Hilfe"],
-        ["help.title"]            = ["Informazioni sul software",                                         "About this software",          "Información del software",             "À propos du logiciel",                     "Sobre o software",                         "Über die Software"],
+        ["help.title"]            = ["Informazioni",                                                     "About",                        "Información",                          "À propos",                                 "Sobre",                                    "Über"],
         ["help.info"]             = [
             "Wallet SPV per la criptovaluta Palladium (PLM).",
             "SPV wallet for the Palladium (PLM) cryptocurrency.",
@@ -191,7 +191,7 @@ public sealed class Loc
         ["conn.reconnecting"]     = ["riconnessione…",                                                    "reconnecting…",                "reconectando…",                        "reconnexion…",                             "reconectando…",                            "Verbindung wird wiederhergestellt…"],
         ["conn.error"]            = ["errore di connessione",                                             "connection error",             "error de conexión",                    "erreur de connexion",                      "erro de conexão",                          "Verbindungsfehler"],
         ["conn.certchanged"]      = ["certificato cambiato",                                              "certificate changed",          "certificado cambiado",                 "certificat modifié",                       "certificado alterado",                     "Zertifikat geändert"],
-        ["conn.connectedto"]      = ["connesso a",                                                        "connected to",                 "conectado a",                          "connecté à",                               "conectado a",                              "verbunden mit"],
+        ["conn.connectedto"]      = ["connesso",                                                          "connected",                    "conectado",                            "connecté",                                 "conectado",                                "verbunden"],
         ["conn.connectingto"]     = ["connessione a",                                                     "connecting to",                "conectando a",                         "connexion à",                              "conectando a",                             "Verbindung zu"],
 
         // Messaggi di stato principali

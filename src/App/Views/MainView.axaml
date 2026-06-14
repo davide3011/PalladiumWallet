@@ -199,8 +199,33 @@
             <TabControl Grid.Row="1"
                         TabStripPlacement="{Binding IsMobile, Converter={x:Static vm:BoolToTabPlacementConverter.Instance}}">
 
+                <TabControl.Styles>
+                    <!-- Tab equamente distribuiti su tutta la larghezza -->
+                    <Style Selector="TabStrip">
+                        <Setter Property="ItemsPanel">
+                            <ItemsPanelTemplate>
+                                <UniformGrid Rows="1"/>
+                            </ItemsPanelTemplate>
+                        </Setter>
+                    </Style>
+                    <Style Selector="TabItem">
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="6,8"/>
+                    </Style>
+                </TabControl.Styles>
+
                 <!-- 1. Storico -->
-                <TabItem Header="{Binding Loc[tab.history]}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <TextBlock Text="≡" FontSize="19" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsMobile}"/>
+                            <TextBlock Text="{Binding Loc[tab.history]}" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <Grid RowDefinitions="Auto,*" Margin="4">
                         <TextBlock Grid.Row="0" Text="{Binding Loc[history.hint]}"
                                    IsVisible="{Binding IsDesktop}"
@@ -241,7 +266,15 @@
                 </TabItem>
 
                 <!-- 2. Invia -->
-                <TabItem Header="{Binding Loc[tab.send]}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <TextBlock Text="↑" FontSize="19" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsMobile}"/>
+                            <TextBlock Text="{Binding Loc[tab.send]}" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
                         <!-- Contatto rapido -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -298,7 +331,15 @@
                 </TabItem>
 
                 <!-- 3. Ricevi -->
-                <TabItem Header="{Binding Loc[tab.receive]}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <TextBlock Text="↓" FontSize="19" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsMobile}"/>
+                            <TextBlock Text="{Binding Loc[tab.receive]}" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <StackPanel Spacing="10" Margin="8">
                         <TextBlock Text="{Binding Loc[receive.next]}"/>
                         <!-- Desktop: indirizzo + copia su una riga -->
@@ -332,7 +373,15 @@
                 </TabItem>
 
                 <!-- 4. Indirizzi -->
-                <TabItem Header="{Binding Loc[tab.addresses]}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <TextBlock Text="⊙" FontSize="19" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsMobile}"/>
+                            <TextBlock Text="{Binding Loc[tab.addresses]}" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <Grid RowDefinitions="Auto,*" Margin="4">
                         <!-- Intestazione colonne — solo desktop -->
                         <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4"
@@ -382,7 +431,15 @@
                 </TabItem>
 
                 <!-- 5. Contatti -->
-                <TabItem Header="{Binding Loc[tab.contacts]}">
+                <TabItem>
+                    <TabItem.Header>
+                        <StackPanel Spacing="2" HorizontalAlignment="Center">
+                            <TextBlock Text="⊕" FontSize="19" HorizontalAlignment="Center"
+                                       IsVisible="{Binding IsMobile}"/>
+                            <TextBlock Text="{Binding Loc[tab.contacts]}" FontSize="12"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </TabItem.Header>
                     <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="4">
                         <!-- Intestazioni colonne — solo desktop -->
                         <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4"
@@ -671,8 +728,9 @@
                     <TextBlock Text="{Binding Loc[server.title]}"
                                FontSize="18" FontWeight="Bold"/>
 
-                    <!-- Host + porta separati -->
-                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                    <!-- Host + porta — Desktop: 3 colonne -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto"
+                          IsVisible="{Binding IsDesktop}">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Loc[server.host]}"
                                    FontSize="11" Foreground="Gray"/>
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Loc[server.port]}"
@@ -686,15 +744,47 @@
                         <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding UseSsl}"
                                   Margin="10,2,0,0" VerticalAlignment="Center"/>
                     </Grid>
+                    <!-- Host + porta — Mobile: verticale -->
+                    <StackPanel Spacing="8" IsVisible="{Binding IsMobile}">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding Loc[server.host]}" FontSize="11" Foreground="Gray"/>
+                            <TextBox Text="{Binding ServerHost}" FontFamily="monospace"/>
+                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="3">
+                                <TextBlock Text="{Binding Loc[server.port]}" FontSize="11" Foreground="Gray"/>
+                                <TextBox Text="{Binding ServerPort}" FontFamily="monospace"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="3" Margin="16,0,0,0"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="TLS" FontSize="11" Foreground="Gray"
+                                           HorizontalAlignment="Center"/>
+                                <CheckBox IsChecked="{Binding UseSsl}"
+                                          HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
 
-                    <!-- Azioni -->
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <!-- Azioni — Desktop: in riga -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
                         <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
                                 Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
                         <Button Content="{Binding Loc[wallet.discover]}"
                                 Command="{Binding DiscoverServersCommand}"/>
                         <Button Content="{Binding Loc[wallet.resetcert]}"
                                 Command="{Binding ResetCertificatesCommand}"/>
+                    </StackPanel>
+                    <!-- Azioni — Mobile: in colonna -->
+                    <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
+                        <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
+                                Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                        <Button Content="{Binding Loc[wallet.discover]}"
+                                Command="{Binding DiscoverServersCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                        <Button Content="{Binding Loc[wallet.resetcert]}"
+                                Command="{Binding ResetCertificatesCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Stato connessione -->
@@ -725,16 +815,35 @@
                         </ListBox.Styles>
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="net:KnownServer">
-                                <Grid ColumnDefinitions="*,Auto">
-                                    <TextBlock Grid.Column="0" Text="{Binding Host}"
-                                               FontFamily="monospace" FontSize="13"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" FontSize="11" Foreground="Gray"
-                                               VerticalAlignment="Center">
-                                        <Run Text="tcp"/><Run Text="{Binding TcpPort}"/>
-                                        <Run Text=" / ssl"/><Run Text="{Binding SslPort}"/>
-                                    </TextBlock>
-                                </Grid>
+                                <Panel>
+                                    <!-- Desktop: host + porte in 2 colonne -->
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
+                                        <TextBlock Grid.Column="0" Text="{Binding Host}"
+                                                   FontFamily="monospace" FontSize="13"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" FontSize="11" Foreground="Gray"
+                                                   VerticalAlignment="Center">
+                                            <Run Text="tcp "/><Run Text="{Binding TcpPort}"/>
+                                            <Run Text="  ssl "/><Run Text="{Binding SslPort}"/>
+                                        </TextBlock>
+                                    </Grid>
+                                    <!-- Mobile: host sopra, porte sotto -->
+                                    <StackPanel Spacing="1" Margin="0,3"
+                                                IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
+                                        <TextBlock Text="{Binding Host}"
+                                                   FontFamily="monospace" FontSize="13"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="12">
+                                            <TextBlock FontSize="11" Foreground="Gray">
+                                                <Run Text="tcp "/><Run Text="{Binding TcpPort}"/>
+                                            </TextBlock>
+                                            <TextBlock FontSize="11" Foreground="Gray">
+                                                <Run Text="ssl "/><Run Text="{Binding SslPort}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Panel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

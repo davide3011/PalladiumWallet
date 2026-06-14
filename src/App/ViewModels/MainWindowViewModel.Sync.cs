@@ -144,11 +144,11 @@ public partial class MainWindowViewModel
                 _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
                 {
                     IsConnected = false;
-                    ConnectionStatus = Loc.Tr("conn.disconnected");
+                    ConnectionStatus = Loc.Tr("conn.none");
                 });
                 IsConnected = true;
                 _autoReconnect = true;
-                ConnectionStatus = $"{Loc.Tr("conn.connectedto")} {host}:{port}{(UseSsl ? " (TLS)" : "")}";
+                ConnectionStatus = Loc.Tr("conn.connectedto");
             }
 
             if (_account is null || _doc is null)
@@ -186,13 +186,13 @@ public partial class MainWindowViewModel
         catch (CertificatePinMismatchException ex)
         {
             IsConnected = false;
-            ConnectionStatus = Loc.Tr("conn.certchanged");
+            ConnectionStatus = Loc.Tr("conn.none");
             StatusMessage = ex.Message;
         }
         catch (Exception ex)
         {
             IsConnected = _client?.IsConnected == true;
-            ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.error");
+            ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
             StatusMessage = $"Errore: {ex.Message}";
         }
         finally
