@@ -12,6 +12,19 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <UserControl.Styles>
+        <!-- Su desktop gli overlay card sono centrati con dimensione massima;
+             su mobile il default (stretch, nessun margine) occupa tutta la schermata. -->
+        <Style Selector="Border.desktop-overlay">
+            <Setter Property="MaxWidth" Value="540"/>
+            <Setter Property="MaxHeight" Value="540"/>
+            <Setter Property="Margin" Value="16"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="CornerRadius" Value="8"/>
+        </Style>
+    </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- ============ MENU (stile Electrum) ============ -->
@@ -734,9 +747,8 @@
                 Tapped="OnServerOverlayBackdropTapped"
                 IsVisible="{Binding IsServerSettingsOpen}">
             <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
-                    MaxWidth="540" MaxHeight="540" Margin="16"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                    BorderBrush="Gray" BorderThickness="1"
+                    Classes.desktop-overlay="{Binding IsDesktop}">
                 <ScrollViewer>
                 <StackPanel Margin="24" Spacing="14">
                     <TextBlock Text="{Binding Loc[server.title]}"
@@ -758,20 +770,20 @@
                         <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding UseSsl}"
                                   Margin="10,2,0,0" VerticalAlignment="Center"/>
                     </Grid>
-                    <!-- Host + porta — Mobile: verticale -->
-                    <StackPanel Spacing="8" IsVisible="{Binding IsMobile}">
-                        <StackPanel Spacing="3">
-                            <TextBlock Text="{Binding Loc[server.host]}" FontSize="11" Foreground="Gray"/>
-                            <TextBox Text="{Binding ServerHost}" FontFamily="monospace"/>
+                    <!-- Host + porta — Mobile: verticale, font più grandi -->
+                    <StackPanel Spacing="10" IsVisible="{Binding IsMobile}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding Loc[server.host]}" FontSize="13" Foreground="Gray"/>
+                            <TextBox Text="{Binding ServerHost}" FontFamily="monospace" FontSize="15"/>
                         </StackPanel>
                         <Grid ColumnDefinitions="*,Auto">
-                            <StackPanel Grid.Column="0" Spacing="3">
-                                <TextBlock Text="{Binding Loc[server.port]}" FontSize="11" Foreground="Gray"/>
-                                <TextBox Text="{Binding ServerPort}" FontFamily="monospace"/>
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="{Binding Loc[server.port]}" FontSize="13" Foreground="Gray"/>
+                                <TextBox Text="{Binding ServerPort}" FontFamily="monospace" FontSize="15"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="1" Spacing="3" Margin="16,0,0,0"
+                            <StackPanel Grid.Column="1" Spacing="4" Margin="20,0,0,0"
                                         VerticalAlignment="Center">
-                                <TextBlock Text="TLS" FontSize="11" Foreground="Gray"
+                                <TextBlock Text="TLS" FontSize="13" Foreground="Gray"
                                            HorizontalAlignment="Center"/>
                                 <CheckBox IsChecked="{Binding UseSsl}"
                                           HorizontalAlignment="Center"/>
@@ -815,7 +827,7 @@
                     <TextBlock Text="{Binding Loc[server.known]}" FontSize="11" Foreground="Gray"/>
                     <ListBox ItemsSource="{Binding KnownServers}"
                              SelectedItem="{Binding SelectedKnownServer}"
-                             MaxHeight="200">
+                             MaxHeight="300">
                         <ListBox.Styles>
                             <Style Selector="ListBox:empty">
                                 <Setter Property="Template">
@@ -843,16 +855,16 @@
                                         </TextBlock>
                                     </Grid>
                                     <!-- Mobile: host sopra, porte sotto -->
-                                    <StackPanel Spacing="1" Margin="0,3"
+                                    <StackPanel Spacing="2" Margin="0,4"
                                                 IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
                                         <TextBlock Text="{Binding Host}"
-                                                   FontFamily="monospace" FontSize="13"
+                                                   FontFamily="monospace" FontSize="15"
                                                    TextTrimming="CharacterEllipsis"/>
-                                        <StackPanel Orientation="Horizontal" Spacing="12">
-                                            <TextBlock FontSize="11" Foreground="Gray">
+                                        <StackPanel Orientation="Horizontal" Spacing="16">
+                                            <TextBlock FontSize="12" Foreground="Gray">
                                                 <Run Text="tcp "/><Run Text="{Binding TcpPort}"/>
                                             </TextBlock>
-                                            <TextBlock FontSize="11" Foreground="Gray">
+                                            <TextBlock FontSize="12" Foreground="Gray">
                                                 <Run Text="ssl "/><Run Text="{Binding SslPort}"/>
                                             </TextBlock>
                                         </StackPanel>
