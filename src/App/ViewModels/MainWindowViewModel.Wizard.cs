@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PalladiumWallet.App.Localization;
@@ -96,6 +97,9 @@ public partial class MainWindowViewModel
 
     [ObservableProperty]
     private string passphraseInput = "";
+
+    [ObservableProperty]
+    private string walletNameInput = "";
 
     [ObservableProperty]
     private string passwordInput = "";
@@ -399,9 +403,12 @@ public partial class MainWindowViewModel
                 }
             }
 
-            var path = AppPaths.DefaultWalletPath(Net);
-            for (var n = 2; WalletStore.Exists(path); n++)
-                path = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
+            var path = WalletPathFromName(WalletNameInput);
+            if (WalletStore.Exists(path))
+            {
+                StatusMessage = Loc.Tr("msg.wallet.exists");
+                return;
+            }
             WalletStore.Save(doc, path, password);
             var newLock = WalletLock.TryAcquire(path);
             if (newLock is null) { StatusMessage = Loc.Tr("msg.wallet.locked"); return; }
@@ -411,6 +418,31 @@ public partial class MainWindowViewModel
         {
             StatusMessage = $"Errore: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Costruisce il percorso file dal nome inserito dall'utente.
+    /// Se il nome è vuoto genera un nome automatico (default, wallet-2, …).
+    /// Rimuove i caratteri non validi per il filesystem.
+    /// </summary>
+    private string WalletPathFromName(string name)
+    {
+        var clean = string.IsNullOrWhiteSpace(name)
+            ? ""
+            : string.Concat(name.Trim()
+                .Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c))
+              .Trim('.');
+
+        if (string.IsNullOrEmpty(clean))
+        {
+            // Nessun nome → nome automatico
+            var def = AppPaths.DefaultWalletPath(Net);
+            for (var n = 2; WalletStore.Exists(def); n++)
+                def = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
+            return def;
+        }
+
+        return Path.Combine(AppPaths.WalletsDir(Net), $"{clean}.wallet.json");
     }
 
     [RelayCommand]
@@ -499,7 +531,7 @@ public partial class MainWindowViewModel
         _account = account;
         _walletPath = path;
         _password = password;
-        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
+        MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = WalletNameInput = "";
         ImportXkeyInput = ImportWifInput = ImportXkeyDetectedKind = "";
         SetupStep = StepStart;
 
