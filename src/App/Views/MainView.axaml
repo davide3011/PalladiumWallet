@@ -87,6 +87,12 @@
                     <Button Content="{Binding Loc[wiz.restore.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             Command="{Binding WizardStartRestoreCommand}"/>
+                    <Button Content="{Binding Loc[wiz.importxkey.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding WizardStartImportXkeyCommand}"/>
+                    <Button Content="{Binding Loc[wiz.importwif.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding WizardStartImportWifCommand}"/>
                 </StackPanel>
 
                 <!-- Passo: scelta del wallet (più file presenti) -->
@@ -168,6 +174,35 @@
                         <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
                         <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromPassphraseCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: import xpub/xprv estesa (SLIP-132) -->
+                <StackPanel IsVisible="{Binding IsStepImportXkey}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.importxkey.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.importxkey.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.importxkey.placeholder]}"
+                             Text="{Binding ImportXkeyInput}" AcceptsReturn="False"/>
+                    <TextBlock Text="{Binding ImportXkeyDetectedKind}"
+                               IsVisible="{Binding ImportXkeyDetectedKind, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               Foreground="Green" FontSize="12"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromImportXkeyCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Passo: import chiave WIF singola -->
+                <StackPanel IsVisible="{Binding IsStepImportWif}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.importwif.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.importwif.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.importwif.placeholder]}"
+                             Text="{Binding ImportWifInput}" AcceptsReturn="True" Height="80"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromImportWifCommand}"/>
                     </StackPanel>
                 </StackPanel>
 

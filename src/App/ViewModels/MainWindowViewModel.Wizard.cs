@@ -24,7 +24,12 @@ public partial class MainWindowViewModel
     public const string StepWords = "words";
     public const string StepPassphrase = "passphrase";
     public const string StepScriptType = "script-type";
+    public const string StepImportXkey = "import-xkey";
+    public const string StepImportWif = "import-wif";
     public const string StepPassword = "password";
+
+    private enum WizardFlowKind { New, Restore, ImportXkey, ImportWif }
+    private WizardFlowKind _wizardFlow;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsStepDataLocation))]
@@ -36,6 +41,8 @@ public partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(IsStepWords))]
     [NotifyPropertyChangedFor(nameof(IsStepPassphrase))]
     [NotifyPropertyChangedFor(nameof(IsStepScriptType))]
+    [NotifyPropertyChangedFor(nameof(IsStepImportXkey))]
+    [NotifyPropertyChangedFor(nameof(IsStepImportWif))]
     [NotifyPropertyChangedFor(nameof(IsStepPassword))]
     private string setupStep = StepStart;
 
@@ -48,6 +55,8 @@ public partial class MainWindowViewModel
     public bool IsStepWords        => SetupStep == StepWords;
     public bool IsStepPassphrase   => SetupStep == StepPassphrase;
     public bool IsStepScriptType   => SetupStep == StepScriptType;
+    public bool IsStepImportXkey   => SetupStep == StepImportXkey;
+    public bool IsStepImportWif    => SetupStep == StepImportWif;
     public bool IsStepPassword     => SetupStep == StepPassword;
 
     [ObservableProperty]
@@ -68,6 +77,16 @@ public partial class MainWindowViewModel
     [RelayCommand] private void SelectTaproot()       => SelectedScriptKind = ScriptKind.Taproot;
 
     public string DefaultDataPath => AppPaths.DefaultDataRoot();
+
+    [ObservableProperty]
+    private string importXkeyInput = "";
+
+    [ObservableProperty]
+    private string importWifInput = "";
+
+    // Tipo di script rilevato durante la decodifica dell'xkey (per mostrarlo all'utente)
+    [ObservableProperty]
+    private string importXkeyDetectedKind = "";
 
     [ObservableProperty]
     private string mnemonicInput = "";
@@ -157,7 +176,7 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void WizardStartNew()
     {
-        _isRestoreFlow = false;
+        _wizardFlow = WizardFlowKind.New;
         MnemonicInput = Bip39.Generate(MnemonicLength.Twelve).ToString();
         SetupStep = StepShowSeed;
         StatusMessage = "";
@@ -166,9 +185,28 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void WizardStartRestore()
     {
-        _isRestoreFlow = true;
+        _wizardFlow = WizardFlowKind.Restore;
         MnemonicInput = "";
         SetupStep = StepWords;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
+    private void WizardStartImportXkey()
+    {
+        _wizardFlow = WizardFlowKind.ImportXkey;
+        ImportXkeyInput = "";
+        ImportXkeyDetectedKind = "";
+        SetupStep = StepImportXkey;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
+    private void WizardStartImportWif()
+    {
+        _wizardFlow = WizardFlowKind.ImportWif;
+        ImportWifInput = "";
+        SetupStep = StepImportWif;
         StatusMessage = "";
     }
 
@@ -219,6 +257,58 @@ public partial class MainWindowViewModel
     }
 
     [RelayCommand]
+    private void WizardNextFromImportXkey()
+    {
+        if (string.IsNullOrWhiteSpace(ImportXkeyInput))
+        {
+            StatusMessage = Loc.Tr("msg.xkey.required");
+            return;
+        }
+        // Valida e rileva il tipo: prova prima come xpub, poi come xprv.
+        if (Slip132.TryDecodePublic(ImportXkeyInput.Trim(), Profile, out _, out var pubKind))
+        {
+            SelectedScriptKind = pubKind;
+            ImportXkeyDetectedKind = $"{pubKind} (watch-only)";
+        }
+        else if (Slip132.TryDecodePrivate(ImportXkeyInput.Trim(), Profile, out _, out var prvKind))
+        {
+            SelectedScriptKind = prvKind;
+            ImportXkeyDetectedKind = prvKind.ToString();
+        }
+        else
+        {
+            StatusMessage = Loc.Tr("msg.xkey.invalid");
+            return;
+        }
+        PasswordInput = ConfirmPasswordInput = "";
+        EncryptWallet = true;
+        SetupStep = StepPassword;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
+    private void WizardNextFromImportWif()
+    {
+        if (string.IsNullOrWhiteSpace(ImportWifInput))
+        {
+            StatusMessage = Loc.Tr("msg.wif.required");
+            return;
+        }
+        // Valida il WIF con un parsing anticipato.
+        try
+        {
+            _ = new NBitcoin.BitcoinSecret(ImportWifInput.Trim(), PalladiumNetworks.For(Net));
+        }
+        catch
+        {
+            StatusMessage = Loc.Tr("msg.wif.invalid");
+            return;
+        }
+        SetupStep = StepScriptType;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
     private void WizardNextFromScriptType()
     {
         PasswordInput = ConfirmPasswordInput = "";
@@ -233,11 +323,11 @@ public partial class MainWindowViewModel
         SetupStep = SetupStep switch
         {
             StepOpen => WalletList.Count > 1 ? StepChooseWallet : StepStart,
-            StepChooseWallet or StepShowSeed or StepWords => StepStart,
+            StepChooseWallet or StepShowSeed or StepWords or StepImportXkey or StepImportWif => StepStart,
             StepConfirmSeed => StepShowSeed,
-            StepPassphrase => _isRestoreFlow ? StepWords : StepConfirmSeed,
-            StepScriptType => StepPassphrase,
-            StepPassword => StepScriptType,
+            StepPassphrase => _wizardFlow == WizardFlowKind.Restore ? StepWords : StepConfirmSeed,
+            StepScriptType => _wizardFlow == WizardFlowKind.ImportWif ? StepImportWif : StepPassphrase,
+            StepPassword => _wizardFlow == WizardFlowKind.ImportXkey ? StepImportXkey : StepScriptType,
             _ => StepStart,
         };
         if (SetupStep == StepStart)
@@ -269,11 +359,46 @@ public partial class MainWindowViewModel
 
         try
         {
-            var (doc, account) = WalletLoader.NewFromMnemonic(
-                MnemonicInput,
-                string.IsNullOrEmpty(PassphraseInput) ? null : PassphraseInput,
-                SelectedScriptKind,
-                Profile);
+            WalletDocument doc;
+            IWalletAccount account;
+
+            switch (_wizardFlow)
+            {
+                case WizardFlowKind.ImportXkey:
+                {
+                    var input = ImportXkeyInput.Trim();
+                    if (Slip132.TryDecodePublic(input, Profile, out _, out _))
+                    {
+                        var (d, a) = WalletLoader.NewFromXpub(input, Profile, SelectedScriptKind);
+                        (doc, account) = (d, a);
+                    }
+                    else
+                    {
+                        var (d, a) = WalletLoader.NewFromXprv(input, Profile, SelectedScriptKind);
+                        (doc, account) = (d, a);
+                    }
+                    break;
+                }
+                case WizardFlowKind.ImportWif:
+                {
+                    var wifLines = ImportWifInput.Split('\n',
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var (d, a) = WalletLoader.NewFromWif(wifLines, SelectedScriptKind, Profile);
+                    (doc, account) = (d, a);
+                    break;
+                }
+                default:
+                {
+                    var (d, a) = WalletLoader.NewFromMnemonic(
+                        MnemonicInput,
+                        string.IsNullOrEmpty(PassphraseInput) ? null : PassphraseInput,
+                        SelectedScriptKind,
+                        Profile);
+                    (doc, account) = (d, a);
+                    break;
+                }
+            }
+
             var path = AppPaths.DefaultWalletPath(Net);
             for (var n = 2; WalletStore.Exists(path); n++)
                 path = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
@@ -365,7 +490,7 @@ public partial class MainWindowViewModel
     }
 
     private void OpenLoaded(
-        WalletDocument doc, HdAccount account, string path, string? password, WalletLock walletLock)
+        WalletDocument doc, IWalletAccount account, string path, string? password, WalletLock walletLock)
     {
         _walletLock?.Dispose();
         _walletLock = walletLock;
@@ -375,14 +500,23 @@ public partial class MainWindowViewModel
         _walletPath = path;
         _password = password;
         MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
+        ImportXkeyInput = ImportWifInput = ImportXkeyDetectedKind = "";
         SetupStep = StepStart;
 
-        NetworkInfo = $"{doc.Network} · {doc.ScriptKind} · m/{doc.AccountPath}"
-            + (doc.IsWatchOnly ? " · watch-only" : "");
+        var walletKindTag = account switch
+        {
+            ImportedKeyAccount => " · imported",
+            { IsWatchOnly: true } => " · watch-only",
+            _ => ""
+        };
+        var pathTag = !string.IsNullOrEmpty(doc.AccountPath) ? $" · m/{doc.AccountPath}" : "";
+        NetworkInfo = $"{doc.Network} · {doc.ScriptKind}{pathTag}{walletKindTag}";
         LoadContacts();
         ApplyCache(doc.Cache);
         IsWalletOpen = true;
         StatusMessage = Loc.Tr("msg.opened");
+        _autoReconnect = true;  // keepalive riprova la connessione anche se il primo tentativo fallisce
+        _syncFailed = true;     // forza la prima sync automatica
         _ = ConnectAndSync();
     }
 }

@@ -186,7 +186,7 @@ public partial class MainWindowViewModel
                 Addresses.Add(new AddressRow(_loc["addr.receive"], i,
                     _account.GetReceiveAddress(i).ToString(), "—", "—",
                     false,
-                    _account.GetPublicKey(false, i).ToHex(),
+                    _account.GetPublicKey(false, i)?.ToHex() ?? "",
                     KeyWif(false, i),
                     $"m/{_doc!.AccountPath}/0/{i}"));
             return;
@@ -214,7 +214,7 @@ public partial class MainWindowViewModel
                 a.BalanceSats > 0 ? Fmt(a.BalanceSats, withLabel: false) : (a.TxCount > 0 ? "0" : "—"),
                 a.TxCount > 0 ? a.TxCount.ToString() : "—",
                 a.IsChange,
-                _account.GetPublicKey(a.IsChange, a.Index).ToHex(),
+                _account.GetPublicKey(a.IsChange, a.Index)?.ToHex() ?? "",
                 KeyWif(a.IsChange, a.Index),
                 $"m/{_doc!.AccountPath}/{(a.IsChange ? 1 : 0)}/{a.Index}"));
     }

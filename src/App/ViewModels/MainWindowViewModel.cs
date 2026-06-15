@@ -49,7 +49,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     // ---- stato sessione wallet ----
     private WalletDocument? _doc;
-    private HdAccount? _account;
+    private IWalletAccount? _account;
     private string? _walletPath;
     private string? _password;
     private WalletLock? _walletLock;
@@ -73,10 +73,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // ---- wizard ----
     private string? _pendingOpenPath;
-    private bool _isRestoreFlow;
 
     // ---- keep-alive ----
     private bool _autoReconnect;
+    private bool _syncFailed;
     private readonly DispatcherTimer _keepAliveTimer;
 
     // ---- server UI sync ----
@@ -135,8 +135,8 @@ public partial class MainWindowViewModel : ViewModelBase
         if (_account is null or { IsWatchOnly: true }) return "";
         try
         {
-            return _account.GetExtPrivateKey(isChange, index)
-                .PrivateKey.GetWif(PalladiumNetworks.For(Net)).ToString();
+            return _account.GetPrivateKey(isChange, index)
+                ?.GetWif(PalladiumNetworks.For(Net)).ToString() ?? "";
         }
         catch { return ""; }
     }
@@ -161,6 +161,12 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         if (_client is { IsConnected: true })
         {
+            // Se il wallet è aperto e l'ultima sync è fallita, riprova automaticamente.
+            if (_syncFailed && _account is not null)
+            {
+                await ConnectAndSync();
+                return;
+            }
             try { await _client.PingAsync(); }
             catch { }
         }
@@ -183,6 +189,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _synchronizer = null;
         _autoReconnect = false;
         _resyncRequested = false;
+        _syncFailed = false;
         _doc = null;
         _account = null;
         _lastTransactions = null;
