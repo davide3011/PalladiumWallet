@@ -171,6 +171,54 @@
                     </StackPanel>
                 </StackPanel>
 
+                <!-- Passo: scelta del tipo di script/indirizzi -->
+                <StackPanel IsVisible="{Binding IsStepScriptType}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.scripttype.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.scripttype.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+
+                    <RadioButton GroupName="ScriptType"
+                                 IsChecked="{Binding IsLegacySelected, Mode=OneWay}"
+                                 Command="{Binding SelectLegacyCommand}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Legacy (P2PKH)" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.legacy.desc]}" Foreground="Gray" FontSize="12"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton GroupName="ScriptType"
+                                 IsChecked="{Binding IsWrappedSegwitSelected, Mode=OneWay}"
+                                 Command="{Binding SelectWrappedSegwitCommand}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Wrapped SegWit (P2SH-P2WPKH)" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.wrapped.desc]}" Foreground="Gray" FontSize="12"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton GroupName="ScriptType"
+                                 IsChecked="{Binding IsNativeSegwitSelected, Mode=OneWay}"
+                                 Command="{Binding SelectNativeSegwitCommand}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Native SegWit (P2WPKH)" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.native.desc]}" Foreground="Gray" FontSize="12"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton GroupName="ScriptType"
+                                 IsChecked="{Binding IsTaprootSelected, Mode=OneWay}"
+                                 Command="{Binding SelectTaprootCommand}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Taproot (P2TR)" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.taproot.desc]}" Foreground="Gray" FontSize="12"/>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromScriptTypeCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
                 <!-- Passo finale: password del file (cifratura, stile Electrum) -->
                 <StackPanel IsVisible="{Binding IsStepPassword}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.password.title]}" FontSize="18" FontWeight="Bold"/>

@@ -33,6 +33,8 @@ public static class ChainProfiles
             [ScriptKind.WrappedSegwitMultisig] = new(0x0295b005, 0x0295b43f), // Yprv / Ypub
             [ScriptKind.NativeSegwit] = new(0x04b2430c, 0x04b24746),          // zprv / zpub
             [ScriptKind.NativeSegwitMultisig] = new(0x02aa7a99, 0x02aa7ed3),  // Zprv / Zpub
+            // Nessun SLIP-132 per P2TR: il contesto è dato dal path m/86'/…
+            [ScriptKind.Taproot] = new(0x0488ade4, 0x0488b21e),               // xprv / xpub (BIP32 standard)
         },
         // Server di indicizzazione noti per il primo contatto (§3/§9); altri
         // peer vengono scoperti via server.peers.subscribe.
@@ -70,6 +72,7 @@ public static class ChainProfiles
             [ScriptKind.WrappedSegwitMultisig] = new(0x024285b5, 0x024289ef), // Uprv / Upub
             [ScriptKind.NativeSegwit] = new(0x045f18bc, 0x045f1cf6),          // vprv / vpub
             [ScriptKind.NativeSegwitMultisig] = new(0x02575048, 0x02575483),  // Vprv / Vpub
+            [ScriptKind.Taproot] = new(0x04358394, 0x043587cf),               // tprv / tpub (BIP32 standard)
         },
         BootstrapServers = [],
         Checkpoints = [],

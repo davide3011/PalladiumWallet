@@ -23,6 +23,7 @@ public partial class MainWindowViewModel
     public const string StepConfirmSeed = "confirm-seed";
     public const string StepWords = "words";
     public const string StepPassphrase = "passphrase";
+    public const string StepScriptType = "script-type";
     public const string StepPassword = "password";
 
     [ObservableProperty]
@@ -34,18 +35,37 @@ public partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(IsStepConfirmSeed))]
     [NotifyPropertyChangedFor(nameof(IsStepWords))]
     [NotifyPropertyChangedFor(nameof(IsStepPassphrase))]
+    [NotifyPropertyChangedFor(nameof(IsStepScriptType))]
     [NotifyPropertyChangedFor(nameof(IsStepPassword))]
     private string setupStep = StepStart;
 
     public bool IsStepDataLocation => SetupStep == StepDataLocation;
-    public bool IsStepStart       => SetupStep == StepStart;
+    public bool IsStepStart        => SetupStep == StepStart;
     public bool IsStepChooseWallet => SetupStep == StepChooseWallet;
-    public bool IsStepOpen        => SetupStep == StepOpen;
-    public bool IsStepShowSeed    => SetupStep == StepShowSeed;
-    public bool IsStepConfirmSeed => SetupStep == StepConfirmSeed;
-    public bool IsStepWords       => SetupStep == StepWords;
-    public bool IsStepPassphrase  => SetupStep == StepPassphrase;
-    public bool IsStepPassword    => SetupStep == StepPassword;
+    public bool IsStepOpen         => SetupStep == StepOpen;
+    public bool IsStepShowSeed     => SetupStep == StepShowSeed;
+    public bool IsStepConfirmSeed  => SetupStep == StepConfirmSeed;
+    public bool IsStepWords        => SetupStep == StepWords;
+    public bool IsStepPassphrase   => SetupStep == StepPassphrase;
+    public bool IsStepScriptType   => SetupStep == StepScriptType;
+    public bool IsStepPassword     => SetupStep == StepPassword;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLegacySelected))]
+    [NotifyPropertyChangedFor(nameof(IsWrappedSegwitSelected))]
+    [NotifyPropertyChangedFor(nameof(IsNativeSegwitSelected))]
+    [NotifyPropertyChangedFor(nameof(IsTaprootSelected))]
+    private ScriptKind selectedScriptKind = ScriptKind.NativeSegwit;
+
+    public bool IsLegacySelected        => SelectedScriptKind == ScriptKind.Legacy;
+    public bool IsWrappedSegwitSelected => SelectedScriptKind == ScriptKind.WrappedSegwit;
+    public bool IsNativeSegwitSelected  => SelectedScriptKind == ScriptKind.NativeSegwit;
+    public bool IsTaprootSelected       => SelectedScriptKind == ScriptKind.Taproot;
+
+    [RelayCommand] private void SelectLegacy()        => SelectedScriptKind = ScriptKind.Legacy;
+    [RelayCommand] private void SelectWrappedSegwit() => SelectedScriptKind = ScriptKind.WrappedSegwit;
+    [RelayCommand] private void SelectNativeSegwit()  => SelectedScriptKind = ScriptKind.NativeSegwit;
+    [RelayCommand] private void SelectTaproot()       => SelectedScriptKind = ScriptKind.Taproot;
 
     public string DefaultDataPath => AppPaths.DefaultDataRoot();
 
@@ -96,6 +116,7 @@ public partial class MainWindowViewModel
     private void RefreshSetupState()
     {
         SetupStep = StepStart;
+        SelectedScriptKind = ScriptKind.NativeSegwit;
         MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = "";
         WalletFileExists = AppPaths.WalletFiles(Net).Count > 0;
         StatusMessage = "";
@@ -193,6 +214,13 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void WizardNextFromPassphrase()
     {
+        SetupStep = StepScriptType;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
+    private void WizardNextFromScriptType()
+    {
         PasswordInput = ConfirmPasswordInput = "";
         EncryptWallet = true;
         SetupStep = StepPassword;
@@ -208,7 +236,8 @@ public partial class MainWindowViewModel
             StepChooseWallet or StepShowSeed or StepWords => StepStart,
             StepConfirmSeed => StepShowSeed,
             StepPassphrase => _isRestoreFlow ? StepWords : StepConfirmSeed,
-            StepPassword => StepPassphrase,
+            StepScriptType => StepPassphrase,
+            StepPassword => StepScriptType,
             _ => StepStart,
         };
         if (SetupStep == StepStart)
@@ -243,7 +272,7 @@ public partial class MainWindowViewModel
             var (doc, account) = WalletLoader.NewFromMnemonic(
                 MnemonicInput,
                 string.IsNullOrEmpty(PassphraseInput) ? null : PassphraseInput,
-                ScriptKind.NativeSegwit,
+                SelectedScriptKind,
                 Profile);
             var path = AppPaths.DefaultWalletPath(Net);
             for (var n = 2; WalletStore.Exists(path); n++)

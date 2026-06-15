@@ -110,6 +110,18 @@ public sealed class Loc
             "Achtung: ohne Verschlüsselung bleibt der Seed im Klartext auf der Festplatte."],
         ["wiz.back"]              = ["Indietro",                                                          "Back",                         "Atrás",                                "Retour",                                   "Voltar",                                   "Zurück"],
         ["wiz.next"]              = ["Avanti",                                                            "Next",                         "Siguiente",                            "Suivant",                                  "Próximo",                                  "Weiter"],
+        ["wiz.scripttype.title"]  = ["Tipo di script e indirizzi",                                       "Script type and addresses",    "Tipo de script y direcciones",         "Type de script et adresses",               "Tipo de script e endereços",               "Skripttyp und Adressen"],
+        ["wiz.scripttype.hint"]   = [
+            "Determina il formato degli indirizzi. Se non sai cosa scegliere, usa Native SegWit.",
+            "Determines the address format. If unsure, use Native SegWit.",
+            "Determina el formato de los direcciones. Si no sabes, usa Native SegWit.",
+            "Détermine le format des adresses. En cas de doute, utilisez Native SegWit.",
+            "Determina o formato dos endereços. Em caso de dúvida, use Native SegWit.",
+            "Bestimmt das Adressformat. Wenn Sie unsicher sind, verwenden Sie Native SegWit."],
+        ["wiz.scripttype.legacy.desc"]  = ["BIP44 · m/44'/… · indirizzi P",  "BIP44 · m/44'/… · P addresses",  "BIP44 · m/44'/… · direcciones P",  "BIP44 · m/44'/… · adresses P",  "BIP44 · m/44'/… · endereços P",  "BIP44 · m/44'/… · P-Adressen"],
+        ["wiz.scripttype.wrapped.desc"] = ["BIP49 · m/49'/… · indirizzi 3",  "BIP49 · m/49'/… · 3 addresses",  "BIP49 · m/49'/… · direcciones 3",  "BIP49 · m/49'/… · adresses 3",  "BIP49 · m/49'/… · endereços 3",  "BIP49 · m/49'/… · 3-Adressen"],
+        ["wiz.scripttype.native.desc"]  = ["BIP84 · m/84'/… · indirizzi plm1q — consigliato", "BIP84 · m/84'/… · plm1q addresses — recommended", "BIP84 · m/84'/… · direcciones plm1q — recomendado", "BIP84 · m/84'/… · adresses plm1q — recommandé", "BIP84 · m/84'/… · endereços plm1q — recomendado", "BIP84 · m/84'/… · plm1q-Adressen — empfohlen"],
+        ["wiz.scripttype.taproot.desc"] = ["BIP86 · m/86'/… · indirizzi plm1p", "BIP86 · m/86'/… · plm1p addresses", "BIP86 · m/86'/… · direcciones plm1p", "BIP86 · m/86'/… · adresses plm1p", "BIP86 · m/86'/… · endereços plm1p", "BIP86 · m/86'/… · plm1p-Adressen"],
 
         // Pannello wallet
         ["wallet.close"]          = ["Chiudi wallet",                                                     "Close wallet",                 "Cerrar wallet",                        "Fermer le wallet",                         "Fechar carteira",                          "Wallet schließen"],

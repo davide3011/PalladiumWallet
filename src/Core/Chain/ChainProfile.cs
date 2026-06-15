@@ -29,6 +29,9 @@ public enum ScriptKind
 
     /// <summary>P2WSH (multisig native).</summary>
     NativeSegwitMultisig,
+
+    /// <summary>P2TR key-path only (Taproot, BIP86) — witness v1, bech32m.</summary>
+    Taproot,
 }
 
 /// <summary>

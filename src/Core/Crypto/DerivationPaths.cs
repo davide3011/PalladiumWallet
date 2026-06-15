@@ -22,12 +22,16 @@ public static class DerivationPaths
     /// <summary>Purpose BIP48 (multisig — fase successiva, §16 passo 8).</summary>
     public const int PurposeMultisig = 48;
 
+    /// <summary>Purpose BIP86 (P2TR key-path, Taproot).</summary>
+    public const int PurposeTaproot = 86;
+
     public static int PurposeFor(ScriptKind kind) => kind switch
     {
         ScriptKind.Legacy => PurposeLegacy,
         ScriptKind.WrappedSegwit => PurposeWrappedSegwit,
         ScriptKind.NativeSegwit => PurposeNativeSegwit,
         ScriptKind.WrappedSegwitMultisig or ScriptKind.NativeSegwitMultisig => PurposeMultisig,
+        ScriptKind.Taproot => PurposeTaproot,
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 
@@ -41,6 +45,7 @@ public static class DerivationPaths
         ScriptKind.Legacy => ScriptPubKeyType.Legacy,
         ScriptKind.WrappedSegwit => ScriptPubKeyType.SegwitP2SH,
         ScriptKind.NativeSegwit => ScriptPubKeyType.Segwit,
+        ScriptKind.Taproot => ScriptPubKeyType.TaprootBIP86,
         ScriptKind.WrappedSegwitMultisig or ScriptKind.NativeSegwitMultisig =>
             throw new NotSupportedException(
                 "I tipi multisig derivano da redeem script: supporto previsto con i wallet M-di-N (§4.5)."),
