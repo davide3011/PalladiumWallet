@@ -186,7 +186,8 @@
                  wallet è in File. Lo stato connessione è nella barra in basso. -->
             <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,12">
                 <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
-                <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"/>
+                <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"
+                           TextWrapping="Wrap"/>
                 <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
             </StackPanel>
 
@@ -476,7 +477,8 @@
                                         <!-- Mobile: card verticale -->
                                         <StackPanel Spacing="1" Margin="0,3"
                                                     IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"/>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                                       TextTrimming="CharacterEllipsis"/>
                                             <SelectableTextBlock Text="{Binding Address}"
                                                                  FontFamily="monospace" FontSize="11"
                                                                  TextTrimming="CharacterEllipsis"/>
