@@ -185,7 +185,7 @@
         </ScrollViewer>
 
         <!-- ============ PANNELLO WALLET ============ -->
-        <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
+        <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" IsVisible="{Binding IsWalletOpen}" Margin="16">
 
             <!-- Testata: saldo + rete. Connetti/sincronizza è automatico; chiudi
                  wallet è in File. Lo stato connessione è nella barra in basso. -->
@@ -197,11 +197,14 @@
 
             <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
             <TabControl Grid.Row="1"
-                        TabStripPlacement="{Binding IsMobile, Converter={x:Static vm:BoolToTabPlacementConverter.Instance}}">
+                        SelectedIndex="{Binding SelectedTabIndex}"
+                        TabStripPlacement="Top">
 
                 <TabControl.Styles>
-                    <!-- Tab equamente distribuiti su tutta la larghezza -->
+                    <!-- Su mobile nascondiamo il TabStrip integrato (barra custom sotto) -->
                     <Style Selector="TabStrip">
+                        <Setter Property="IsVisible" Value="{Binding !IsMobile}"/>
+                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
                         <Setter Property="ItemsPanel">
                             <ItemsPanelTemplate>
                                 <UniformGrid Rows="1"/>
@@ -506,6 +509,60 @@
                 </TabItem>
 
             </TabControl>
+
+            <!-- Barra di navigazione custom mobile: 5 colonne uguali, sempre centrata -->
+            <Grid Grid.Row="2"
+                  ColumnDefinitions="*,*,*,*,*"
+                  IsVisible="{Binding IsMobile}"
+                  Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                  Margin="-16,4,-16,0">
+                <Button Grid.Column="0"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Transparent" Padding="4,8"
+                        Command="{Binding SelectTabCommand}" CommandParameter="0">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <TextBlock Text="≡" FontSize="19" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[tab.history]}" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Transparent" Padding="4,8"
+                        Command="{Binding SelectTabCommand}" CommandParameter="1">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <TextBlock Text="↑" FontSize="19" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[tab.send]}" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Transparent" Padding="4,8"
+                        Command="{Binding SelectTabCommand}" CommandParameter="2">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <TextBlock Text="↓" FontSize="19" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[tab.receive]}" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="3"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Transparent" Padding="4,8"
+                        Command="{Binding SelectTabCommand}" CommandParameter="3">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <TextBlock Text="⊙" FontSize="19" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[tab.addresses]}" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="4"
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                        Background="Transparent" Padding="4,8"
+                        Command="{Binding SelectTabCommand}" CommandParameter="4">
+                    <StackPanel Spacing="2" HorizontalAlignment="Center">
+                        <TextBlock Text="⊕" FontSize="19" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding Loc[tab.contacts]}" FontSize="11" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
         </Grid>
 
         <!-- Barra di stato: messaggio a sinistra, stato connessione a destra.

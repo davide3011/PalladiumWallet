@@ -117,6 +117,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string statusMessage = "";
 
+    [ObservableProperty]
+    private int selectedTabIndex;
+
+    [RelayCommand]
+    private void SelectTab(string index) => SelectedTabIndex = int.Parse(index);
+
     // ---- collections per la dashboard ----
 
     public ObservableCollection<HistoryRow> History { get; } = [];
