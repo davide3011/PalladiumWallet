@@ -341,7 +341,6 @@ public partial class MainWindowViewModel
         _walletLock?.Dispose();
         _walletLock = walletLock;
 
-        SelectedNetwork = doc.Network;
         _doc = doc;
         _account = account;
         _walletPath = path;

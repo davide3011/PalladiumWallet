@@ -101,13 +101,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // ---- stato pannelli ----
 
-    public string[] Networks { get; } = ["mainnet", "testnet", "regtest"];
-
-    [ObservableProperty]
-    private string selectedNetwork = "mainnet";
-
-    partial void OnSelectedNetworkChanged(string value) => RefreshSetupState();
-
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSetupVisible))]
     private bool isWalletOpen;
@@ -130,7 +123,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     // ---- helpers ----
 
-    private NetKind Net => System.Enum.Parse<NetKind>(SelectedNetwork, ignoreCase: true);
+    private NetKind Net => NetKind.Mainnet;
     private ChainProfile Profile => ChainProfiles.For(Net);
     private ServerRegistry Registry => new(Profile, AppPaths.ServersPath(Net));
 

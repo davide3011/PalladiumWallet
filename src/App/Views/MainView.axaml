@@ -64,11 +64,6 @@
 
                 <!-- Passo 1: scelta iniziale -->
                 <StackPanel IsVisible="{Binding IsStepStart}" Spacing="12">
-                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                        <TextBlock Text="{Binding Loc[wiz.net]}" VerticalAlignment="Center"/>
-                        <ComboBox ItemsSource="{Binding Networks}"
-                                  SelectedItem="{Binding SelectedNetwork}" MinWidth="140"/>
-                    </StackPanel>
                     <Button Content="{Binding Loc[wiz.open.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             IsVisible="{Binding WalletFileExists}"
