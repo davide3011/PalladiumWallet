@@ -10,7 +10,8 @@ namespace PalladiumWallet.Mobile;
 // In Avalonia 12 l'AppBuilder Android si configura nella sottoclasse Application
 // (AvaloniaAndroidApplication<TApp>), non più nell'Activity. allowBackup=false:
 // il file wallet cifrato/seed non deve finire nei backup cloud automatici.
-[Application(Label = "Palladium Wallet", AllowBackup = false)]
+[Application(Label = "Palladium Wallet", AllowBackup = false,
+             Icon = "@mipmap/ic_launcher", RoundIcon = "@mipmap/ic_launcher_round")]
 public class MainApplication : AvaloniaAndroidApplication<global::PalladiumWallet.App.App>
 {
     public MainApplication(IntPtr javaReference, JniHandleOwnership transfer)
