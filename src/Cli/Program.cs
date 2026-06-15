@@ -282,7 +282,7 @@ static int SaveWallet(string words, string[] o)
     return 0;
 }
 
-static (WalletDocument, HdAccount, string) OpenWallet(string[] o)
+static (WalletDocument, IWalletAccount, string) OpenWallet(string[] o)
 {
     var path = WalletPath(o, Profile(o));
     if (!WalletStore.Exists(path))

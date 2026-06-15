@@ -153,7 +153,8 @@ public class WalletLoaderTests
             AccountXpub = doc.AccountXpub,
         };
         var account = WalletLoader.ToAccount(docWo);
-        Assert.Throws<InvalidOperationException>(() => account.GetExtPrivateKey(false, 0));
+        Assert.True(account.IsWatchOnly);
+        Assert.Null(account.GetPrivateKey(false, 0));
     }
 
     [Fact]

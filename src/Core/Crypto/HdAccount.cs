@@ -11,7 +11,7 @@ namespace PalladiumWallet.Core.Crypto;
 /// quindi il watch-only funziona per costruzione. Il keystore completo
 /// (cifratura, factory dal file wallet, §4.5) arriva con la persistenza (§8).
 /// </summary>
-public sealed class HdAccount
+public sealed class HdAccount : IWalletAccount
 {
     private readonly ExtKey? _accountXprv;
 
@@ -86,7 +86,7 @@ public sealed class HdAccount
             masterFingerprint ?? default);
 
     public BitcoinAddress GetAddress(bool isChange, int index) =>
-        GetPublicKey(isChange, index).GetAddress(
+        GetPublicKey(isChange, index)!.GetAddress(
             DerivationPaths.ScriptPubKeyTypeFor(Kind),
             PalladiumNetworks.For(Profile.Kind));
 
@@ -94,8 +94,15 @@ public sealed class HdAccount
 
     public BitcoinAddress GetChangeAddress(int index) => GetAddress(isChange: true, index);
 
-    public PubKey GetPublicKey(bool isChange, int index) =>
+    public PubKey? GetPublicKey(bool isChange, int index) =>
         AccountXpub.Derive(DerivationPaths.AddressSubPath(isChange, index)).PubKey;
+
+    /// <summary>Chiave privata di un indirizzo; null se watch-only (§17).</summary>
+    public Key? GetPrivateKey(bool isChange, int index) =>
+        IsWatchOnly ? null : GetExtPrivateKey(isChange, index).PrivateKey;
+
+    /// <summary>Gli account HD usano il gap limit: nessuna lista fissa di indirizzi.</summary>
+    public IReadOnlyList<(BitcoinAddress Address, bool IsChange, int Index)>? FixedAddresses => null;
 
     /// <summary>
     /// Chiave privata estesa di un indirizzo. Lancia se watch-only: nessuna

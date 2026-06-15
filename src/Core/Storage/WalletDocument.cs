@@ -26,13 +26,19 @@ public sealed class WalletDocument
     /// <summary>Extension word BIP39 (§4.1); null se assente.</summary>
     public string? Passphrase { get; set; }
 
-    /// <summary>Path di account (es. "84'/746'/0'").</summary>
-    public required string AccountPath { get; set; }
+    /// <summary>Path di account (es. "84'/746'/0'"); null per importati WIF.</summary>
+    public string? AccountPath { get; set; }
 
-    /// <summary>Xpub di account in SLIP-132: basta da sola per il watch-only.</summary>
-    public required string AccountXpub { get; set; }
+    /// <summary>Xpub di account in SLIP-132 per i wallet HD; null per importati WIF.</summary>
+    public string? AccountXpub { get; set; }
+
+    /// <summary>Xprv di account in SLIP-132; presente solo per import da xprv senza seed.</summary>
+    public string? AccountXprv { get; set; }
 
     public string? MasterFingerprint { get; set; }
+
+    /// <summary>Chiavi WIF importate (in chiaro nel documento — va cifrato!).</summary>
+    public List<string>? WifKeys { get; set; }
 
     /// <summary>Gap limit per la scansione indirizzi (§5), configurabile.</summary>
     public int GapLimit { get; set; } = 20;
@@ -46,7 +52,10 @@ public sealed class WalletDocument
     /// <summary>Cache dell'ultimo stato sincronizzato (saldo/storico mostrabili offline).</summary>
     public SyncCache? Cache { get; set; }
 
-    public bool IsWatchOnly => Mnemonic is null;
+    public bool IsWatchOnly =>
+        Mnemonic is null &&
+        AccountXprv is null &&
+        (WifKeys is null || WifKeys.Count == 0);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -90,6 +99,20 @@ public sealed class SyncCache
     public List<CachedTx> History { get; set; } = [];
     public List<CachedUtxo> Utxos { get; set; } = [];
     public List<CachedAddress> Addresses { get; set; } = [];
+
+    /// <summary>
+    /// Cache raw delle transazioni confermate (txid → hex). Evita di riscaricale
+    /// ad ogni avvio dell'app: le tx confermate sono immutabili per definizione.
+    /// Popolata anche parzialmente in caso di sync interrotta (es. -101):
+    /// il synchronizer riprende dal punto in cui si era fermato.
+    /// </summary>
+    public Dictionary<string, string>? RawTxHex { get; set; }
+
+    /// <summary>
+    /// Prove di Merkle già verificate (txid → altezza blocco). Evita di
+    /// riverificare le stesse prove ad ogni avvio: le conferme sono immutabili.
+    /// </summary>
+    public Dictionary<string, int>? VerifiedAt { get; set; }
 }
 
 /// <summary>Indirizzo scansionato con saldo proprio e numero di transazioni (vista indirizzi).</summary>

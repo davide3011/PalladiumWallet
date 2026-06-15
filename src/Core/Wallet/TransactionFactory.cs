@@ -27,7 +27,7 @@ public sealed class BuiltTransaction
 /// invia-tutto con fee sottratta, change sulla catena interna, RBF di default.
 /// Con un account watch-only produce la PSBT non firmata (§6.5).
 /// </summary>
-public sealed class TransactionFactory(HdAccount account)
+public sealed class TransactionFactory(IWalletAccount account)
 {
     private Network Network => PalladiumNetworks.For(account.Profile.Kind);
 
@@ -82,7 +82,8 @@ public sealed class TransactionFactory(HdAccount account)
         if (!account.IsWatchOnly)
         {
             builder.AddKeys(spendable
-                .Select(u => account.GetExtPrivateKey(u.IsChange, u.AddressIndex))
+                .Select(u => account.GetPrivateKey(u.IsChange, u.AddressIndex))
+                .OfType<Key>()
                 .ToArray());
         }
 
