@@ -183,6 +183,7 @@ public sealed class Loc
         ["send.all"]              = ["Invia tutto",                                                       "Send all",                     "Enviar todo",                          "Tout envoyer",                             "Enviar tudo",                              "Alles senden"],
         ["send.feerate"]          = ["fee sat/vB:",                                                       "fee sat/vB:",                  "tarifa sat/vB:",                       "frais sat/vB :",                           "taxa sat/vB:",                             "Gebühr sat/vB:"],
         ["send.prepare"]          = ["Prepara transazione",                                               "Prepare transaction",          "Preparar transacción",                 "Préparer la transaction",                  "Preparar transação",                       "Transaktion vorbereiten"],
+        ["send.scan"]             = ["Scansiona QR",                                                      "Scan QR",                      "Escanear QR",                          "Scanner QR",                               "Escanear QR",                              "QR scannen"],
         ["send.confirm"]          = ["CONFERMA E TRASMETTI",                                              "CONFIRM AND BROADCAST",        "CONFIRMAR Y TRANSMITIR",               "CONFIRMER ET DIFFUSER",                    "CONFIRMAR E TRANSMITIR",                   "BESTÄTIGEN UND SENDEN"],
 
         // Stato connessione

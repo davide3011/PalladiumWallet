@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <PackageReference Include="Avalonia.Android" Version="12.0.4" />
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
   </ItemGroup>
 
   <ItemGroup>

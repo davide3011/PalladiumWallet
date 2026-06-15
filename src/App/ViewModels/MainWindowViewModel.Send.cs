@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NBitcoin;
+using PalladiumWallet.App.Services;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Net;
 using PalladiumWallet.Core.Wallet;
@@ -28,6 +29,18 @@ public partial class MainWindowViewModel
 
     [ObservableProperty]
     private bool hasPendingSend;
+
+    [RelayCommand]
+    private async Task ScanQr()
+    {
+        if (PlatformServices.ScanQrAsync is not { } scan) return;
+        var raw = await scan();
+        if (string.IsNullOrWhiteSpace(raw)) return;
+        // Gestisce URI tipo "palladium:ADDRESS?amount=X" estraendo solo l'indirizzo
+        var address = raw.Contains(':') ? raw.Split(':')[1] : raw;
+        if (address.Contains('?')) address = address.Split('?')[0];
+        SendTo = address.Trim();
+    }
 
     [RelayCommand]
     private async Task PrepareSend()

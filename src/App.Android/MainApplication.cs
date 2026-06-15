@@ -1,8 +1,11 @@
 using System;
+using System.Threading.Tasks;
 using Android.App;
+using Android.Content;
 using Android.Runtime;
 using Avalonia;
 using Avalonia.Android;
+using PalladiumWallet.App.Services;
 using PalladiumWallet.Core.Storage;
 
 namespace PalladiumWallet.Mobile;
@@ -21,10 +24,21 @@ public class MainApplication : AvaloniaAndroidApplication<global::PalladiumWalle
 
     public override void OnCreate()
     {
-        // Storage sandbox dell'app: wallet, configurazione e certificati vivono
-        // qui. Impostato prima dell'init Avalonia (che crea il ViewModel e decide
-        // se mostrare lo step "scegli cartella dati" del wizard).
         AppPaths.OverrideDataRoot = FilesDir?.AbsolutePath;
+
+        // Registra lo scanner QR: apre ScannerActivity e ne attende il risultato.
+        PlatformServices.ScanQrAsync = async () =>
+        {
+            var activity = MainActivity.Current;
+            if (activity == null) return null;
+            var tcs = new TaskCompletionSource<string?>();
+            MainActivity.ScanTcs = tcs;
+            activity.StartActivityForResult(
+                new Intent(activity, typeof(ScannerActivity)),
+                MainActivity.ScanRequestCode);
+            return await tcs.Task;
+        };
+
         base.OnCreate();
     }
 
