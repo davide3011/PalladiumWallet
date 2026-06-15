@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PalladiumWallet.App.Localization;
+using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Net;
 using PalladiumWallet.Core.Spv;
 using PalladiumWallet.Core.Storage;
@@ -115,6 +117,30 @@ public partial class MainWindowViewModel
         return (host, port);
     }
 
+    /// <summary>
+    /// Restituisce i server da provare in ordine: prima quello selezionato nella UI
+    /// (o digitato manualmente), poi gli altri in KnownServers, evitando duplicati.
+    /// </summary>
+    private IEnumerable<(string Host, int Port)> BuildServerCandidates(string selectedHost, int selectedPort)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // 1. Server corrente (selezionato o digitato manualmente).
+        if (!string.IsNullOrWhiteSpace(selectedHost))
+        {
+            var key = $"{selectedHost}:{selectedPort}";
+            if (seen.Add(key))
+                yield return (selectedHost, selectedPort);
+        }
+        // 2. Altri server noti, in ordine di lista.
+        foreach (var s in KnownServers)
+        {
+            var p = s.PortFor(UseSsl);
+            var key = $"{s.Host}:{p}";
+            if (seen.Add(key))
+                yield return (s.Host, p);
+        }
+    }
+
     [RelayCommand]
     private async Task ConnectAndSync()
     {
@@ -137,18 +163,50 @@ public partial class MainWindowViewModel
 
             if (_client is null || !_client.IsConnected)
             {
-                ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {host}:{port}…";
-                var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
-                _client = await ElectrumClient.ConnectAsync(host, port, UseSsl, pins);
-                _client.NotificationReceived += OnServerNotification;
-                _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
+                // Salva le cache prima di distruggere il synchronizer: il nuovo
+                // synchronizer userà un client diverso e deve essere ricreato,
+                // ma i dati già scaricati vengono preservati via _doc.Cache.
+                PersistPartialTxCache();
+                _synchronizer = null;
+
+                // Prova tutti i server noti in ordine; parte da quello selezionato
+                // e scorre la lista fino al primo che risponde.
+                var candidates = BuildServerCandidates(host, port);
+                Exception? lastError = null;
+                foreach (var (h, p) in candidates)
                 {
-                    IsConnected = false;
-                    ConnectionStatus = Loc.Tr("conn.none");
-                });
-                IsConnected = true;
-                _autoReconnect = true;
-                ConnectionStatus = Loc.Tr("conn.connectedto");
+                    ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {h}:{p}…";
+                    try
+                    {
+                        var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
+                        _client = await ElectrumClient.ConnectAsync(h, p, UseSsl, pins);
+                        _client.NotificationReceived += OnServerNotification;
+                        _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
+                        {
+                            IsConnected = false;
+                            ConnectionStatus = Loc.Tr("conn.none");
+                        });
+                        IsConnected = true;
+                        _autoReconnect = true;
+                        ConnectionStatus = Loc.Tr("conn.connectedto");
+                        // Aggiorna la UI per riflettere il server effettivamente connesso.
+                        _syncingServerFields = true;
+                        ServerHost = h;
+                        ServerPort = p.ToString();
+                        SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == h)
+                            ?? SelectedKnownServer;
+                        _syncingServerFields = false;
+                        lastError = null;
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = ex;
+                        _client = null;
+                    }
+                }
+                if (lastError is not null)
+                    throw lastError;
             }
 
             if (_account is null || _doc is null)
@@ -156,7 +214,14 @@ public partial class MainWindowViewModel
 
             if (_synchronizer is null)
             {
-                _synchronizer = new WalletSynchronizer(_account, _client, _doc.GapLimit);
+                _synchronizer = new WalletSynchronizer(_account, _client!, _doc.GapLimit);
+                // Ricarica dalla cache su disco: evita di riscaricale le tx già note
+                // (fondamentale per wallet con migliaia di tx storiche — previene -101).
+                var net = PalladiumNetworks.For(_account.Profile.Kind);
+                _synchronizer.PreloadCaches(
+                    _doc.Cache?.RawTxHex ?? [],
+                    _doc.Cache?.VerifiedAt ?? [],
+                    net);
                 _synchronizer.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
             }
 
@@ -166,6 +231,8 @@ public partial class MainWindowViewModel
                 var result = await _synchronizer.SyncOnceAsync();
                 _lastTransactions = result.Transactions;
 
+                var (rawHex, verifiedAt) = _synchronizer.ExportCaches(
+                    PalladiumNetworks.For(_account.Profile.Kind));
                 _doc.Cache = new SyncCache
                 {
                     TipHeight = result.TipHeight,
@@ -176,9 +243,12 @@ public partial class MainWindowViewModel
                     History = [.. result.History],
                     Utxos = [.. result.Utxos],
                     Addresses = [.. result.AddressRows],
+                    RawTxHex = rawHex,
+                    VerifiedAt = verifiedAt,
                 };
                 WalletStore.Save(_doc, _walletPath!, _password);
                 ApplyCache(_doc.Cache);
+                _syncFailed = false;
                 StatusMessage = $"{Loc.Tr("msg.synced")}: {Loc.Tr("msg.height")} {result.TipHeight}, " +
                     $"{result.History.Count} {Loc.Tr("msg.synced.detail")}";
             } while (_resyncRequested);
@@ -194,6 +264,13 @@ public partial class MainWindowViewModel
             IsConnected = _client?.IsConnected == true;
             ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
             StatusMessage = $"Errore: {ex.Message}";
+            if (_account is not null)
+            {
+                _syncFailed = true;
+                // Salva le tx già scaricate: al retry il synchronizer riparte
+                // da qui invece di ricominciare da zero (es. dopo -101).
+                PersistPartialTxCache();
+            }
         }
         finally
         {
@@ -243,6 +320,28 @@ public partial class MainWindowViewModel
     {
         new CertificatePinStore(AppPaths.CertificatePinsPath(Net)).ResetAll();
         StatusMessage = Loc.Tr("msg.certreset");
+    }
+
+    /// <summary>
+    /// Salva nel SyncCache le tx e le prove di Merkle già accumulate dal synchronizer,
+    /// anche se la sync non è ancora completa. Consente al retry successivo
+    /// (o al riavvio dell'app) di riprendere senza riscaricale da zero.
+    /// </summary>
+    private void PersistPartialTxCache()
+    {
+        if (_synchronizer is null || _doc is null || _walletPath is null || _account is null)
+            return;
+        try
+        {
+            var net = PalladiumNetworks.For(_account.Profile.Kind);
+            var (rawHex, verifiedAt) = _synchronizer.ExportCaches(net);
+            if (rawHex.Count == 0 && verifiedAt.Count == 0)
+                return;
+            (_doc.Cache ??= new SyncCache()).RawTxHex = rawHex;
+            _doc.Cache.VerifiedAt = verifiedAt;
+            WalletStore.Save(_doc, _walletPath, _password);
+        }
+        catch { /* non fatale: il prossimo salvataggio completo recupererà */ }
     }
 
     private async Task DisconnectAsync()
