@@ -20,7 +20,7 @@ public class StorageTests
     private static string TempPath() =>
         Path.Combine(Path.GetTempPath(), $"plm-test-{Guid.NewGuid()}.wallet.json");
 
-    // ---- cifratura AES-GCM ----
+    // ---- AES-GCM encryption ----
 
     [Fact]
     public void La_cifratura_fa_roundtrip_con_la_password_giusta()
@@ -257,8 +257,8 @@ public class StorageTests
     [Fact]
     public void WalletLock_file_lock_preesistente_ma_non_bloccato_viene_acquisito()
     {
-        // Un .lock rimasto da un crash precedente (file esiste ma nessuno lo tiene)
-        // non deve bloccare l'apertura del wallet.
+        // A stale .lock left from a previous crash (file exists but nobody holds it)
+        // must not block wallet opening.
         var path = TempPath();
         var lockPath = path + ".lock";
         try

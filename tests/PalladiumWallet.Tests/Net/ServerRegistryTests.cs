@@ -9,7 +9,7 @@ public class PeerParsingTests
     [Fact]
     public void La_risposta_peers_subscribe_si_parsa_nel_formato_electrumx()
     {
-        // Formato reale: [ip, hostname, ["v...", "pN", "tPORTA", "sPORTA"]].
+        // Real format: [ip, hostname, ["v...", "pN", "tPORT", "sPORT"]].
         const string json = """
             [
               ["173.212.224.67", "173.212.224.67", ["v1.4.2", "p10000", "t50001", "s50002"]],
@@ -20,10 +20,10 @@ public class PeerParsingTests
             """;
         var peers = ElectrumApi.ParsePeers(JsonDocument.Parse(json).RootElement);
 
-        Assert.Equal(3, peers.Count); // l'ultimo non offre porte → scartato
+        Assert.Equal(3, peers.Count); // last entry has no ports → discarded
 
         Assert.Equal(new PeerInfo("173.212.224.67", 50001, 50002, "1.4.2"), peers[0]);
-        // "t" senza numero = porta di default (0 segnala "da risolvere col profilo").
+        // "t" without a number = default port (0 signals "resolve from profile").
         Assert.Equal(new PeerInfo("nodo.esempio.org", 0, null, "1.4"), peers[1]);
         Assert.Equal(new PeerInfo("solo-ssl.esempio.org", null, 50002, "1.4"), peers[2]);
     }
@@ -55,8 +55,8 @@ public class ServerRegistryTests
             var registry = new ServerRegistry(ChainProfiles.Mainnet, path);
             var bootstrapCount = registry.All.Count;
 
-            // Merge diretto via DiscoverAsync richiede un client: si testa la
-            // persistenza simulando il file degli scoperti.
+            // Direct merge via DiscoverAsync requires a client: test persistence
+            // by simulating the discovered servers file.
             var discovered = new[] { new KnownServer("nuovo.esempio.org", 50001, 50002, "1.4.2") };
             File.WriteAllText(path, JsonSerializer.Serialize(discovered));
 
@@ -64,7 +64,7 @@ public class ServerRegistryTests
             Assert.Equal(bootstrapCount + 1, reloaded.All.Count);
             Assert.Contains(reloaded.All, s => s.Host == "nuovo.esempio.org");
 
-            // Un bootstrap duplicato nel file non raddoppia.
+            // A bootstrap duplicate in the file must not double-count.
             File.WriteAllText(path, JsonSerializer.Serialize(new[]
             {
                 new KnownServer("173.212.224.67", 50001, 50002),

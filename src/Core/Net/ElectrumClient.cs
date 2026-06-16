@@ -9,9 +9,9 @@ using System.Threading.Channels;
 namespace PalladiumWallet.Core.Net;
 
 /// <summary>
-/// Client del protocollo del server di indicizzazione (blueprint §10):
-/// JSON-RPC 2.0 newline-delimited su TCP, opzionalmente TLS con pinning TOFU.
-/// Le notifiche (subscription) arrivano sull'evento <see cref="NotificationReceived"/>.
+/// Client for the indexing server protocol (blueprint §10):
+/// newline-delimited JSON-RPC 2.0 over TCP, optionally TLS with TOFU pinning.
+/// Notifications (subscriptions) arrive on the <see cref="NotificationReceived"/> event.
 /// </summary>
 public sealed class ElectrumClient : IAsyncDisposable
 {
@@ -25,17 +25,17 @@ public sealed class ElectrumClient : IAsyncDisposable
     private readonly Task _readLoop;
     private readonly Task _writeLoop;
 
-    // Channel single-reader: le task scrivono i payload senza lock;
-    // il write loop drena tutto in un unico WriteAsync+FlushAsync —
-    // identico al buffered writer asyncio di Electrum.
+    // Single-reader channel: tasks write the payloads without a lock;
+    // the write loop drains everything in a single WriteAsync+FlushAsync —
+    // identical to Electrum's asyncio buffered writer.
     private readonly Channel<byte[]> _outgoing = Channel.CreateUnbounded<byte[]>(
         new UnboundedChannelOptions { SingleReader = true, AllowSynchronousContinuations = false });
 
-    // Tetto alle richieste in volo (non in coda di scrittura, ma in attesa di
-    // risposta sul server). Il write-loop batcha già l'invio in un solo segmento;
-    // questo gate evita di sommergere il server con migliaia di richieste
-    // simultanee su wallet grandi → niente -101/-102 a raffica né drop della
-    // connessione. Le scritture restano comunque pipelinate fino a questo grado.
+    // Cap on in-flight requests (not in the write queue, but awaiting a
+    // response from the server). The write loop already batches the send into a
+    // single segment; this gate avoids flooding the server with thousands of
+    // simultaneous requests on large wallets → no bursts of -101/-102 nor
+    // connection drops. Writes still stay pipelined up to this degree.
     private const int MaxInFlight = 32;
     private readonly SemaphoreSlim _inFlight = new(MaxInFlight, MaxInFlight);
 
@@ -104,8 +104,8 @@ public sealed class ElectrumClient : IAsyncDisposable
     public async Task<JsonElement> RequestAsync(string method, CancellationToken ct = default,
         params object?[] parameters)
     {
-        // Gate prima di mettere in volo: oltre MaxInFlight richieste in attesa
-        // si attende che una risposta liberi uno slot, invece di sommergere il server.
+        // Gate before going in-flight: beyond MaxInFlight pending requests
+        // we wait for a response to free a slot, instead of flooding the server.
         await _inFlight.WaitAsync(ct);
         try
         {
@@ -137,9 +137,9 @@ public sealed class ElectrumClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Drain loop: svuota il channel in un unico buffer → un solo WriteAsync+FlushAsync
-    /// per tutti i messaggi in coda. Quando N richieste sono in coda, vengono
-    /// trasmesse in un singolo segmento TCP invece di N flush seriali.
+    /// Drain loop: empties the channel into a single buffer → one WriteAsync+FlushAsync
+    /// for all queued messages. When N requests are queued, they are
+    /// transmitted in a single TCP segment instead of N serial flushes.
     /// </summary>
     private async Task WriteLoopAsync()
     {
@@ -166,8 +166,8 @@ public sealed class ElectrumClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// Read loop con PipeReader: buffer pooled, zero allocazioni per-risposta
-    /// (nessuna stringa intermedia), parsing JSON direttamente da byte span.
+    /// Read loop with PipeReader: pooled buffers, zero per-response allocations
+    /// (no intermediate string), JSON parsing directly from a byte span.
     /// </summary>
     private async Task ReadLoopAsync()
     {
@@ -190,8 +190,8 @@ public sealed class ElectrumClient : IAsyncDisposable
                 }
                 finally
                 {
-                    // consumed = tutto ciò che abbiamo consumato (fino all'ultimo \n)
-                    // examined = tutto ciò che abbiamo guardato (fino alla fine del buffer)
+                    // consumed = everything we have consumed (up to the last \n)
+                    // examined = everything we have looked at (up to the end of the buffer)
                     pipe.AdvanceTo(buffer.Start, buffer.End);
                 }
 
@@ -206,7 +206,7 @@ public sealed class ElectrumClient : IAsyncDisposable
         {
             await pipe.CompleteAsync();
             foreach (var (_, tcs) in _pending)
-                tcs.TrySetException(failure ?? new IOException("Connessione al server chiusa."));
+                tcs.TrySetException(failure ?? new IOException("Connection to the server closed."));
             _pending.Clear();
             Disconnected?.Invoke(failure);
         }
@@ -229,7 +229,7 @@ public sealed class ElectrumClient : IAsyncDisposable
             DispatchSpan(line.FirstSpan);
             return;
         }
-        // Multi-segmento (risposta molto lunga): copia su ArrayPool poi parsa.
+        // Multi-segment (very long response): copy to ArrayPool then parse.
         var len = (int)line.Length;
         var buf = ArrayPool<byte>.Shared.Rent(len);
         try
@@ -242,8 +242,8 @@ public sealed class ElectrumClient : IAsyncDisposable
 
     private void DispatchSpan(ReadOnlySpan<byte> utf8)
     {
-        // JsonDocument.Parse via Utf8JsonReader: nessuna stringa intermedia,
-        // parsing direttamente dallo span pooled.
+        // JsonDocument.Parse via Utf8JsonReader: no intermediate string,
+        // parsing directly from the pooled span.
         var reader = new Utf8JsonReader(utf8);
         using var doc = JsonDocument.ParseValue(ref reader);
         var root = doc.RootElement;
@@ -276,12 +276,12 @@ public sealed class ElectrumClient : IAsyncDisposable
     }
 }
 
-/// <summary>Errore restituito dal server (campo "error" della risposta JSON-RPC).</summary>
+/// <summary>Error returned by the server ("error" field of the JSON-RPC response).</summary>
 public sealed class ElectrumServerException(string error) : Exception(error);
 
 /// <summary>
-/// Il certificato del server è cambiato rispetto a quello salvato (TOFU, §9).
-/// Si sblocca con il reset esplicito dei certificati.
+/// The server certificate changed with respect to the saved one (TOFU, §9).
+/// It is unlocked with an explicit reset of the certificates.
 /// </summary>
 public sealed class CertificatePinMismatchException(string host, int port) : Exception(
     $"Il certificato TLS di {host}:{port} è cambiato rispetto a quello salvato. " +

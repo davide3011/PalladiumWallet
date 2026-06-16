@@ -6,7 +6,7 @@ using PalladiumWallet.Core.Storage;
 
 namespace PalladiumWallet.Core.Wallet;
 
-/// <summary>Esito della costruzione di una transazione.</summary>
+/// <summary>Result of a transaction build operation.</summary>
 public sealed class BuiltTransaction
 {
     public required Transaction Transaction { get; init; }
@@ -14,7 +14,7 @@ public sealed class BuiltTransaction
     public required FeeRate FeeRate { get; init; }
     public required bool Signed { get; init; }
 
-    /// <summary>PSBT per i flussi watch-only/air-gapped/multisig (§6.5).</summary>
+    /// <summary>PSBT for watch-only/air-gapped/multisig flows (§6.5).</summary>
     public required PSBT Psbt { get; init; }
 
     public string ToHex() => Transaction.ToHex();
@@ -22,25 +22,25 @@ public sealed class BuiltTransaction
 }
 
 /// <summary>
-/// Costruzione e firma delle transazioni (blueprint §6) sopra le primitive
-/// NBitcoin: selezione monete (manuale o automatica), fee a rate fisso,
-/// invia-tutto con fee sottratta, change sulla catena interna, RBF di default.
-/// Con un account watch-only produce la PSBT non firmata (§6.5).
+/// Transaction construction and signing (blueprint §6) on top of NBitcoin primitives:
+/// coin selection (manual or automatic), fixed fee rate, send-all with fee subtracted,
+/// change on the internal chain, RBF on by default.
+/// With a watch-only account produces an unsigned PSBT (§6.5).
 /// </summary>
 public sealed class TransactionFactory(IWalletAccount account)
 {
     private Network Network => PalladiumNetworks.For(account.Profile.Kind);
 
     /// <summary>
-    /// Costruisce (e se possibile firma) una transazione.
+    /// Builds (and signs if possible) a transaction.
     /// </summary>
-    /// <param name="utxos">UTXO selezionati (coin control §6.2) o tutti quelli spendibili.</param>
-    /// <param name="transactions">Tx di provenienza degli UTXO (txid → tx), dalla sincronizzazione.</param>
-    /// <param name="destination">Indirizzo destinatario.</param>
-    /// <param name="amountSats">Importo; ignorato se <paramref name="sendAll"/>.</param>
-    /// <param name="feeRateSatPerVByte">Fee rate fisso in sat/vByte (§6.4).</param>
-    /// <param name="changeIndex">Indice del prossimo indirizzo di change (catena interna).</param>
-    /// <param name="sendAll">Invia tutto: fee sottratta dall'importo (§6.1).</param>
+    /// <param name="utxos">Selected UTXOs (coin control §6.2) or all spendable ones.</param>
+    /// <param name="transactions">Source transactions for the UTXOs (txid → tx), from sync.</param>
+    /// <param name="destination">Recipient address.</param>
+    /// <param name="amountSats">Amount; ignored when <paramref name="sendAll"/> is true.</param>
+    /// <param name="feeRateSatPerVByte">Fixed fee rate in sat/vByte (§6.4).</param>
+    /// <param name="changeIndex">Index of the next change address (internal chain).</param>
+    /// <param name="sendAll">Send all: fee subtracted from the amount (§6.1).</param>
     public BuiltTransaction Build(
         IReadOnlyList<CachedUtxo> utxos,
         IReadOnlyDictionary<string, Transaction> transactions,
@@ -50,15 +50,15 @@ public sealed class TransactionFactory(IWalletAccount account)
         int changeIndex,
         bool sendAll = false)
     {
-        // Si spendono solo UTXO confermati: i fondi in mempool si vedono nel
-        // saldo "in attesa" ma non sono spendibili finché non confermano.
+        // Only confirmed UTXOs are spent: mempool funds appear in the "pending"
+        // balance but are not spendable until confirmed.
         var spendable = utxos.Where(u => !u.Frozen && u.Height > 0).ToList();
         if (spendable.Count == 0)
         {
             var pending = utxos.Where(u => !u.Frozen && u.Height <= 0).Sum(u => u.ValueSats);
             throw new WalletSpendException(pending > 0
-                ? $"Nessun fondo confermato: {CoinAmount.Format(pending)} in attesa di conferma (non spendibile)."
-                : "Nessun UTXO spendibile selezionato.");
+                ? $"No confirmed funds: {CoinAmount.Format(pending)} pending confirmation (not spendable)."
+                : "No spendable UTXOs selected.");
         }
 
         var coins = spendable.Select(u => new Coin(
@@ -68,7 +68,7 @@ public sealed class TransactionFactory(IWalletAccount account)
         var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000m), 1000);
         var builder = Network.CreateTransactionBuilder();
         builder.SetVersion(2);
-        // Sequence RBF per consentire il bump della fee (§6.6).
+        // RBF sequence to allow fee bumping (§6.6).
         builder.OptInRBF = true;
         builder.AddCoins(coins);
         builder.SetChange(account.GetChangeAddress(changeIndex));
@@ -94,14 +94,14 @@ public sealed class TransactionFactory(IWalletAccount account)
         }
         catch (NotEnoughFundsException ex)
         {
-            throw new WalletSpendException($"Fondi insufficienti: {ex.Message}");
+            throw new WalletSpendException($"Insufficient funds: {ex.Message}");
         }
 
         if (!account.IsWatchOnly)
         {
             if (!builder.Verify(tx, out TransactionPolicyError[] errors))
                 throw new WalletSpendException(
-                    "Transazione non valida: " + string.Join("; ", errors.Select(e => e.ToString())));
+                    "Invalid transaction: " + string.Join("; ", errors.Select(e => e.ToString())));
         }
 
         return new BuiltTransaction
@@ -123,5 +123,5 @@ public sealed class TransactionFactory(IWalletAccount account)
     }
 }
 
-/// <summary>Errore di costruzione/firma della spesa (fondi, policy, parametri).</summary>
+/// <summary>Error during transaction construction/signing (funds, policy, parameters).</summary>
 public sealed class WalletSpendException(string message) : Exception(message);

@@ -10,9 +10,9 @@ using PalladiumWallet.Core.Storage;
 
 namespace PalladiumWallet.Mobile;
 
-// In Avalonia 12 l'AppBuilder Android si configura nella sottoclasse Application
-// (AvaloniaAndroidApplication<TApp>), non più nell'Activity. allowBackup=false:
-// il file wallet cifrato/seed non deve finire nei backup cloud automatici.
+// In Avalonia 12 the Android AppBuilder is configured in the Application subclass
+// (AvaloniaAndroidApplication<TApp>), no longer in the Activity. allowBackup=false:
+// the encrypted wallet file/seed must not end up in automatic cloud backups.
 [Application(Label = "Palladium Wallet", AllowBackup = false,
              Icon = "@mipmap/ic_launcher", RoundIcon = "@mipmap/ic_launcher_round")]
 public class MainApplication : AvaloniaAndroidApplication<global::PalladiumWallet.App.App>
@@ -26,7 +26,7 @@ public class MainApplication : AvaloniaAndroidApplication<global::PalladiumWalle
     {
         AppPaths.OverrideDataRoot = FilesDir?.AbsolutePath;
 
-        // Registra lo scanner QR: apre ScannerActivity e ne attende il risultato.
+        // Registers the QR scanner: opens ScannerActivity and waits for its result.
         PlatformServices.ScanQrAsync = async () =>
         {
             var activity = MainActivity.Current;

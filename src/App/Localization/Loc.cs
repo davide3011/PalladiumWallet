@@ -3,9 +3,9 @@ using System.Collections.Generic;
 namespace PalladiumWallet.App.Localization;
 
 /// <summary>
-/// Localizzazione UI: dizionario chiave → traduzioni per lingua, con
-/// indicizzatore bindabile da XAML ({Binding Loc[chiave]}). Al cambio lingua
-/// il ViewModel sostituisce l'istanza così Avalonia rivaluta tutte le binding.
+/// UI localisation: key → per-language translations dictionary, with an
+/// indexer bindable from XAML ({Binding Loc[key]}). On language change the
+/// ViewModel replaces the instance so Avalonia re-evaluates all bindings.
 /// </summary>
 public sealed class Loc
 {
@@ -20,10 +20,10 @@ public sealed class Loc
     private Loc(string language) { Language = language; }
 
     /// <summary>
-    /// Crea una nuova istanza con la lingua specificata e aggiorna il singleton
-    /// usato da <see cref="Tr"/>. Il ViewModel assegna questa istanza alla
-    /// propria property Loc così Avalonia vede un riferimento diverso e
-    /// rivaluta tutte le binding {Binding Loc[chiave]}.
+    /// Creates a new instance for the specified language and updates the singleton
+    /// used by <see cref="Tr"/>. The ViewModel assigns this instance to its Loc
+    /// property so Avalonia sees a different reference and re-evaluates all
+    /// {Binding Loc[key]} bindings.
     /// </summary>
     internal static Loc SwitchTo(string language)
     {
@@ -146,13 +146,13 @@ public sealed class Loc
             "Fügen Sie einen oder mehrere WIF-Schlüssel ein (einer pro Zeile). Sie können mehrere Schlüssel importieren, um mehrere Adressen mit demselben Wallet zu verwalten."],
         ["wiz.importwif.placeholder"] = ["K… / L… / 5… (una chiave per riga)",                            "K… / L… / 5… (one key per line)", "K… / L… / 5… (una clave por línea)", "K… / L… / 5… (une clé par ligne)", "K… / L… / 5… (uma chave por linha)", "K… / L… / 5… (ein Schlüssel pro Zeile)"],
 
-        // Messaggi di errore import
+        // Import error messages
         ["msg.xkey.required"]     = ["Incolla una chiave estesa (xpub/xprv o variante).",                  "Paste an extended key (xpub/xprv or variant).", "Pega una clave extendida (xpub/xprv o variante).", "Collez une clé étendue (xpub/xprv ou variante).", "Cole uma chave estendida (xpub/xprv ou variante).", "Fügen Sie einen erweiterten Schlüssel ein (xpub/xprv oder Variante)."],
         ["msg.xkey.invalid"]      = ["Chiave estesa non riconosciuta per questa rete.",                     "Extended key not recognised for this network.", "Clave extendida no reconocida para esta red.", "Clé étendue non reconnue pour ce réseau.", "Chave estendida não reconhecida para esta rede.", "Erweiterter Schlüssel für dieses Netzwerk nicht erkannt."],
         ["msg.wif.required"]      = ["Incolla almeno una chiave WIF.",                                      "Paste at least one WIF key.",  "Pega al menos una clave WIF.",         "Collez au moins une clé WIF.",             "Cole pelo menos uma chave WIF.",           "Fügen Sie mindestens einen WIF-Schlüssel ein."],
         ["msg.wif.invalid"]       = ["Chiave WIF non valida per questa rete.",                              "WIF key not valid for this network.", "Clave WIF no válida para esta red.", "Clé WIF invalide pour ce réseau.",        "Chave WIF inválida para esta rede.",       "WIF-Schlüssel für dieses Netzwerk ungültig."],
 
-        // Pannello wallet
+        // Wallet panel
         ["wallet.close"]          = ["Chiudi wallet",                                                     "Close wallet",                 "Cerrar wallet",                        "Fermer le wallet",                         "Fechar carteira",                          "Wallet schließen"],
         ["wallet.server"]         = ["Server:",                                                           "Server:",                      "Servidor:",                            "Serveur :",                                "Servidor:",                                "Server:"],
         ["wallet.connect"]        = ["Connetti e sincronizza",                                            "Connect and sync",             "Conectar y sincronizar",               "Connecter et synchroniser",                "Conectar e sincronizar",                   "Verbinden und synchronisieren"],
@@ -188,7 +188,7 @@ public sealed class Loc
         ["addr.info.title"]       = ["Informazioni indirizzo",                                          "Address information",          "Información de dirección",             "Informations sur l'adresse",               "Informações do endereço",                  "Adressinformationen"],
         ["addr.close"]            = ["Chiudi",                                                          "Close",                        "Cerrar",                               "Fermer",                                   "Fechar",                                   "Schließen"],
 
-        // Storico → dettaglio transazione
+        // History → transaction detail
         ["history.hint"]          = ["Doppio click su una transazione per i dettagli.",                  "Double-click a transaction for details.", "Doble clic en una transacción para ver los detalles.", "Double-cliquez sur une transaction pour les détails.", "Clique duplo numa transação para ver os detalhes.", "Doppelklick auf eine Transaktion für Details."],
         ["tx.title"]              = ["Dettagli transazione",                                            "Transaction details",          "Detalles de la transacción",           "Détails de la transaction",                "Detalhes da transação",                    "Transaktionsdetails"],
         ["tx.close"]              = ["Chiudi",                                                          "Close",                        "Cerrar",                               "Fermer",                                   "Fechar",                                   "Schließen"],
@@ -231,7 +231,7 @@ public sealed class Loc
         ["send.scan"]             = ["Scansiona QR",                                                      "Scan QR",                      "Escanear QR",                          "Scanner QR",                               "Escanear QR",                              "QR scannen"],
         ["send.confirm"]          = ["CONFERMA E TRASMETTI",                                              "CONFIRM AND BROADCAST",        "CONFIRMAR Y TRANSMITIR",               "CONFIRMER ET DIFFUSER",                    "CONFIRMAR E TRANSMITIR",                   "BESTÄTIGEN UND SENDEN"],
 
-        // Stato connessione
+        // Connection status
         ["conn.none"]             = ["non connesso",                                                      "not connected",                "no conectado",                         "non connecté",                             "não conectado",                            "nicht verbunden"],
         ["conn.disconnected"]     = ["disconnesso",                                                       "disconnected",                 "desconectado",                         "déconnecté",                               "desconectado",                             "getrennt"],
         ["conn.reconnecting"]     = ["riconnessione…",                                                    "reconnecting…",                "reconectando…",                        "reconnexion…",                             "reconectando…",                            "Verbindung wird wiederhergestellt…"],
@@ -240,7 +240,7 @@ public sealed class Loc
         ["conn.connectedto"]      = ["connesso",                                                          "connected",                    "conectado",                            "connecté",                                 "conectado",                                "verbunden"],
         ["conn.connectingto"]     = ["connessione a",                                                     "connecting to",                "conectando a",                         "connexion à",                              "conectando a",                             "Verbindung zu"],
 
-        // Messaggi di stato principali
+        // Main status messages
         ["msg.welcome.existing"]  = [
             "Trovato un wallet esistente su questa rete: aprilo, oppure creane un altro.",
             "Found an existing wallet on this network: open it, or create another one.",
@@ -351,7 +351,7 @@ public sealed class Loc
             "SSL-Zertifikate zurückgesetzt: Verbindung erneut versuchen."],
         ["msg.error"]             = ["Errore",                                                            "Error",                        "Error",                                "Erreur",                                   "Erro",                                     "Fehler"],
 
-        // Contatti
+        // Contacts
         ["contacts.name"]         = ["Nome",                                                              "Name",                         "Nombre",                               "Nom",                                      "Nome",                                     "Name"],
         ["contacts.address"]      = ["Indirizzo",                                                         "Address",                      "Dirección",                            "Adresse",                                  "Endereço",                                 "Adresse"],
         ["contacts.name.ph"]      = ["Nome contatto",                                                     "Contact name",                 "Nombre del contacto",                  "Nom du contact",                           "Nome do contato",                          "Kontaktname"],
@@ -360,7 +360,7 @@ public sealed class Loc
         ["contacts.remove"]       = ["Rimuovi selezionato",                                               "Remove selected",              "Eliminar seleccionado",                "Supprimer la sélection",                   "Remover selecionado",                      "Auswahl entfernen"],
         ["contacts.empty"]        = ["Nessun contatto salvato.",                                          "No saved contacts.",           "No hay contactos guardados.",          "Aucun contact enregistré.",                "Nenhum contato salvo.",                    "Keine gespeicherten Kontakte."],
 
-        // Finestra impostazioni
+        // Settings window
         ["settings.title"]        = ["Impostazioni",                                                      "Settings",                     "Configuración",                        "Paramètres",                               "Configurações",                            "Einstellungen"],
         ["settings.language"]     = ["Lingua",                                                            "Language",                     "Idioma",                               "Langue",                                   "Idioma",                                   "Sprache"],
         ["settings.unit"]         = ["Unità degli importi",                                               "Amount unit",                  "Unidad de importes",                   "Unité des montants",                       "Unidade dos valores",                      "Betrageinheit"],
@@ -368,7 +368,7 @@ public sealed class Loc
         ["settings.cancel"]       = ["Annulla",                                                           "Cancel",                       "Cancelar",                             "Annuler",                                  "Cancelar",                                 "Abbrechen"],
         ["settings.server"]       = ["Server di indicizzazione…",                                         "Indexing server…",             "Servidor de indexación…",              "Serveur d'indexation…",                    "Servidor de indexação…",                   "Indexierungsserver…"],
 
-        // Finestra server
+        // Server window
         ["server.title"]          = ["Server di indicizzazione",                                          "Indexing server",              "Servidor de indexación",               "Serveur d'indexation",                     "Servidor de indexação",                    "Indexierungsserver"],
         ["server.host"]           = ["Host",                                                              "Host",                         "Host",                                 "Hôte",                                     "Host",                                     "Host"],
         ["server.port"]           = ["Porta",                                                             "Port",                         "Puerto",                               "Port",                                     "Porta",                                    "Port"],

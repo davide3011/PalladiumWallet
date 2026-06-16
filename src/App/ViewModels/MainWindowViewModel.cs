@@ -16,10 +16,10 @@ using PalladiumWallet.Core.Wallet;
 
 namespace PalladiumWallet.App.ViewModels;
 
-/// <summary>Riga dello storico transazioni per la vista.</summary>
+/// <summary>Transaction history row for the view.</summary>
 public sealed record HistoryRow(string Conferma, string Importo, string Txid, string Verificata);
 
-/// <summary>Riga della vista indirizzi con chiavi e derivation path pre-calcolati.</summary>
+/// <summary>Address view row with pre-computed keys and derivation path.</summary>
 public sealed record AddressRow(
     string Tipo, int Indice, string Indirizzo, string Saldo, string NumTx,
     bool IsChange = false, string PubKey = "", string PrivKey = "", string DerivPath = "")
@@ -27,7 +27,7 @@ public sealed record AddressRow(
     public bool HasPrivKey => !string.IsNullOrEmpty(PrivKey);
 }
 
-/// <summary>Dati completi di un indirizzo passati alla finestra di dettaglio.</summary>
+/// <summary>Full address data passed to the address detail overlay.</summary>
 public sealed record AddressInfo(
     Loc Loc,
     string Address, string DerivPath, string PubKey, string PrivKey)
@@ -35,38 +35,38 @@ public sealed record AddressInfo(
     public bool HasPrivKey => !string.IsNullOrEmpty(PrivKey);
 }
 
-/// <summary>Contatto in rubrica: nome + indirizzo blockchain.</summary>
+/// <summary>Address book contact: name + blockchain address.</summary>
 public sealed record ContactEntry(string Name, string Address);
 
-/// <summary>Voce della lista di scelta wallet: nome file + percorso completo.</summary>
+/// <summary>Wallet list entry: display name + full file path.</summary>
 public sealed record WalletFileEntry(string Name, string Path);
 
 /// <summary>
-/// ViewModel unico dell'applicazione (wizard + dashboard). Suddiviso in file
-/// partial per area: Wizard, Settings, Sync, Send, Contacts, Receive.
+/// Single application ViewModel (wizard + dashboard). Split into partial files
+/// by area: Wizard, Settings, Sync, Send, Contacts, Receive.
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
-    // ---- stato sessione wallet ----
+    // ---- wallet session state ----
     private WalletDocument? _doc;
     private IWalletAccount? _account;
     private string? _walletPath;
     private string? _password;
     private WalletLock? _walletLock;
 
-    // ---- rete ----
+    // ---- network ----
     private ElectrumClient? _client;
     private WalletSynchronizer? _synchronizer;
     private IReadOnlyDictionary<string, Transaction>? _lastTransactions;
     private bool _resyncRequested;
 
-    // ---- invio ----
+    // ---- send ----
     private BuiltTransaction? _pendingSend;
 
-    // ---- dettaglio transazione ----
+    // ---- transaction detail ----
     private CancellationTokenSource? _txDetailsCts;
 
-    // ---- configurazione e localizzazione ----
+    // ---- configuration and localisation ----
     private AppConfig _config = AppConfig.Load();
     private Loc _loc = Loc.Instance;
     public Loc Loc => _loc;
@@ -82,7 +82,7 @@ public partial class MainWindowViewModel : ViewModelBase
     // ---- server UI sync ----
     private bool _syncingServerFields;
 
-    // ---- proprietà di app ----
+    // ---- app properties ----
 
     public static string AppVersion =>
         typeof(MainWindowViewModel).Assembly.GetName().Version is { } v
@@ -91,7 +91,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public string WindowTitle => $"Palladium Wallet {AppVersion}";
 
-    /// <summary>true su desktop; false su Android/iOS — nasconde le funzioni legate al filesystem libero.</summary>
+    /// <summary>True on desktop; false on Android/iOS — hides filesystem-dependent features.</summary>
     public bool IsDesktop => !OperatingSystem.IsAndroid() && !OperatingSystem.IsIOS();
 
     public bool IsMobile => !IsDesktop;
@@ -99,7 +99,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public string UnitLabel => _config.Unit;
     public AppConfig CurrentConfig => _config;
 
-    // ---- stato pannelli ----
+    // ---- panel state ----
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsSetupVisible))]
@@ -116,7 +116,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void SelectTab(string index) => SelectedTabIndex = int.Parse(index);
 
-    // ---- collections per la dashboard ----
+    // ---- dashboard collections ----
 
     public ObservableCollection<HistoryRow> History { get; } = [];
     public ObservableCollection<AddressRow> Addresses { get; } = [];
@@ -141,7 +141,7 @@ public partial class MainWindowViewModel : ViewModelBase
         catch { return ""; }
     }
 
-    // ---- costruttore ----
+    // ---- constructor ----
 
     public MainWindowViewModel()
     {
@@ -161,7 +161,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         if (_client is { IsConnected: true })
         {
-            // Se il wallet è aperto e l'ultima sync è fallita, riprova automaticamente.
+            // If the wallet is open and the last sync failed, retry automatically.
             if (_syncFailed && _account is not null)
             {
                 await ConnectAndSync();
@@ -177,7 +177,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    // ---- ciclo di vita wallet ----
+    // ---- wallet lifecycle ----
 
     [RelayCommand]
     private void CloseWallet()

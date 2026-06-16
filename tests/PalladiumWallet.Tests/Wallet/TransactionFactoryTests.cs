@@ -19,7 +19,7 @@ public class TransactionFactoryTests
         return HdAccount.FromMnemonic(mnemonic!, null, ScriptKind.NativeSegwit, Profile);
     }
 
-    /// <summary>Tx fittizia che accredita <paramref name="sats"/> sull'indirizzo receiving/0.</summary>
+    /// <summary>Fake transaction that credits <paramref name="sats"/> to the receiving/0 address.</summary>
     private static (List<CachedUtxo>, Dictionary<string, Transaction>) Fund(HdAccount account, long sats)
     {
         var funding = Net.CreateTransaction();
@@ -51,17 +51,17 @@ public class TransactionFactoryTests
             feeRateSatPerVByte: 2, changeIndex: 0);
 
         Assert.True(built.Signed);
-        // Output: destinatario + change.
+        // Output: recipient + change.
         Assert.Equal(2, built.Transaction.Outputs.Count);
         Assert.Contains(built.Transaction.Outputs,
             o => o.ScriptPubKey == destination.ScriptPubKey && o.Value.Satoshi == 400_000);
 
-        // Fee coerente col rate richiesto (±20% per gli arrotondamenti di stima).
+        // Fee consistent with the requested rate (±20% for estimation rounding).
         var vsize = built.Transaction.GetVirtualSize();
         var expected = vsize * 2;
         Assert.InRange(built.Fee.Satoshi, expected * 0.8, expected * 1.5);
 
-        // RBF abilitato (§6.6).
+        // RBF enabled (§6.6).
         Assert.All(built.Transaction.Inputs, i => Assert.True(i.Sequence < Sequence.Final));
     }
 
@@ -96,12 +96,12 @@ public class TransactionFactoryTests
     {
         var account = Account();
         var (utxos, txs) = Fund(account, 1_000_000);
-        utxos[0].Height = 0; // in mempool: visibile nel saldo pending, non spendibile
+        utxos[0].Height = 0; // in mempool: visible in pending balance, not spendable
 
         var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
             utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
             feeRateSatPerVByte: 2, changeIndex: 0));
-        Assert.Contains("in attesa di conferma", ex.Message);
+        Assert.Contains("pending confirmation", ex.Message);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class TransactionFactoryTests
     {
         var account = Account();
         var (utxos, txs) = Fund(account, 1_000_000);
-        utxos[0].Frozen = true; // freeze (§6.2)
+        utxos[0].Frozen = true; // frozen (§6.2)
 
         Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
             utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
@@ -130,8 +130,8 @@ public class TransactionFactoryTests
             feeRateSatPerVByte: 2, changeIndex: 0);
 
         Assert.False(built.Signed);
-        // Il flusso air-gapped (§6.5): la PSBT della macchina online si firma
-        // offline con le chiavi e si finalizza.
+        // Air-gapped flow (§6.5): the online-machine PSBT is signed
+        // offline with the keys and then finalised.
         var psbt = built.Psbt;
         psbt.SignWithKeys(full.GetExtPrivateKey(false, 0));
         psbt.Finalize();
@@ -157,7 +157,7 @@ public class TransactionFactoryTests
         Assert.False(CoinAmount.TryParseCoins("-1", out _));
     }
 
-    // 1.5 PLM = 150_000_000 sat, espressi in ciascuna unità (§8).
+    // 1.5 PLM = 150_000_000 sat, expressed in each unit (§8).
     [Theory]
     [InlineData("PLM", "1.50000000 PLM", "1.5")]
     [InlineData("mPLM", "1500.00000 mPLM", "1500")]

@@ -16,7 +16,7 @@ namespace PalladiumWallet.App.ViewModels;
 
 public partial class MainWindowViewModel
 {
-    // ---- server e connessione ----
+    // ---- server and connection ----
 
     [ObservableProperty]
     private string serverHost = "";
@@ -118,20 +118,20 @@ public partial class MainWindowViewModel
     }
 
     /// <summary>
-    /// Restituisce i server da provare in ordine: prima quello selezionato nella UI
-    /// (o digitato manualmente), poi gli altri in KnownServers, evitando duplicati.
+    /// Returns servers to try in order: first the one selected in the UI
+    /// (or manually typed), then the remaining KnownServers, with duplicates skipped.
     /// </summary>
     private IEnumerable<(string Host, int Port)> BuildServerCandidates(string selectedHost, int selectedPort)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // 1. Server corrente (selezionato o digitato manualmente).
+        // 1. Current server (selected or manually typed).
         if (!string.IsNullOrWhiteSpace(selectedHost))
         {
             var key = $"{selectedHost}:{selectedPort}";
             if (seen.Add(key))
                 yield return (selectedHost, selectedPort);
         }
-        // 2. Altri server noti, in ordine di lista.
+        // 2. Other known servers, in list order.
         foreach (var s in KnownServers)
         {
             var p = s.PortFor(UseSsl);
@@ -163,14 +163,14 @@ public partial class MainWindowViewModel
 
             if (_client is null || !_client.IsConnected)
             {
-                // Salva le cache prima di distruggere il synchronizer: il nuovo
-                // synchronizer userà un client diverso e deve essere ricreato,
-                // ma i dati già scaricati vengono preservati via _doc.Cache.
+                // Persist caches before destroying the synchronizer: the new
+                // synchronizer will use a different client and must be recreated,
+                // but already-downloaded data is preserved via _doc.Cache.
                 PersistPartialTxCache();
                 _synchronizer = null;
 
-                // Prova tutti i server noti in ordine; parte da quello selezionato
-                // e scorre la lista fino al primo che risponde.
+                // Try all known servers in order; starts with the selected one
+                // and walks the list until the first that responds.
                 var candidates = BuildServerCandidates(host, port);
                 Exception? lastError = null;
                 foreach (var (h, p) in candidates)
@@ -189,7 +189,7 @@ public partial class MainWindowViewModel
                         IsConnected = true;
                         _autoReconnect = true;
                         ConnectionStatus = Loc.Tr("conn.connectedto");
-                        // Aggiorna la UI per riflettere il server effettivamente connesso.
+                        // Update the UI to reflect the server actually connected.
                         _syncingServerFields = true;
                         ServerHost = h;
                         ServerPort = p.ToString();
@@ -215,8 +215,8 @@ public partial class MainWindowViewModel
             if (_synchronizer is null)
             {
                 _synchronizer = new WalletSynchronizer(_account, _client!, _doc.GapLimit);
-                // Ricarica dalla cache su disco: evita di riscaricale le tx già note
-                // (fondamentale per wallet con migliaia di tx storiche — previene -101).
+                // Reload from disk cache: avoids re-downloading already known transactions
+                // (essential for wallets with thousands of historical txs — prevents -101).
                 var net = PalladiumNetworks.For(_account.Profile.Kind);
                 _synchronizer.PreloadCaches(
                     _doc.Cache?.RawTxHex ?? [],
@@ -271,8 +271,8 @@ public partial class MainWindowViewModel
             if (_account is not null)
             {
                 _syncFailed = true;
-                // Salva le tx già scaricate: al retry il synchronizer riparte
-                // da qui invece di ricominciare da zero (es. dopo -101).
+                // Persist already-downloaded transactions: on retry the synchronizer
+                // resumes from here instead of starting from scratch (e.g. after -101).
                 PersistPartialTxCache();
             }
         }
@@ -327,9 +327,9 @@ public partial class MainWindowViewModel
     }
 
     /// <summary>
-    /// Salva nel SyncCache le tx e le prove di Merkle già accumulate dal synchronizer,
-    /// anche se la sync non è ancora completa. Consente al retry successivo
-    /// (o al riavvio dell'app) di riprendere senza riscaricale da zero.
+    /// Persists the transactions and Merkle proofs already accumulated by the synchronizer
+    /// into SyncCache, even if sync is not yet complete. Allows the next retry
+    /// (or app restart) to resume without re-downloading from scratch.
     /// </summary>
     private void PersistPartialTxCache()
     {
@@ -346,7 +346,7 @@ public partial class MainWindowViewModel
             _doc.Cache.BlockHeaders = blockHeaders;
             WalletStore.Save(_doc, _walletPath, _password);
         }
-        catch { /* non fatale: il prossimo salvataggio completo recupererà */ }
+        catch { /* non-fatal: the next full save will recover */ }
     }
 
     private async Task DisconnectAsync()

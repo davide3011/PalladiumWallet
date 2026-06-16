@@ -7,8 +7,8 @@ using Avalonia.Media;
 namespace PalladiumWallet.App.ViewModels;
 
 /// <summary>
-/// bool → pennello: gli indirizzi del wallet (input/output "nostri") sono
-/// evidenziati in verde, gli altri usano il colore di testo predefinito.
+/// bool → brush: the wallet's own addresses ("our" inputs/outputs) are
+/// highlighted in green, the others use the default text color.
 /// </summary>
 public sealed class MineColorConverter : IValueConverter
 {

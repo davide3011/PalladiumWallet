@@ -6,15 +6,15 @@ using PalladiumWallet.Core.Wallet;
 namespace PalladiumWallet.Tests.Wallet;
 
 /// <summary>
-/// Test per ImportedKeyAccount e i nuovi percorsi factory in WalletLoader
-/// (blueprint §4.4 — importati WIF, xpub, xprv).
+/// Tests for ImportedKeyAccount and the new factory paths in WalletLoader
+/// (blueprint §4.4 — imported WIF, xpub, xprv).
 /// </summary>
 public class ImportedKeyAccountTests
 {
     private static ChainProfile Profile => ChainProfiles.Mainnet;
     private static Network Network => PalladiumNetworks.For(Profile.Kind);
 
-    // Chiave WIF valida per PLM mainnet (prefix 0x80 = Compressed WIF "K"/"L")
+    // Valid WIF key for PLM mainnet (prefix 0x80 = Compressed WIF "K"/"L")
     private static Key GenerateKey() => new Key();
 
     private static string ToWif(Key key) => key.GetWif(Network).ToString();
@@ -43,7 +43,7 @@ public class ImportedKeyAccountTests
 
         Assert.Equal(addr.ToString(), account.GetAddress(false, 0).ToString());
         Assert.Equal(addr.ToString(), account.GetReceiveAddress(0).ToString());
-        // Change → primo indirizzo
+        // Change → first address
         Assert.Equal(addr.ToString(), account.GetChangeAddress(0).ToString());
     }
 
@@ -147,7 +147,7 @@ public class ImportedKeyAccountTests
     [Fact]
     public void NewFromXpub_produce_account_watch_only()
     {
-        // Crea un HD account, esporta la zpub, reimporta come xpub watch-only.
+        // Create an HD account, export the zpub, re-import as watch-only xpub.
         var (_, hdFull) = WalletLoader.NewFromMnemonic(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             null, ScriptKind.NativeSegwit, Profile);

@@ -4,36 +4,36 @@ using PalladiumWallet.Core.Spv;
 
 namespace PalladiumWallet.Core.Wallet;
 
-/// <summary>Un input di una transazione, con l'output speso risolto dal server.</summary>
+/// <summary>An input of a transaction, with the spent output resolved from the server.</summary>
 public sealed record TxInputInfo(
     string PrevTxid, uint PrevIndex, long? AmountSats, string? Address, bool IsMine, bool IsCoinbase);
 
-/// <summary>Un output di una transazione.</summary>
+/// <summary>An output of a transaction.</summary>
 public sealed record TxOutputInfo(
     uint Index, long AmountSats, string? Address, string ScriptType, bool IsMine);
 
 /// <summary>
-/// Dati completi di una transazione, assemblati interrogando il server: la tx
-/// grezza più gli output spesi dagli input (per ricavare importi, indirizzi e
-/// fee) e l'header del blocco (per la data). Tutto ciò che il protocollo
-/// ElectrumX-like (§10) permette di sapere su una transazione.
+/// Complete transaction data assembled by querying the server: the raw transaction
+/// plus the outputs spent by each input (to derive amounts, addresses, and fees)
+/// and the block header (for the timestamp). Everything the ElectrumX-like protocol
+/// (§10) can tell us about a transaction.
 /// </summary>
 public sealed class TransactionDetails
 {
     public required string Txid { get; init; }
-    /// <summary>Altezza del blocco; ≤0 = ancora in mempool.</summary>
+    /// <summary>Block height; ≤0 = still in mempool.</summary>
     public required int Height { get; init; }
     public required int Confirmations { get; init; }
-    /// <summary>Effetto netto sul saldo del wallet (delta calcolato in sincronizzazione).</summary>
+    /// <summary>Net effect on the wallet balance (delta computed during sync).</summary>
     public required long NetSats { get; init; }
-    /// <summary>Fee della transazione; null se un input ha importo non risolvibile (es. coinbase).</summary>
+    /// <summary>Transaction fee; null if any input amount cannot be resolved (e.g. coinbase).</summary>
     public required long? FeeSats { get; init; }
     public required int TotalSize { get; init; }
     public required int VirtualSize { get; init; }
     public required uint Version { get; init; }
     public required uint LockTime { get; init; }
     public required bool RbfSignaled { get; init; }
-    /// <summary>Merkle proof verificata in sincronizzazione (§7.4).</summary>
+    /// <summary>Merkle proof verified during sync (§7.4).</summary>
     public required bool Verified { get; init; }
     public required DateTimeOffset? BlockTime { get; init; }
     public required long TotalOutSats { get; init; }
@@ -43,13 +43,13 @@ public sealed class TransactionDetails
 
     public bool IsCoinbase => Inputs.Count > 0 && Inputs[0].IsCoinbase;
     public bool IsIncoming => NetSats >= 0;
-    /// <summary>Importo verso destinatari esterni (output non nostri): l'importo "inviato".</summary>
+    /// <summary>Amount sent to external recipients (outputs not ours): the "sent" amount.</summary>
     public long SentToOthersSats => Outputs.Where(o => !o.IsMine).Sum(o => o.AmountSats);
     public long ReceivedSats => Outputs.Where(o => o.IsMine).Sum(o => o.AmountSats);
     public double? FeeRateSatPerVb => FeeSats is { } f && VirtualSize > 0 ? (double)f / VirtualSize : null;
     /// <summary>
-    /// Indirizzi della controparte: i destinatari esterni per un invio (output non
-    /// nostri), i mittenti esterni per una ricezione (input non nostri).
+    /// Counterparty addresses: external recipients for a send (outputs not ours),
+    /// external senders for a receive (inputs not ours).
     /// </summary>
     public IReadOnlyList<string> CounterpartyAddresses => IsIncoming
         ? [.. Inputs.Where(i => !i.IsMine && i.Address is not null).Select(i => i.Address!).Distinct()]
@@ -57,9 +57,9 @@ public sealed class TransactionDetails
 }
 
 /// <summary>
-/// Recupera dal server tutti i dati di una singola transazione (blueprint §10):
-/// la transazione grezza e gli output spesi dai suoi input, per ricostruire
-/// importi, fee e indirizzi che il server non riassume.
+/// Fetches all data for a single transaction from the server (blueprint §10):
+/// the raw transaction and the outputs spent by its inputs, to reconstruct
+/// amounts, fees, and addresses that the server does not summarise.
 /// </summary>
 public static class TransactionInspector
 {
@@ -112,10 +112,10 @@ public static class TransactionInspector
 
         var rbf = tx.Inputs.Any(i => i.Sequence.IsRBF);
 
-        // Le transazioni degli input servono per importi/indirizzi/fee. Si
-        // scaricano in parallelo (id univoci, richieste concorrenti supportate
-        // da ElectrumClient): in sequenza la finestra impiegava un round-trip
-        // per input. Anche l'header del blocco è recuperato in parallelo.
+        // Input transactions are needed for amounts/addresses/fees. Fetched in
+        // parallel (unique ids, concurrent requests supported by ElectrumClient):
+        // sequential fetching costs one round-trip per input. The block header
+        // is also fetched in parallel.
         var prevTxids = tx.IsCoinBase
             ? []
             : tx.Inputs.Select(i => i.PrevOut.Hash.ToString()).Distinct().ToList();

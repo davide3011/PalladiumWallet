@@ -2,24 +2,24 @@ using System.Text.Json;
 
 namespace PalladiumWallet.Core.Net;
 
-/// <summary>Voce di storico di uno scripthash (blockchain.scripthash.get_history).</summary>
+/// <summary>History entry for a scripthash (blockchain.scripthash.get_history).</summary>
 public readonly record struct HistoryItem(string TxHash, int Height, long FeeSats);
 
-/// <summary>UTXO riportato dal server (blockchain.scripthash.listunspent).</summary>
+/// <summary>UTXO reported by the server (blockchain.scripthash.listunspent).</summary>
 public readonly record struct UnspentItem(string TxHash, int TxPos, long ValueSats, int Height);
 
-/// <summary>Prova di Merkle (blockchain.transaction.get_merkle).</summary>
+/// <summary>Merkle proof (blockchain.transaction.get_merkle).</summary>
 public sealed record MerkleProofResponse(int BlockHeight, int Pos, IReadOnlyList<string> Merkle);
 
-/// <summary>Tip della catena notificato da blockchain.headers.subscribe.</summary>
+/// <summary>Chain tip notified by blockchain.headers.subscribe.</summary>
 public readonly record struct ChainTip(int Height, string HeaderHex);
 
-/// <summary>Peer annunciato da server.peers.subscribe (porte null = non offerte).</summary>
+/// <summary>Peer announced by server.peers.subscribe (null ports = not offered).</summary>
 public sealed record PeerInfo(string Host, int? TcpPort, int? SslPort, string? Version);
 
 /// <summary>
-/// Helper tipizzati sui metodi del protocollo (blueprint §10), sopra il
-/// trasporto JSON-RPC generico di <see cref="ElectrumClient"/>.
+/// Typed helpers over the protocol methods (blueprint §10), on top of the
+/// generic JSON-RPC transport of <see cref="ElectrumClient"/>.
 /// </summary>
 public static class ElectrumApi
 {
@@ -29,7 +29,7 @@ public static class ElectrumApi
         return new ChainTip(r.GetProperty("height").GetInt32(), r.GetProperty("hex").GetString()!);
     }
 
-    /// <summary>Status corrente dello scripthash (null = mai usato).</summary>
+    /// <summary>Current status of the scripthash (null = never used).</summary>
     public static async Task<string?> SubscribeScripthashAsync(this ElectrumClient c, string scripthash,
         CancellationToken ct = default)
     {
@@ -89,7 +89,7 @@ public static class ElectrumApi
         return r.GetString()!;
     }
 
-    /// <summary>Fee stimata in coin/kB per il target dato; -1 se il server non sa stimare.</summary>
+    /// <summary>Estimated fee in coin/kB for the given target; -1 if the server cannot estimate.</summary>
     public static async Task<decimal> EstimateFeeAsync(this ElectrumClient c, int targetBlocks,
         CancellationToken ct = default)
     {
@@ -112,7 +112,7 @@ public static class ElectrumApi
     public static Task PingAsync(this ElectrumClient c, CancellationToken ct = default) =>
         c.RequestAsync("server.ping", ct);
 
-    /// <summary>Peer annunciati dal server (scoperta di altri server, §9).</summary>
+    /// <summary>Peers announced by the server (discovery of other servers, §9).</summary>
     public static async Task<IReadOnlyList<PeerInfo>> GetPeersAsync(this ElectrumClient c,
         CancellationToken ct = default)
     {
@@ -121,9 +121,9 @@ public static class ElectrumApi
     }
 
     /// <summary>
-    /// Parsa la risposta di server.peers.subscribe: lista di
-    /// [ip, hostname, ["v1.4.2", "pN", "tPORTA", "sPORTA", ...]];
-    /// "t"/"s" senza numero = porta di default della rete (risolta dal chiamante).
+    /// Parses the server.peers.subscribe response: a list of
+    /// [ip, hostname, ["v1.4.2", "pN", "tPORT", "sPORT", ...]];
+    /// "t"/"s" without a number = network default port (resolved by the caller).
     /// </summary>
     public static IReadOnlyList<PeerInfo> ParsePeers(JsonElement response)
     {

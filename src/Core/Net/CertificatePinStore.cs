@@ -5,10 +5,10 @@ using System.Text.Json;
 namespace PalladiumWallet.Core.Net;
 
 /// <summary>
-/// Pinning TLS "trust on first use" (blueprint §9): al primo contatto la
-/// fingerprint SHA-256 del certificato del server viene salvata; ai successivi
-/// viene confrontata. Se cambia, la connessione va rifiutata e l'utente può
-/// sbloccare con un reset esplicito (caso tipico: server self-signed rinnovato).
+/// TLS "trust on first use" pinning (blueprint §9): on the first contact the
+/// server certificate's SHA-256 fingerprint is saved; on subsequent ones it is
+/// compared. If it changes, the connection must be rejected and the user can
+/// unlock with an explicit reset (typical case: renewed self-signed server).
 /// </summary>
 public sealed class CertificatePinStore(string filePath)
 {
@@ -18,8 +18,8 @@ public sealed class CertificatePinStore(string filePath)
         Convert.ToHexString(SHA256.HashData(certificate.GetRawCertData())).ToLowerInvariant();
 
     /// <summary>
-    /// Verifica TOFU: true se il certificato è quello già visto (o se è il primo
-    /// contatto, nel qual caso viene salvato). False = certificato cambiato.
+    /// TOFU check: true if the certificate is the one already seen (or if it is the
+    /// first contact, in which case it is saved). False = certificate changed.
     /// </summary>
     public bool VerifyOrPin(string host, int port, X509Certificate certificate)
     {
@@ -36,7 +36,7 @@ public sealed class CertificatePinStore(string filePath)
         }
     }
 
-    /// <summary>Reset del certificato salvato per un server ("reset certificati SSL", §9).</summary>
+    /// <summary>Reset the saved certificate for a server ("reset SSL certificates", §9).</summary>
     public bool Reset(string host, int port)
     {
         lock (_lock)

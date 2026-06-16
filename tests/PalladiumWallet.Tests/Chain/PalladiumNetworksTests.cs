@@ -5,7 +5,7 @@ namespace PalladiumWallet.Tests.Chain;
 
 public class PalladiumNetworksTests
 {
-    // Chiave privata fissa per test deterministici (solo test, mai usarla davvero).
+    // Fixed private key for deterministic tests (test-only, never use it for real).
     private static Key TestKey => new(Convert.FromHexString(
         "0000000000000000000000000000000000000000000000000000000000000001"));
 

@@ -3,8 +3,8 @@ using NBitcoin;
 namespace PalladiumWallet.Core.Crypto;
 
 /// <summary>
-/// Lingue wordlist BIP39 supportate (blueprint §4.1). Le liste sono incorporate
-/// in NBitcoin: nessun accesso a rete o filesystem.
+/// Supported BIP39 wordlist languages (blueprint §4.1). The lists are embedded
+/// in NBitcoin: no network or filesystem access required.
 /// </summary>
 public enum MnemonicLanguage
 {
@@ -18,7 +18,7 @@ public enum MnemonicLanguage
     Czech,
 }
 
-/// <summary>Numero di parole supportato in creazione (blueprint §4.1: 12 o 24).</summary>
+/// <summary>Supported word counts for mnemonic creation (blueprint §4.1: 12 or 24).</summary>
 public enum MnemonicLength
 {
     Twelve = 12,
@@ -26,16 +26,16 @@ public enum MnemonicLength
 }
 
 /// <summary>
-/// Facciata BIP39 su NBitcoin.Mnemonic (blueprint §4.1). NBitcoin copre già
-/// entropia→parole, checksum, normalizzazione NFKD e PBKDF2-HMAC-SHA512 a 2048
-/// round con salt "mnemonic"+passphrase: qui si restringe l'API ai casi del
-/// blueprint e si centralizza la mappa delle lingue. Quando arriverà il seed
-/// nativo versionato (§4.1 punto 1), il riconoscimento multi-schema sarà una
-/// catena di TryParse per schema.
+/// BIP39 facade over NBitcoin.Mnemonic (blueprint §4.1). NBitcoin already handles
+/// entropy→words, checksum, NFKD normalisation, and PBKDF2-HMAC-SHA512 with 2048
+/// rounds using salt "mnemonic"+passphrase. This class narrows the API to the
+/// blueprint use-cases and centralises the language map. When the native versioned
+/// seed arrives (§4.1 point 1), multi-scheme recognition will be a chain of
+/// TryParse calls per scheme.
 /// </summary>
 public static class Bip39
 {
-    /// <summary>Genera una nuova mnemonica con entropia dal CSPRNG di sistema.</summary>
+    /// <summary>Generates a new mnemonic using entropy from the system CSPRNG.</summary>
     public static Mnemonic Generate(MnemonicLength length, MnemonicLanguage language = MnemonicLanguage.English)
     {
         var wordCount = length == MnemonicLength.Twelve ? WordCount.Twelve : WordCount.TwentyFour;
@@ -43,10 +43,10 @@ public static class Bip39
     }
 
     /// <summary>
-    /// Riconosce e valida una mnemonica BIP39: numero di parole, appartenenza alla
-    /// wordlist e checksum. Se <paramref name="language"/> è indicata viene provata
-    /// per prima; altrimenti la lingua è auto-rilevata (parole condivise tra liste
-    /// possono rendere ambiguo l'autodetect: in import l'utente può forzarla).
+    /// Recognises and validates a BIP39 mnemonic: word count, wordlist membership,
+    /// and checksum. If <paramref name="language"/> is specified it is tried first;
+    /// otherwise the language is auto-detected (words shared between lists can make
+    /// autodetect ambiguous — the user can override it on import).
     /// </summary>
     public static bool TryParse(string text, out Mnemonic? mnemonic, MnemonicLanguage? language = null)
     {
@@ -54,8 +54,8 @@ public static class Bip39
         if (string.IsNullOrWhiteSpace(text))
             return false;
 
-        // Solo trim esterno: la normalizzazione NFKD e lo spazio ideografico
-        // giapponese li gestisce NBitcoin, il testo non va alterato (§4.1).
+        // Outer trim only: NBitcoin handles NFKD normalisation and Japanese
+        // ideographic spaces — the text must not be altered further (§4.1).
         text = text.Trim();
 
         IEnumerable<Wordlist> candidates = language is not null
@@ -67,7 +67,7 @@ public static class Bip39
             try
             {
                 var parsed = new Mnemonic(text, wordlist);
-                // Il costruttore NON verifica il checksum: controllo esplicito obbligatorio.
+                // The constructor does NOT verify the checksum — explicit check is mandatory.
                 if (parsed.IsValidChecksum && parsed.Words.Length is 12 or 15 or 18 or 21 or 24)
                 {
                     mnemonic = parsed;
@@ -76,7 +76,7 @@ public static class Bip39
             }
             catch (FormatException)
             {
-                // Parole fuori wordlist o conteggio non valido: si prova oltre.
+                // Words outside the wordlist or invalid count — try the next candidate.
             }
         }
 
@@ -84,9 +84,9 @@ public static class Bip39
     }
 
     /// <summary>
-    /// Mnemonica → seed di 64 byte (PBKDF2-HMAC-SHA512, 2048 round, salt
-    /// "mnemonic"+passphrase). La passphrase cambia completamente il wallet
-    /// derivato: avvisi UI obbligatori (§4.1).
+    /// Mnemonic → 64-byte seed (PBKDF2-HMAC-SHA512, 2048 rounds, salt
+    /// "mnemonic"+passphrase). The passphrase completely changes the derived
+    /// wallet — mandatory UI warnings required (§4.1).
     /// </summary>
     public static byte[] ToSeed(Mnemonic mnemonic, string? passphrase = null) =>
         mnemonic.DeriveSeed(passphrase);

@@ -4,8 +4,8 @@ using NBitcoin;
 namespace PalladiumWallet.Core.Spv;
 
 /// <summary>
-/// Scripthash del protocollo di indicizzazione (blueprint §0/§10): SHA-256
-/// dello scriptPubKey con i byte in ordine inverso, esadecimale.
+/// Script hash for the indexing protocol (blueprint §0/§10): SHA-256 of the
+/// scriptPubKey with bytes reversed, encoded as lowercase hex.
 /// </summary>
 public static class Scripthash
 {

@@ -3,7 +3,7 @@ using PalladiumWallet.Core.Chain;
 
 namespace PalladiumWallet.Core.Net;
 
-/// <summary>Server di indicizzazione noto (bootstrap o scoperto dai peer).</summary>
+/// <summary>Known indexing server (bootstrap or discovered from peers).</summary>
 public sealed record KnownServer(string Host, int TcpPort, int SslPort, string? Version = null)
 {
     public int PortFor(bool useSsl) => useSsl ? SslPort : TcpPort;
@@ -13,9 +13,9 @@ public sealed record KnownServer(string Host, int TcpPort, int SslPort, string? 
 }
 
 /// <summary>
-/// Registro dei server (blueprint §9): parte dai bootstrap del profilo (§3),
-/// si arricchisce con i peer annunciati via server.peers.subscribe e persiste
-/// le scoperte su file per le sessioni successive.
+/// Server registry (blueprint §9): starts from the profile bootstrap list (§3),
+/// is enriched with peers announced via server.peers.subscribe, and persists
+/// discovered servers to file for subsequent sessions.
 /// </summary>
 public sealed class ServerRegistry
 {
@@ -42,7 +42,7 @@ public sealed class ServerRegistry
             }
             catch (JsonException)
             {
-                // File corrotto: si riparte dai soli bootstrap.
+                // Corrupted file: fall back to bootstrap servers only.
             }
         }
     }
@@ -52,15 +52,15 @@ public sealed class ServerRegistry
         get { lock (_lock) return [.. _servers]; }
     }
 
-    /// <summary>Primo server noto: default quando l'utente non ne indica uno.</summary>
+    /// <summary>First known server: default when the user does not specify one.</summary>
     public KnownServer? Default
     {
         get { lock (_lock) return _servers.FirstOrDefault(); }
     }
 
     /// <summary>
-    /// Chiede al server connesso i peer che annuncia e integra i nuovi nel
-    /// registro (porte mancanti → default del profilo). Ritorna quanti sono nuovi.
+    /// Queries the connected server for its announced peers and adds new ones to the
+    /// registry (missing ports fall back to the profile defaults). Returns the count of new entries.
     /// </summary>
     public async Task<int> DiscoverAsync(ElectrumClient client, CancellationToken ct = default)
     {
@@ -95,7 +95,7 @@ public sealed class ServerRegistry
     private void Save()
     {
         Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-        // Si salvano solo gli scoperti: i bootstrap vengono dal profilo.
+        // Only discovered servers are saved; bootstrap servers come from the profile.
         var discovered = _servers
             .Where(s => !_profile.BootstrapServers.Any(b =>
                 string.Equals(b.Host, s.Host, StringComparison.OrdinalIgnoreCase)))

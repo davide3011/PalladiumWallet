@@ -5,12 +5,12 @@ using PalladiumWallet.Core.Crypto;
 namespace PalladiumWallet.Tests.Crypto;
 
 /// <summary>
-/// Vettore di test della specifica BIP84 (mnemonica abandon-about, senza
-/// passphrase). Gli header SLIP-132 della mainnet PLM coincidono con quelli
-/// Bitcoin, quindi zprv/zpub si confrontano direttamente; gli indirizzi si
-/// confrontano sul witness program (chain-independent) + prefisso PLM.
-/// Il path m/84'/0'/0' è volutamente "personalizzato" (coin type 0, non 746):
-/// esercita anche l'import con path custom (§4.2).
+/// BIP84 specification test vector (abandon-about mnemonic, without
+/// passphrase). The SLIP-132 headers of the PLM mainnet coincide with the
+/// Bitcoin ones, so zprv/zpub are compared directly; addresses are
+/// compared on the witness program (chain-independent) + PLM prefix.
+/// The path m/84'/0'/0' is deliberately "customized" (coin type 0, not 746):
+/// it also exercises the import with a custom path (§4.2).
 /// </summary>
 public class Bip84Slip132Tests
 {
@@ -64,12 +64,12 @@ public class Bip84Slip132Tests
     [Fact]
     public void Una_xkey_con_header_sconosciuto_viene_rifiutata()
     {
-        // xpub Bitcoin valida ma con header Legacy: non è una zpub.
+        // Valid Bitcoin xpub but with Legacy header: it is not a zpub.
         var account = Account();
         var asXpub = account.AccountXpub.ToString(Network.Main);
 
         Assert.True(Slip132.TryDecodePublic(asXpub, ChainProfiles.Mainnet, out _, out var kind));
-        Assert.Equal(ScriptKind.Legacy, kind); // header xpub → riconosciuto come Legacy
+        Assert.Equal(ScriptKind.Legacy, kind); // xpub header → recognized as Legacy
         Assert.False(Slip132.TryDecodePublic("non-base58!!!", ChainProfiles.Mainnet, out _, out _));
         Assert.False(Slip132.TryDecodePrivate(asXpub, ChainProfiles.Mainnet, out _, out _)); // pub ≠ priv
     }
@@ -88,8 +88,8 @@ public class Bip84Slip132Tests
         if (expectedPubKeyHex is not null)
             Assert.Equal(expectedPubKeyHex, pubKey.ToHex());
 
-        // Il witness program (hash160 della pubkey) è chain-independent: deve
-        // coincidere con quello dell'indirizzo bc1 del vettore ufficiale.
+        // The witness program (hash160 of the pubkey) is chain-independent: it must
+        // coincide with that of the bc1 address from the official vector.
         var bitcoinExpected = (BitcoinWitPubKeyAddress)BitcoinAddress.Create(bitcoinAddress, Network.Main);
         Assert.Equal(bitcoinExpected.Hash, pubKey.WitHash);
 

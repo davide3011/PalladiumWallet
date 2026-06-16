@@ -5,8 +5,8 @@ using PalladiumWallet.Core.Chain;
 namespace PalladiumWallet.Core.Spv;
 
 /// <summary>
-/// Header di blocco parsato dagli 80 byte canonici (blueprint §7.2):
-/// versione, prev_hash, merkle_root, timestamp, bits, nonce.
+/// Block header parsed from the canonical 80 bytes (blueprint §7.2):
+/// version, prev_hash, merkle_root, timestamp, bits, nonce.
 /// </summary>
 public sealed record BlockHeaderInfo(
     int Version, uint256 PrevHash, uint256 MerkleRoot, uint Timestamp, uint Bits, uint Nonce, uint256 Hash)
@@ -18,7 +18,7 @@ public sealed record BlockHeaderInfo(
     public static BlockHeaderInfo Parse(byte[] raw)
     {
         if (raw.Length != Size)
-            throw new ArgumentException($"Header di {raw.Length} byte (attesi {Size}).", nameof(raw));
+            throw new ArgumentException($"Header is {raw.Length} bytes (expected {Size}).", nameof(raw));
 
         return new BlockHeaderInfo(
             Version: BitConverter.ToInt32(raw, 0),
@@ -31,11 +31,10 @@ public sealed record BlockHeaderInfo(
     }
 
     /// <summary>
-    /// Validazione SPV dell'header (§7.2): collegamento al precedente e,
-    /// se il profilo non impone lo skip (catena LWMA), verifica PoW
-    /// hash &lt;= target dai bits. Il controllo di coerenza dei bits col
-    /// retargeting completo richiede la storia: per la catena di riferimento
-    /// è sostituito dai checkpoint (§7.3).
+    /// SPV header validation (§7.2): linkage to the previous header and,
+    /// if the profile does not mandate skip (LWMA chain), PoW verification
+    /// hash &lt;= target from bits. Full bits/retargeting consistency requires
+    /// history — for this chain it is replaced by checkpoints (§7.3).
     /// </summary>
     public bool IsValidChild(uint256 expectedPrevHash, ChainProfile profile)
     {
@@ -47,7 +46,7 @@ public sealed record BlockHeaderInfo(
         return Hash <= target;
     }
 
-    /// <summary>Confronto con un checkpoint hardcoded (§7.3).</summary>
+    /// <summary>Comparison against a hardcoded checkpoint (§7.3).</summary>
     public bool MatchesCheckpoint(Checkpoint checkpoint) =>
         Hash == uint256.Parse(checkpoint.BlockHash);
 }

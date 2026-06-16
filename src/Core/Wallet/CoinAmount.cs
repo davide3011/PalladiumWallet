@@ -3,17 +3,17 @@ using System.Globalization;
 namespace PalladiumWallet.Core.Wallet;
 
 /// <summary>
-/// Conversione satoshi ↔ unità coin (8 decimali) per visualizzazione e input.
-/// Si lavora sempre in satoshi internamente; la stringa è solo presentazione.
+/// Satoshi ↔ coin unit conversion (8 decimal places) for display and input.
+/// All internal computation uses satoshis; the formatted string is presentation only.
 /// </summary>
 public static class CoinAmount
 {
     public const long SatsPerCoin = 100_000_000;
 
-    /// <summary>Unità di visualizzazione selezionabili (config §8).</summary>
+    /// <summary>Selectable display units (config §8).</summary>
     public static readonly string[] Units = ["PLM", "mPLM", "µPLM", "sat"];
 
-    /// <summary>(satoshi per unità, decimali mostrati) di ciascuna unità.</summary>
+    /// <summary>(satoshis per unit, displayed decimals) for each unit.</summary>
     private static (long Factor, int Decimals) Of(string unit) => unit switch
     {
         "PLM"  => (SatsPerCoin, 8),
@@ -27,7 +27,7 @@ public static class CoinAmount
         (sats / (decimal)SatsPerCoin).ToString("0.00000000", CultureInfo.InvariantCulture)
         + (unit.Length > 0 ? " " + unit : "");
 
-    /// <summary>Formatta nell'unità scelta (es. 150000 sat → "1.50000 mPLM").</summary>
+    /// <summary>Formats in the chosen unit (e.g. 150000 sat → "1.50000 mPLM").</summary>
     public static string FormatIn(long sats, string unit, bool withLabel = true)
     {
         var (factor, decimals) = Of(unit);
@@ -36,7 +36,7 @@ public static class CoinAmount
         return withLabel ? $"{value} {unit}" : value;
     }
 
-    /// <summary>Parsa un importo espresso nell'unità scelta in satoshi.</summary>
+    /// <summary>Parses an amount expressed in the chosen unit into satoshis.</summary>
     public static bool TryParseIn(string text, string unit, out long sats)
     {
         sats = 0;
@@ -59,7 +59,7 @@ public static class CoinAmount
         return true;
     }
 
-    /// <summary>Parsa un importo in coin (punto o virgola decimale) in satoshi.</summary>
+    /// <summary>Parses a coin amount (decimal point or comma) into satoshis.</summary>
     public static bool TryParseCoins(string text, out long sats)
     {
         sats = 0;

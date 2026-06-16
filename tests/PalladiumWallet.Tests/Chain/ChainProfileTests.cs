@@ -21,7 +21,7 @@ public class ChainProfileTests
         Assert.Equal(50002, p.DefaultSslPort);
         Assert.Equal(746, p.Bip44CoinType);
         Assert.Equal("palladium", p.UriScheme);
-        Assert.True(p.SkipPowValidation); // obbligatorio: la catena usa LWMA (§3)
+        Assert.True(p.SkipPowValidation); // mandatory: the chain uses LWMA (§3)
         Assert.Equal(120, p.BlockTimeSeconds);
     }
 
@@ -105,8 +105,8 @@ public class ChainProfileTests
         Assert.Equal(1, ChainProfiles.Testnet.Bip44CoinType);
     }
 
-    // Serializza header (4 byte BE) + payload BIP32 di 74 byte e codifica Base58Check:
-    // il prefisso testuale risultante dipende solo dall'header.
+    // Serialize header (4-byte BE) + 74-byte BIP32 payload and encode Base58Check:
+    // the resulting textual prefix depends only on the header.
     private static string EncodeWithHeader(uint header)
     {
         var data = new byte[78];

@@ -5,11 +5,11 @@ using PalladiumWallet.Core.Crypto;
 namespace PalladiumWallet.Tests.Crypto;
 
 /// <summary>
-/// Vettori di test BIP86 (mnemonica abandon-about, senza passphrase).
-/// La chiave pubblica tweakizzata (output key, 32 byte x-only) è chain-independent:
-/// viene verificata contro i vettori ufficiali Bitcoin, poi si controlla che
-/// l'indirizzo PLM abbia il prefisso plm1p (witness v1, bech32m).
-/// Il path m/86'/0'/0' usa coin_type=0 (non 746) per aderire ai vettori BIP86.
+/// BIP86 test vectors (abandon-about mnemonic, no passphrase).
+/// The tweaked public key (output key, 32-byte x-only) is chain-independent:
+/// verified against the official Bitcoin vectors, then checked that the PLM
+/// address starts with plm1p (witness v1, bech32m).
+/// The path m/86'/0'/0' uses coin_type=0 (not 746) to match the BIP86 vectors.
 /// </summary>
 public class Bip86TaprootTests
 {
@@ -46,9 +46,9 @@ public class Bip86TaprootTests
     }
 
     /// <summary>
-    /// L'output key (chiave tweakizzata x-only, 32 byte) è identica al vettore BIP86
-    /// indipendentemente dalla rete: la rete cambia solo HRP e checksum, non il programma.
-    /// Indirizzi Bitcoin da https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki
+    /// The output key (tweaked x-only pubkey, 32 bytes) matches the BIP86 vector
+    /// regardless of network: the network changes only HRP and checksum, not the program.
+    /// Bitcoin addresses from https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki
     /// </summary>
     [Theory]
     [InlineData(false, 0, "bc1p5cyxnuxmeuwuvkwfem96lqzszd02n6xdcjrs20cac6yqjjwudpxqkedrcr")]
@@ -60,7 +60,7 @@ public class Bip86TaprootTests
         var account = Account();
         var plmAddr = account.GetAddress(isChange, index);
 
-        // Il witness program (output key tweakizzata) è chain-independent
+        // The witness program (tweaked output key) is chain-independent.
         var btcAddr = (TaprootAddress)BitcoinAddress.Create(bitcoinAddress, Network.Main);
         var plmTaproot = (TaprootAddress)plmAddr;
         Assert.Equal(btcAddr.PubKey, plmTaproot.PubKey);

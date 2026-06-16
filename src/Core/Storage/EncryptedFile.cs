@@ -5,9 +5,9 @@ using System.Text.Json;
 namespace PalladiumWallet.Core.Storage;
 
 /// <summary>
-/// Cifratura del file wallet (blueprint §8/§17): AES-256-GCM con chiave derivata
-/// dalla password via PBKDF2-HMAC-SHA512. Il contenitore è JSON autodescrittivo
-/// (kdf, parametri, salt, nonce) per consentire upgrade futuri dei parametri.
+/// Wallet file encryption (blueprint §8/§17): AES-256-GCM with a key derived
+/// from the password via PBKDF2-HMAC-SHA512. The container is self-describing JSON
+/// (kdf, parameters, salt, nonce) to allow future parameter upgrades.
 /// </summary>
 public static class EncryptedFile
 {
@@ -54,7 +54,7 @@ public static class EncryptedFile
             Convert.ToBase64String(tag), Convert.ToBase64String(cipher)));
     }
 
-    /// <summary>Lancia <see cref="WrongPasswordException"/> se la password è errata o il file è manomesso.</summary>
+    /// <summary>Throws <see cref="WrongPasswordException"/> if the password is wrong or the file is tampered with.</summary>
     public static string Decrypt(string fileContent, string password)
     {
         var container = JsonSerializer.Deserialize<Container>(fileContent)
@@ -74,7 +74,7 @@ public static class EncryptedFile
         }
         catch (AuthenticationTagMismatchException)
         {
-            // Il tag GCM autentica: password errata e manomissione sono indistinguibili.
+            // The GCM tag authenticates: a wrong password and tampering are indistinguishable.
             throw new WrongPasswordException();
         }
         finally
@@ -88,7 +88,7 @@ public static class EncryptedFile
         Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA512, KeySize);
 }
 
-/// <summary>Password errata (o file wallet manomesso: il tag GCM non distingue i due casi).</summary>
+/// <summary>Wrong password (or tampered wallet file: the GCM tag does not distinguish the two cases).</summary>
 public sealed class WrongPasswordException : Exception
 {
     public WrongPasswordException() : base("Password errata o file wallet danneggiato.") { }

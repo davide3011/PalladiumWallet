@@ -16,8 +16,8 @@ using AndroidResult = Android.App.Result;
 namespace PalladiumWallet.Mobile;
 
 /// <summary>
-/// Activity full-screen per la scansione QR via Camera2 + ZXing.Net.
-/// Torna a MainActivity via SetResult con l'extra "qr" = testo del codice.
+/// Full-screen activity for QR scanning via Camera2 + ZXing.Net.
+/// Returns to MainActivity via SetResult with the extra "qr" = code text.
 /// </summary>
 [Activity(Theme = "@style/MyTheme.NoActionBar",
           ScreenOrientation = Android.Content.PM.ScreenOrientation.Portrait)]
@@ -162,7 +162,7 @@ internal sealed class ScannerActivity : Activity, TextureView.ISurfaceTextureLis
             bmp.GetPixels(pixels, 0, w, 0, 0, w, h);
             bmp.Recycle();
 
-            // ARGB int[] → RGB byte[] per ZXing.RGBLuminanceSource
+            // ARGB int[] → RGB byte[] for ZXing.RGBLuminanceSource
             var rgb = new byte[pixels.Length * 3];
             for (int i = 0; i < pixels.Length; i++)
             {

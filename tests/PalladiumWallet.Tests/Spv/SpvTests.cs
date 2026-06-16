@@ -9,7 +9,7 @@ namespace PalladiumWallet.Tests.Spv;
 
 public class ScripthashTests
 {
-    // Vettori calcolati indipendentemente con Python (hashlib), non con NBitcoin.
+    // Vectors computed independently with Python (hashlib), not with NBitcoin.
     [Theory]
     [InlineData("76a9140102030405060708090a0b0c0d0e0f101112131488ac",
         "5546fc69d399ef99854c132abb060381cc159dbec67c496a6f0e0dbf12e83ae8")]
@@ -39,7 +39,7 @@ public class ScripthashTests
 
 public class MerkleProofTests
 {
-    // Blocco Bitcoin 100000: 4 transazioni (pari), merkle root nota.
+    // Bitcoin block 100000: 4 transactions (even), known merkle root.
     private static readonly uint256[] Block100000Txids =
     [
         uint256.Parse("8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87"),
@@ -51,7 +51,7 @@ public class MerkleProofTests
     private static readonly uint256 Block100000Root =
         uint256.Parse("f3e94742aca4b5ef85488dc37c06c3282295ffec960994b2c0d5ac2a25a95766");
 
-    // ---- numero pari di transazioni (4 tx) ----
+    // ---- even number of transactions (4 tx) ----
 
     [Fact]
     public void La_radice_calcolata_dalle_foglie_coincide_con_quella_del_blocco()
@@ -88,13 +88,13 @@ public class MerkleProofTests
         Assert.True(MerkleProof.Verify(txid, 0, [], root));
     }
 
-    // ---- numero dispari di transazioni (duplicazione dell'ultimo) ----
+    // ---- odd number of transactions (last one duplicated) ----
 
     [Fact]
     public void Tre_tx_dispari_la_terza_viene_duplicata()
     {
-        // Con 3 tx: livello 1 = [SHA256d(tx0||tx1), SHA256d(tx2||tx2)]
-        // Verifica che la radice sia deterministica e corretta.
+        // With 3 tx: level 1 = [SHA256d(tx0||tx1), SHA256d(tx2||tx2)]
+        // Verify the root is deterministic and correct.
         var txids = Block100000Txids.Take(3).ToArray();
         var root = MerkleProof.ComputeRootFromLeaves(txids);
         var branch2 = BuildBranch(txids, 2);
@@ -104,7 +104,7 @@ public class MerkleProofTests
     [Fact]
     public void Cinque_tx_dispari_verifica_tutte_le_posizioni()
     {
-        // 5 tx → livello pari (4) → livello pari (2) → radice
+        // 5 tx → even level (4) → even level (2) → root
         var txids = new uint256[5];
         for (var i = 0; i < 5; i++)
             txids[i] = new uint256(new byte[32].Select((_, j) => (byte)(i * 17 + j)).ToArray());
@@ -118,7 +118,7 @@ public class MerkleProofTests
         }
     }
 
-    // ---- due transazioni (pari minimo) ----
+    // ---- two transactions (minimum even) ----
 
     [Fact]
     public void Due_tx_verifica_entrambe_le_posizioni()
@@ -132,7 +132,7 @@ public class MerkleProofTests
         }
     }
 
-    // ---- proof errate ----
+    // ---- invalid proofs ----
 
     [Fact]
     public void Una_prova_per_la_posizione_sbagliata_fallisce()
@@ -152,7 +152,7 @@ public class MerkleProofTests
     public void Branch_alterato_non_verifica()
     {
         var branch = BuildBranch(Block100000Txids, 0);
-        branch[0] = uint256.One; // corrompe il primo elemento del branch
+        branch[0] = uint256.One; // corrupt the first branch element
         Assert.False(MerkleProof.Verify(Block100000Txids[0], 0, branch, Block100000Root));
     }
 
@@ -171,7 +171,7 @@ public class MerkleProofTests
         Assert.Throws<ArgumentException>(() => MerkleProof.ComputeRootFromLeaves([]));
     }
 
-    /// <summary>Costruisce il branch per una foglia ricostruendo i livelli dell'albero.</summary>
+    /// <summary>Builds the Merkle branch for a leaf by reconstructing the tree levels.</summary>
     private static List<uint256> BuildBranch(IReadOnlyList<uint256> leaves, int position)
     {
         var branch = new List<uint256>();

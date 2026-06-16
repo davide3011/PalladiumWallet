@@ -1,7 +1,7 @@
 namespace PalladiumWallet.Core.Chain;
 
 /// <summary>
-/// Tipo di rete supportato (selettore unico per tutto il wallet, blueprint §3).
+/// Supported network type (single selector for the whole wallet, blueprint §3).
 /// </summary>
 public enum NetKind
 {
@@ -11,7 +11,7 @@ public enum NetKind
 }
 
 /// <summary>
-/// Tipo di script/indirizzo supportato (blueprint §4.3).
+/// Supported script/address type (blueprint §4.3).
 /// </summary>
 public enum ScriptKind
 {
@@ -21,7 +21,7 @@ public enum ScriptKind
     /// <summary>P2SH-P2WPKH (segwit wrapped).</summary>
     WrappedSegwit,
 
-    /// <summary>P2WPKH (native segwit) — default consigliato.</summary>
+    /// <summary>P2WPKH (native segwit) — recommended default.</summary>
     NativeSegwit,
 
     /// <summary>P2SH-P2WSH (multisig wrapped).</summary>
@@ -35,15 +35,15 @@ public enum ScriptKind
 }
 
 /// <summary>
-/// Coppia di header di versione BIP32 (4 byte big-endian) per serializzare
-/// xprv/xpub e varianti SLIP-132 (y/z/Y/Z) — blueprint §3.
+/// Pair of BIP32 version headers (4-byte big-endian) to serialize
+/// xprv/xpub and SLIP-132 variants (y/z/Y/Z) — blueprint §3.
 /// </summary>
 public readonly record struct ExtKeyHeaders(uint Private, uint Public)
 {
-    /// <summary>Header privato come 4 byte big-endian (da anteporre al payload BIP32).</summary>
+    /// <summary>Private header as 4 big-endian bytes (to prepend to the BIP32 payload).</summary>
     public byte[] PrivateBytes() => ToBytes(Private);
 
-    /// <summary>Header pubblico come 4 byte big-endian.</summary>
+    /// <summary>Public header as 4 big-endian bytes.</summary>
     public byte[] PublicBytes() => ToBytes(Public);
 
     internal static byte[] ToBytes(uint header) =>
@@ -56,82 +56,82 @@ public readonly record struct ExtKeyHeaders(uint Private, uint Public)
 }
 
 /// <summary>
-/// Server di indicizzazione di bootstrap: host + porta TCP + porta SSL (blueprint §3/§9).
+/// Bootstrap indexing server: host + TCP port + SSL port (blueprint §3/§9).
 /// </summary>
 public readonly record struct ServerEndpoint(string Host, int TcpPort, int SslPort);
 
 /// <summary>
-/// Checkpoint di catena: ancora la fiducia quando la verifica PoW è disattivata
-/// (blueprint §7.3). Target serializzato come "bits" compatti.
+/// Chain checkpoint: anchors trust when PoW validation is disabled
+/// (blueprint §7.3). Target serialized as compact "bits".
 /// </summary>
 public readonly record struct Checkpoint(int Height, string BlockHash, uint Bits);
 
 /// <summary>
-/// Profilo di rete/catena (blueprint §3): tutte le costanti specifiche della catena,
-/// centralizzate in un solo punto. Nessun magic number altrove nel codice.
+/// Network/chain profile (blueprint §3): all chain-specific constants,
+/// centralized in one place. No magic numbers elsewhere in the code.
 /// </summary>
 public sealed record ChainProfile
 {
     public required NetKind Kind { get; init; }
 
-    /// <summary>Nome rete, usato anche come sottocartella dati.</summary>
+    /// <summary>Network name, also used as the data subfolder.</summary>
     public required string NetName { get; init; }
 
-    /// <summary>Simbolo dell'unità (es. PLM).</summary>
+    /// <summary>Unit symbol (e.g. PLM).</summary>
     public required string CoinUnit { get; init; }
 
-    /// <summary>Prefisso WIF delle chiavi private.</summary>
+    /// <summary>WIF prefix for private keys.</summary>
     public required byte WifPrefix { get; init; }
 
-    /// <summary>Byte di versione indirizzi P2PKH.</summary>
+    /// <summary>Version byte for P2PKH addresses.</summary>
     public required byte AddrP2pkh { get; init; }
 
-    /// <summary>Byte di versione indirizzi P2SH.</summary>
+    /// <summary>Version byte for P2SH addresses.</summary>
     public required byte AddrP2sh { get; init; }
 
     /// <summary>Human-readable part bech32/bech32m.</summary>
     public required string SegwitHrp { get; init; }
 
-    /// <summary>HRP fatture BOLT11 (Lightning, fase successiva — §11).</summary>
+    /// <summary>HRP for BOLT11 invoices (Lightning, later phase — §11).</summary>
     public required string Bolt11Hrp { get; init; }
 
-    /// <summary>Hash del blocco genesi (hex, byte order da explorer).</summary>
+    /// <summary>Genesis block hash (hex, explorer byte order).</summary>
     public required string GenesisHash { get; init; }
 
-    /// <summary>Porta TCP del server di indicizzazione (non è la porta P2P del nodo).</summary>
+    /// <summary>TCP port of the indexing server (not the node's P2P port).</summary>
     public required int DefaultTcpPort { get; init; }
 
-    /// <summary>Porta SSL del server di indicizzazione.</summary>
+    /// <summary>SSL port of the indexing server.</summary>
     public required int DefaultSslPort { get; init; }
 
-    /// <summary>Porta P2P del nodo — solo informativa: il wallet SPV non la usa.</summary>
+    /// <summary>Node's P2P port — informational only: the SPV wallet does not use it.</summary>
     public required int NodeP2pPort { get; init; }
 
-    /// <summary>Coin type SLIP-0044 nei derivation path (convenzione wallet).</summary>
+    /// <summary>SLIP-0044 coin type in derivation paths (wallet convention).</summary>
     public required int Bip44CoinType { get; init; }
 
-    /// <summary>Schema URI pagamenti BIP21 (senza i due punti).</summary>
+    /// <summary>BIP21 payment URI scheme (without the colon).</summary>
     public required string UriScheme { get; init; }
 
-    /// <summary>Block explorer di default.</summary>
+    /// <summary>Default block explorer.</summary>
     public required string ExplorerUrl { get; init; }
 
     /// <summary>
-    /// La catena usa LWMA (retargeting per-blocco, 2 minuti): un client SPV non può
-    /// ricalcolarla, quindi la verifica bits/target va saltata e la fiducia ancorata
-    /// ai checkpoint (§3/§7). Per la catena di riferimento è sempre true.
+    /// The chain uses LWMA (per-block retargeting, 2 minutes): an SPV client cannot
+    /// recompute it, so bits/target validation must be skipped and trust anchored
+    /// to checkpoints (§3/§7). For the reference chain it is always true.
     /// </summary>
     public required bool SkipPowValidation { get; init; }
 
-    /// <summary>Tempo di blocco target in secondi (LWMA v2: 120s).</summary>
+    /// <summary>Target block time in seconds (LWMA v2: 120s).</summary>
     public required int BlockTimeSeconds { get; init; }
 
-    /// <summary>Header BIP32/SLIP-132 per ciascun tipo di script.</summary>
+    /// <summary>BIP32/SLIP-132 headers for each script type.</summary>
     public required IReadOnlyDictionary<ScriptKind, ExtKeyHeaders> ExtKeyHeaders { get; init; }
 
-    /// <summary>Server di indicizzazione per il primo contatto (bootstrap).</summary>
+    /// <summary>Indexing servers for first contact (bootstrap).</summary>
     public required IReadOnlyList<ServerEndpoint> BootstrapServers { get; init; }
 
-    /// <summary>Checkpoint hardcoded, aggiornati a ogni release (§7.3).</summary>
+    /// <summary>Hardcoded checkpoints, updated at every release (§7.3).</summary>
     public required IReadOnlyList<Checkpoint> Checkpoints { get; init; }
 }

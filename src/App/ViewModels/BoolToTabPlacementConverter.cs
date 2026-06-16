@@ -6,8 +6,8 @@ using Avalonia.Data.Converters;
 namespace PalladiumWallet.App.ViewModels;
 
 /// <summary>
-/// true (mobile) → Dock.Bottom — tab strip in basso, standard Android.
-/// false (desktop) → Dock.Top — comportamento predefinito Avalonia.
+/// true (mobile) → Dock.Bottom — tab strip at the bottom, Android standard.
+/// false (desktop) → Dock.Top — Avalonia default behavior.
 /// </summary>
 public sealed class BoolToTabPlacementConverter : IValueConverter
 {

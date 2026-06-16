@@ -5,7 +5,7 @@ namespace PalladiumWallet.Tests.Wallet;
 
 public class CoinAmountTests
 {
-    // ---- importi validi: tutte le unità ----
+    // ---- valid amounts: all units ----
 
     [Theory]
     [InlineData("1",          "sat",  1)]
@@ -96,7 +96,7 @@ public class CoinAmountTests
         Assert.False(CoinAmount.TryParseIn("99999999999", "PLM", out _));
     }
 
-    // ---- unità sconosciuta lancia ArgumentException ----
+    // ---- unknown unit throws ArgumentException ----
 
     [Theory]
     [InlineData("banana")]

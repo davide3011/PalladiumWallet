@@ -36,7 +36,7 @@ public partial class MainWindowViewModel
         if (PlatformServices.ScanQrAsync is not { } scan) return;
         var raw = await scan();
         if (string.IsNullOrWhiteSpace(raw)) return;
-        // Gestisce URI tipo "palladium:ADDRESS?amount=X" estraendo solo l'indirizzo
+        // Handle URIs like "palladium:ADDRESS?amount=X" — extract address only
         var address = raw.Contains(':') ? raw.Split(':')[1] : raw;
         if (address.Contains('?')) address = address.Split('?')[0];
         SendTo = address.Trim();

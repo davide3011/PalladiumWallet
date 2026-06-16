@@ -9,18 +9,18 @@ using PalladiumWallet.Core.Wallet;
 namespace PalladiumWallet.Tests;
 
 /// <summary>
-/// Property-based tests (CsCheck). Ogni test genera centinaia di input casuali e
-/// verifica che le proprietà invarianti reggano — crash, eccezioni non attese, o
-/// violazioni di roundtrip sono failures.
+/// Property-based tests (CsCheck). Each test generates hundreds of random inputs and
+/// verifies that invariant properties hold — crashes, unexpected exceptions, or
+/// roundtrip violations are failures.
 /// </summary>
 public class PropertyTests
 {
-    // ── generatori riutilizzabili ─────────────────────────────────────────────
+    // ── reusable generators ───────────────────────────────────────────────────
 
     private static readonly Gen<string> GenUnit = Gen.OneOf(
         Gen.Const("PLM"), Gen.Const("mPLM"), Gen.Const("µPLM"), Gen.Const("sat"));
 
-    // uint256 casuale costruito da 4 ulong
+    // random uint256 built from 4 ulongs
     private static readonly Gen<uint256> GenTxid =
         Gen.Select(Gen.ULong, Gen.ULong, Gen.ULong, Gen.ULong, (a, b, c, d) =>
         {
@@ -32,9 +32,9 @@ public class PropertyTests
             return new uint256(bytes);
         });
 
-    // ── CoinAmount ──────────────────────────────────────────────────────────
+    // ── CoinAmount ───────────────────────────────────────────────────────────
 
-    /// TryParseIn non deve mai lanciare eccezioni su input arbitrario con unità valide.
+    /// TryParseIn must never throw on arbitrary input with valid units.
     [Fact]
     public void CoinAmount_TryParseIn_non_lancia_mai_su_input_arbitrario()
     {
@@ -46,17 +46,17 @@ public class PropertyTests
             }
             catch (ArgumentException)
             {
-                // unità sconosciuta: impossibile qui perché usiamo solo unità note
+                // unknown unit: impossible here because we only use known units
                 throw;
             }
             catch (Exception ex)
             {
-                Assert.Fail($"TryParseIn ha lanciato {ex.GetType().Name} per unit={unit}");
+                Assert.Fail($"TryParseIn threw {ex.GetType().Name} for unit={unit}");
             }
         });
     }
 
-    /// FormatIn → TryParseIn: qualsiasi satoshi [0, MaxSupply] deve fare roundtrip esatto.
+    /// FormatIn → TryParseIn: any satoshi value in [0, MaxSupply] must roundtrip exactly.
     [Fact]
     public void CoinAmount_roundtrip_FormatIn_TryParseIn_per_ogni_unita()
     {
@@ -66,12 +66,12 @@ public class PropertyTests
             var formatted = CoinAmount.FormatIn(sats, unit, withLabel: false);
             Assert.True(
                 CoinAmount.TryParseIn(formatted, unit, out var parsed),
-                $"FormatIn={formatted} unit={unit} non si riparsa");
+                $"FormatIn={formatted} unit={unit} failed to re-parse");
             Assert.Equal(sats, parsed);
         });
     }
 
-    /// TryParseCoins non deve mai lanciare su input arbitrario.
+    /// TryParseCoins must never throw on arbitrary input.
     [Fact]
     public void CoinAmount_TryParseCoins_non_lancia_mai_su_input_arbitrario()
     {
@@ -83,25 +83,25 @@ public class PropertyTests
             }
             catch (Exception ex)
             {
-                Assert.Fail($"TryParseCoins ha lanciato {ex.GetType().Name}");
+                Assert.Fail($"TryParseCoins threw {ex.GetType().Name}");
             }
         });
     }
 
-    /// Qualsiasi valore accettato da TryParseCoins deve essere ≥ 0.
+    /// Any value accepted by TryParseCoins must be ≥ 0.
     [Fact]
     public void CoinAmount_TryParseCoins_accetta_solo_valori_non_negativi()
     {
         Gen.String.Sample(text =>
         {
             if (CoinAmount.TryParseCoins(text, out var sats))
-                Assert.True(sats >= 0, $"TryParseCoins ha restituito {sats} per '{text}'");
+                Assert.True(sats >= 0, $"TryParseCoins returned {sats} for '{text}'");
         });
     }
 
-    // ── EncryptedFile ────────────────────────────────────────────────────────
+    // ── EncryptedFile ─────────────────────────────────────────────────────────
 
-    /// Encrypt → Decrypt con la stessa password deve restituire il testo originale.
+    /// Encrypt → Decrypt with the same password must return the original plaintext.
     [Fact]
     public void EncryptedFile_roundtrip_su_contenuto_e_password_arbitrari()
     {
@@ -113,29 +113,29 @@ public class PropertyTests
         });
     }
 
-    /// Decrypt con password sbagliata deve lanciare WrongPasswordException, mai altro.
+    /// Decrypt with the wrong password must throw WrongPasswordException, never anything else.
     [Fact]
     public void EncryptedFile_password_sbagliata_lancia_solo_WrongPasswordException()
     {
         Gen.Select(Gen.String, Gen.String[1, 32], Gen.String[1, 32]).Sample((plaintext, pwd1, pwd2) =>
         {
-            if (pwd1 == pwd2) return; // stessa password: roundtrip valido, salta
+            if (pwd1 == pwd2) return; // same password: valid roundtrip, skip
 
             var cipher = EncryptedFile.Encrypt(plaintext, pwd1);
             try
             {
                 EncryptedFile.Decrypt(cipher, pwd2);
-                Assert.Fail("Decrypt con password sbagliata non ha lanciato");
+                Assert.Fail("Decrypt with wrong password did not throw");
             }
-            catch (WrongPasswordException) { /* atteso */ }
+            catch (WrongPasswordException) { /* expected */ }
             catch (Exception ex)
             {
-                Assert.Fail($"Decrypt ha lanciato {ex.GetType().Name} invece di WrongPasswordException");
+                Assert.Fail($"Decrypt threw {ex.GetType().Name} instead of WrongPasswordException");
             }
         });
     }
 
-    /// IsEncrypted non deve mai lanciare su input arbitrario.
+    /// IsEncrypted must never throw on arbitrary input.
     [Fact]
     public void EncryptedFile_IsEncrypted_non_lancia_mai()
     {
@@ -144,14 +144,14 @@ public class PropertyTests
             try { EncryptedFile.IsEncrypted(s); }
             catch (Exception ex)
             {
-                Assert.Fail($"IsEncrypted ha lanciato {ex.GetType().Name}");
+                Assert.Fail($"IsEncrypted threw {ex.GetType().Name}");
             }
         });
     }
 
-    // ── MerkleProof ──────────────────────────────────────────────────────────
+    // ── MerkleProof ───────────────────────────────────────────────────────────
 
-    /// Ogni foglia di un albero Merkle generato casualmente deve verificare contro la radice.
+    /// Every leaf of a randomly generated Merkle tree must verify against the root.
     [Fact]
     public void MerkleProof_ogni_foglia_verifica_contro_la_sua_radice()
     {
@@ -163,18 +163,18 @@ public class PropertyTests
                 var branch = BuildBranch(txids, pos);
                 Assert.True(
                     MerkleProof.Verify(txids[pos], pos, branch, root),
-                    $"Verify fallita per pos={pos} su {txids.Length} foglie");
+                    $"Verify failed for pos={pos} over {txids.Length} leaves");
             }
         });
     }
 
-    /// Un txid non presente nelle foglie non deve verificare (e non deve crashare).
+    /// A txid not present in the leaves must not verify (and must not crash).
     [Fact]
     public void MerkleProof_txid_estraneo_non_verifica_e_non_crasha()
     {
         Gen.Select(GenTxid.Array[2, 8], GenTxid).Sample((txids, extra) =>
         {
-            if (txids.Contains(extra)) return; // collisione casuale: salta
+            if (txids.Contains(extra)) return; // random collision: skip
 
             var root   = MerkleProof.ComputeRootFromLeaves(txids);
             var branch = BuildBranch(txids, 0);
@@ -182,7 +182,7 @@ public class PropertyTests
         });
     }
 
-    // helper: costruisce il branch per la posizione data
+    // helper: builds the branch for the given position
     private static List<uint256> BuildBranch(IReadOnlyList<uint256> leaves, int position)
     {
         var branch = new List<uint256>();

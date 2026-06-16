@@ -20,8 +20,8 @@ public static class Slip132
         Encoders.Base58Check.EncodeData([.. profile.ExtKeyHeaders[kind].PrivateBytes(), .. key.ToBytes()]);
 
     /// <summary>
-    /// Riconosce l'header (→ ScriptKind) e decodifica una chiave pubblica estesa:
-    /// è la via dell'import watch-only (§4.4).
+    /// Recognises the header (→ ScriptKind) and decodes an extended public key:
+    /// this is the watch-only import path (§4.4).
     /// </summary>
     public static bool TryDecodePublic(string encoded, ChainProfile profile,
         out ExtPubKey? key, out ScriptKind kind)

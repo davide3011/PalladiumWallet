@@ -5,9 +5,9 @@ using PalladiumWallet.Core.Crypto;
 namespace PalladiumWallet.Tests.Crypto;
 
 /// <summary>
-/// Vettore di test 1 della specifica BIP32 (seed 000102...0e0f). Gli header
-/// Legacy della mainnet PLM coincidono con quelli Bitcoin, quindi il confronto
-/// con le stringhe della specifica è diretto sulla rete PLM.
+/// BIP32 specification test vector 1 (seed 000102...0e0f). The Legacy headers
+/// of the PLM mainnet coincide with the Bitcoin ones, so the comparison
+/// with the specification strings is direct on the PLM network.
 /// </summary>
 public class Bip32Tests
 {
@@ -40,7 +40,7 @@ public class Bip32Tests
     [Fact]
     public void I_path_hardened_non_sono_derivabili_da_una_xpub()
     {
-        // Garanzia §17: da sole chiavi pubbliche niente derivazione hardened.
+        // §17 guarantee: from public keys alone, no hardened derivation.
         Assert.ThrowsAny<InvalidOperationException>(() =>
             Root.Neuter().Derive(new KeyPath("0'")));
     }

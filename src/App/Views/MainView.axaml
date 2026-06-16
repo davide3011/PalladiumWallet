@@ -13,8 +13,8 @@
     </Design.DataContext>
 
     <UserControl.Styles>
-        <!-- Su desktop gli overlay card sono centrati con dimensione massima;
-             su mobile il default (stretch, nessun margine) occupa tutta la schermata. -->
+        <!-- On desktop, overlay cards are centred with a max size;
+             on mobile the default (stretch, no margin) fills the whole screen. -->
         <Style Selector="Border.desktop-overlay">
             <Setter Property="MaxWidth" Value="540"/>
             <Setter Property="MaxHeight" Value="540"/>
@@ -27,7 +27,7 @@
 
     <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppBackgroundBrush}">
 
-        <!-- ============ MENU (stile Electrum) ============ -->
+        <!-- ============ MENU (Electrum style) ============ -->
         <Menu Grid.Row="0" IsVisible="{Binding IsDesktop}">
             <MenuItem Header="{Binding Loc[menu.file]}">
                 <MenuItem Header="{Binding Loc[menu.file.new]}" Command="{Binding NewWalletCommand}"/>
@@ -43,7 +43,7 @@
                       Command="{Binding OpenHelpCommand}"/>
         </Menu>
 
-        <!-- Pulsanti Settings/Help mobile-only (il menu è nascosto su mobile) -->
+        <!-- Settings/Help buttons — mobile only (the menu is hidden on mobile) -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="8,4"
                     IsVisible="{Binding IsMobile}">
@@ -51,14 +51,14 @@
             <Button Content="{Binding Loc[menu.help]}"     Command="{Binding OpenHelpCommand}"/>
         </StackPanel>
 
-        <!-- ============ WIZARD DI SETUP (§15): un passo alla volta ============ -->
+        <!-- ============ SETUP WIZARD (§15): one step at a time ============ -->
         <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSetupVisible}">
             <StackPanel MaxWidth="560" Margin="24,40" Spacing="18"
                         HorizontalAlignment="Center">
                 <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"
                            HorizontalAlignment="Center"/>
 
-                <!-- Passo 0 (primo avvio): dove salvare i dati -->
+                <!-- Step 0 (first launch): where to store data -->
                 <StackPanel IsVisible="{Binding IsStepDataLocation}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.data.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBlock Text="{Binding Loc[wiz.data.info]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -75,7 +75,7 @@
                             Click="OnChooseDataFolderClick"/>
                 </StackPanel>
 
-                <!-- Passo 1: scelta iniziale -->
+                <!-- Step 1: initial choice -->
                 <StackPanel IsVisible="{Binding IsStepStart}" Spacing="12">
                     <Button Content="{Binding Loc[wiz.open.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -95,7 +95,7 @@
                             Command="{Binding WizardStartImportWifCommand}"/>
                 </StackPanel>
 
-                <!-- Passo: scelta del wallet (più file presenti) -->
+                <!-- Step: choose wallet (multiple files present) -->
                 <StackPanel IsVisible="{Binding IsStepChooseWallet}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.choose.title]}" FontSize="18" FontWeight="Bold"/>
                     <ItemsControl ItemsSource="{Binding WalletList}">
@@ -112,7 +112,7 @@
                     <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
                 </StackPanel>
 
-                <!-- Passo: password del wallet esistente -->
+                <!-- Step: password for existing wallet -->
                 <StackPanel IsVisible="{Binding IsStepOpen}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.open.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.open.placeholder]}"
@@ -124,7 +124,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: mostra il nuovo seed -->
+                <!-- Step: show the new seed -->
                 <StackPanel IsVisible="{Binding IsStepShowSeed}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.seed.title]}" FontSize="18" FontWeight="Bold"/>
                     <Border BorderBrush="{DynamicResource SystemAccentColor}" BorderThickness="1"
@@ -141,7 +141,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: conferma del seed -->
+                <!-- Step: seed confirmation -->
                 <StackPanel IsVisible="{Binding IsStepConfirmSeed}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.confirm.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.confirm.placeholder]}"
@@ -153,7 +153,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: inserimento seed (ripristino) -->
+                <!-- Step: enter seed words (restore) -->
                 <StackPanel IsVisible="{Binding IsStepWords}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.words.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.words.placeholder]}"
@@ -165,7 +165,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: passphrase opzionale -->
+                <!-- Step: optional passphrase -->
                 <StackPanel IsVisible="{Binding IsStepPassphrase}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.passphrase.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.passphrase.placeholder]}"
@@ -177,7 +177,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: import xpub/xprv estesa (SLIP-132) -->
+                <!-- Step: import extended xpub/xprv (SLIP-132) -->
                 <StackPanel IsVisible="{Binding IsStepImportXkey}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.importxkey.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBlock Text="{Binding Loc[wiz.importxkey.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -193,7 +193,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: import chiave WIF singola -->
+                <!-- Step: import single WIF key -->
                 <StackPanel IsVisible="{Binding IsStepImportWif}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.importwif.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBlock Text="{Binding Loc[wiz.importwif.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -206,7 +206,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo: scelta del tipo di script/indirizzi -->
+                <!-- Step: choose script/address type -->
                 <StackPanel IsVisible="{Binding IsStepScriptType}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.scripttype.title]}" FontSize="18" FontWeight="Bold"/>
                     <TextBlock Text="{Binding Loc[wiz.scripttype.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -254,11 +254,11 @@
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Passo finale: nome + password del file (cifratura, stile Electrum) -->
+                <!-- Final step: wallet name + file password (encryption, Electrum style) -->
                 <StackPanel IsVisible="{Binding IsStepPassword}" Spacing="16">
                     <TextBlock Text="{Binding Loc[wiz.password.title]}" FontSize="18" FontWeight="Bold"/>
 
-                    <!-- Sezione nome: bordo distinto dal gruppo password -->
+                    <!-- Name section: visually distinct from the password group -->
                     <Border BorderBrush="{DynamicResource SystemAccentColor}"
                             BorderThickness="0,0,0,0"
                             Background="{DynamicResource SurfaceAltBrush}"
@@ -271,10 +271,10 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- Separatore visivo -->
+                    <!-- Visual separator -->
                     <Separator Margin="0,0"/>
 
-                    <!-- Sezione cifratura -->
+                    <!-- Encryption section -->
                     <StackPanel Spacing="8">
                         <TextBox PlaceholderText="{Binding Loc[wiz.password.placeholder]}"
                                  PasswordChar="●" Text="{Binding PasswordInput}"/>
@@ -296,11 +296,11 @@
             </StackPanel>
         </ScrollViewer>
 
-        <!-- ============ PANNELLO WALLET ============ -->
+        <!-- ============ WALLET PANEL ============ -->
         <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
 
-            <!-- Testata: card del saldo. Connetti/sincronizza è automatico; chiudi
-                 wallet è in File. Lo stato connessione è nella barra in basso. -->
+            <!-- Header: balance card. Connect/sync is automatic; close wallet is in File.
+                 Connection status is shown in the bottom bar. -->
             <Border Grid.Row="0" Classes="balance-hero" Margin="0,0,0,16">
                 <StackPanel Spacing="4">
                     <TextBlock Text="{Binding Loc[addr.balance]}" Classes="label on-hero"/>
@@ -313,7 +313,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
+            <!-- Tabs: History / Send / Receive / Addresses / Contacts -->
             <TabControl Grid.Row="1"
                         SelectedIndex="{Binding SelectedTabIndex}"
                         TabStripPlacement="Top">
@@ -336,7 +336,7 @@
                     </Style>
                 </TabControl.Styles>
 
-                <!-- 1. Storico -->
+                <!-- 1. History -->
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
@@ -359,7 +359,7 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryRow">
                                     <Panel Cursor="Hand">
-                                        <!-- Desktop: 4 colonne fisse -->
+                                        <!-- Desktop: 4 fixed columns -->
                                         <Grid ColumnDefinitions="90,160,*,70"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                             <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -369,7 +369,7 @@
                                                        TextTrimming="CharacterEllipsis"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="{DynamicResource SuccessBrush}"/>
                                         </Grid>
-                                        <!-- Mobile: card verticale -->
+                                        <!-- Mobile: vertical card -->
                                         <StackPanel Spacing="2"
                                                     IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
                                             <Grid ColumnDefinitions="*,Auto">
@@ -389,7 +389,7 @@
                     </Grid>
                 </TabItem>
 
-                <!-- 2. Invia -->
+                <!-- 2. Send -->
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
@@ -404,7 +404,7 @@
                         </StackPanel>
                     </TabItem.Header>
                     <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
-                        <!-- Contatto rapido -->
+                        <!-- Quick contact -->
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="{Binding Loc[send.from.contact]}" VerticalAlignment="Center"/>
                             <ComboBox ItemsSource="{Binding Contacts}"
@@ -433,7 +433,7 @@
                                 </Viewbox>
                             </Button>
                         </Grid>
-                        <!-- Desktop: riga amount + fee in 4 colonne -->
+                        <!-- Desktop: amount + fee row in 4 columns -->
                         <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding IsDesktop}">
                             <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
                                      Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
@@ -446,7 +446,7 @@
                                 <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
                             </StackPanel>
                         </Grid>
-                        <!-- Mobile: amount e fee su righe separate -->
+                        <!-- Mobile: amount and fee on separate rows -->
                         <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
                             <Grid ColumnDefinitions="*,Auto,Auto">
                                 <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
@@ -472,7 +472,7 @@
                     </StackPanel>
                 </TabItem>
 
-                <!-- 3. Ricevi -->
+                <!-- 3. Receive -->
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
@@ -488,7 +488,7 @@
                     </TabItem.Header>
                     <StackPanel Spacing="10" Margin="8">
                         <TextBlock Text="{Binding Loc[receive.next]}"/>
-                        <!-- Desktop: indirizzo + copia su una riga -->
+                        <!-- Desktop: address + copy on one row -->
                         <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
                             <SelectableTextBlock Text="{Binding ReceiveAddress}"
                                                  FontFamily="monospace" FontSize="16"
@@ -497,7 +497,7 @@
                                     Click="OnCopyReceiveAddressClick"
                                     VerticalAlignment="Center"/>
                         </StackPanel>
-                        <!-- Mobile: indirizzo su riga intera + copia sotto -->
+                        <!-- Mobile: address on full row + copy below -->
                         <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
                             <SelectableTextBlock Text="{Binding ReceiveAddress}"
                                                  FontFamily="monospace" FontSize="13"
@@ -518,7 +518,7 @@
                     </StackPanel>
                 </TabItem>
 
-                <!-- 4. Indirizzi -->
+                <!-- 4. Addresses -->
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
@@ -533,7 +533,7 @@
                         </StackPanel>
                     </TabItem.Header>
                     <Grid RowDefinitions="Auto,*" Margin="4">
-                        <!-- Intestazione colonne — solo desktop -->
+                        <!-- Column header — desktop only -->
                         <Grid Grid.Row="0" ColumnDefinitions="90,60,*,140,60" Margin="12,4"
                               IsVisible="{Binding IsDesktop}">
                             <TextBlock Grid.Column="0" Text="{Binding Loc[addr.type]}" FontWeight="Bold"/>
@@ -550,7 +550,7 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:AddressRow">
                                     <Panel>
-                                        <!-- Desktop: 5 colonne fisse -->
+                                        <!-- Desktop: 5 fixed columns -->
                                         <Grid ColumnDefinitions="90,60,*,140,60"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                             <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -560,7 +560,7 @@
                                             <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
                                             <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                         </Grid>
-                                        <!-- Mobile: card verticale -->
+                                        <!-- Mobile: vertical card -->
                                         <StackPanel Spacing="1" Margin="0,3"
                                                     IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
                                             <TextBlock Text="{Binding Indirizzo}"
@@ -580,7 +580,7 @@
                     </Grid>
                 </TabItem>
 
-                <!-- 5. Contatti -->
+                <!-- 5. Contacts -->
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
@@ -595,19 +595,19 @@
                         </StackPanel>
                     </TabItem.Header>
                     <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="4">
-                        <!-- Intestazioni colonne — solo desktop -->
+                        <!-- Column headers — desktop only -->
                         <Grid Grid.Row="0" ColumnDefinitions="180,*" Margin="12,4"
                               IsVisible="{Binding IsDesktop}">
                             <TextBlock Grid.Column="0" Text="{Binding Loc[contacts.name]}" FontWeight="Bold"/>
                             <TextBlock Grid.Column="1" Text="{Binding Loc[contacts.address]}" FontWeight="Bold"/>
                         </Grid>
-                        <!-- Lista contatti -->
+                        <!-- Contacts list -->
                         <ListBox Grid.Row="1" ItemsSource="{Binding Contacts}"
                                  SelectedItem="{Binding SelectedContactInList}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:ContactEntry">
                                     <Panel>
-                                        <!-- Desktop: 2 colonne -->
+                                        <!-- Desktop: 2 columns -->
                                         <Grid ColumnDefinitions="180,*"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                             <TextBlock Grid.Column="0" Text="{Binding Name}"
@@ -616,7 +616,7 @@
                                                                  FontFamily="monospace" FontSize="12"
                                                                  VerticalAlignment="Center"/>
                                         </Grid>
-                                        <!-- Mobile: card verticale -->
+                                        <!-- Mobile: vertical card -->
                                         <StackPanel Spacing="1" Margin="0,3"
                                                     IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
@@ -629,12 +629,12 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <!-- Pulsante rimuovi selezionato -->
+                        <!-- Remove selected button -->
                         <Button Grid.Row="2" Content="{Binding Loc[contacts.remove]}"
                                 Command="{Binding RemoveSelectedContactCommand}"
                                 IsEnabled="{Binding SelectedContactInList, Converter={x:Static ObjectConverters.IsNotNull}}"
                                 Margin="0,6,0,0"/>
-                        <!-- Form aggiungi contatto — Desktop: 3 colonne -->
+                        <!-- Add contact form — Desktop: 3 columns -->
                         <Grid Grid.Row="3" ColumnDefinitions="180,*,Auto" Margin="0,8,0,0"
                               IsVisible="{Binding IsDesktop}">
                             <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[contacts.name.ph]}"
@@ -645,7 +645,7 @@
                             <Button Grid.Column="2" Content="{Binding Loc[contacts.add]}"
                                     Command="{Binding AddContactCommand}"/>
                         </Grid>
-                        <!-- Form aggiungi contatto — Mobile: verticale -->
+                        <!-- Add contact form — Mobile: vertical -->
                         <StackPanel Grid.Row="3" Spacing="6" Margin="0,8,0,0"
                                     IsVisible="{Binding IsMobile}">
                             <TextBox PlaceholderText="{Binding Loc[contacts.name.ph]}"
@@ -664,8 +664,8 @@
 
         </Grid>
 
-        <!-- Barra di stato: messaggio a sinistra, stato connessione a destra.
-             Lo stato connessione è cliccabile e apre le impostazioni del server. -->
+        <!-- Status bar: message on the left, connection status on the right.
+             The connection status is tappable and opens the server settings. -->
         <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
                 BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
                 Padding="12,7">
@@ -688,9 +688,9 @@
             </Grid>
         </Border>
 
-        <!-- ============ OVERLAY DETTAGLIO INDIRIZZO ============ -->
-        <!-- Overlay in-app invece di una Window separata: apertura/chiusura
-             istantanee (niente create/destroy di una top-level window). -->
+        <!-- ============ ADDRESS DETAIL OVERLAY ============ -->
+        <!-- In-app overlay instead of a separate Window: instant open/close
+             (no top-level window create/destroy). -->
         <Border Grid.Row="0" Grid.RowSpan="3"
                 Background="{DynamicResource ScrimBrush}"
                 Tapped="OnAddressOverlayBackdropTapped"
@@ -705,7 +705,7 @@
                     <TextBlock Text="{Binding Loc[addr.info.title]}"
                                FontSize="18" FontWeight="Bold"/>
 
-                    <!-- Indirizzo -->
+                    <!-- Address -->
                     <StackPanel Spacing="4">
                         <TextBlock Text="{Binding Loc[addr.address]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding Address}"
@@ -720,7 +720,7 @@
                                              FontFamily="monospace" FontSize="13"/>
                     </StackPanel>
 
-                    <!-- Chiave pubblica -->
+                    <!-- Public key -->
                     <StackPanel Spacing="4">
                         <TextBlock Text="{Binding Loc[addr.pubkey]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding PubKey}"
@@ -728,7 +728,7 @@
                                              TextWrapping="Wrap"/>
                     </StackPanel>
 
-                    <!-- Chiave privata (solo se disponibile) -->
+                    <!-- Private key (only when available) -->
                     <StackPanel Spacing="4" IsVisible="{Binding HasPrivKey}">
                         <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="{DynamicResource DangerBrush}"/>
                         <SelectableTextBlock Text="{Binding PrivKey}"
@@ -745,9 +745,9 @@
             </Border>
         </Border>
 
-        <!-- ============ OVERLAY DETTAGLIO TRANSAZIONE ============ -->
-        <!-- Overlay in-app (come indirizzo): appare subito con lo spinner, i dati
-             arrivano dal server in background; chiusura istantanea. -->
+        <!-- ============ TRANSACTION DETAIL OVERLAY ============ -->
+        <!-- In-app overlay (like the address overlay): appears immediately with a
+             spinner; data arrives from the server in the background; instant close. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
                 Background="{DynamicResource ScrimBrush}"
                 Tapped="OnTxDetailsOverlayBackdropTapped"
@@ -758,7 +758,7 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Panel Margin="24">
 
-                    <!-- Caricamento -->
+                    <!-- Loading -->
                     <StackPanel IsVisible="{Binding IsTxDetailsLoading}"
                                 HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
                         <ProgressBar IsIndeterminate="True" Width="220"/>
@@ -766,8 +766,8 @@
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Contenuto (IsVisible sul contenitore esterno, così resta
-                         legato al VM principale; il DataContext interno è TxDetails) -->
+                    <!-- Content (IsVisible on the outer container so it stays bound
+                         to the main VM; the inner DataContext is TxDetails) -->
                     <Grid IsVisible="{Binding !IsTxDetailsLoading}">
                     <DockPanel DataContext="{Binding TxDetails}">
                         <TextBlock DockPanel.Dock="Top" Text="{Binding Loc[tx.title]}"
@@ -780,14 +780,14 @@
                         <ScrollViewer>
                             <StackPanel Spacing="18">
 
-                                <!-- Header: importo netto in evidenza + badge stato/SPV -->
+                                <!-- Header: net amount highlighted + status/SPV badges -->
                                 <StackPanel Spacing="10">
                                     <TextBlock Text="{Binding AmountHeader}" Classes="label"/>
                                     <SelectableTextBlock Text="{Binding NetText}"
                                                          FontFamily="monospace" FontFeatures="+tnum"
                                                          FontSize="28" FontWeight="Bold"/>
                                     <WrapPanel>
-                                        <!-- Badge coinbase: monete generate dal mining (nessun mittente) -->
+                                        <!-- Coinbase badge: coins generated by mining (no sender) -->
                                         <Border Classes="chip" Margin="0,0,8,6" IsVisible="{Binding IsCoinbase}"
                                                 Background="{DynamicResource WarningBrush}">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -823,7 +823,7 @@
                                     </WrapPanel>
                                 </StackPanel>
 
-                                <!-- Sezione: Panoramica -->
+                                <!-- Section: Overview -->
                                 <TextBlock Classes="section" Text="{Binding Loc[tx.sect.overview]}"/>
                                 <Border Classes="card" Padding="16,12">
                                     <StackPanel Spacing="10">
@@ -839,7 +839,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Sezione: Importi e commissioni -->
+                                <!-- Section: Amounts and fees -->
                                 <TextBlock Classes="section" Text="{Binding Loc[tx.sect.amounts]}"/>
                                 <Border Classes="card" Padding="16,12">
                                     <StackPanel Spacing="10">
@@ -864,7 +864,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Sezione: Dettagli tecnici -->
+                                <!-- Section: Technical details -->
                                 <TextBlock Classes="section" Text="{Binding Loc[tx.sect.tech]}"/>
                                 <Border Classes="card" Padding="16,12">
                                     <StackPanel Spacing="10">
@@ -935,9 +935,9 @@
             </Border>
         </Border>
 
-        <!-- ============ OVERLAY IMPOSTAZIONI SERVER ============ -->
-        <!-- Stesso pattern dell'overlay indirizzo: apertura/chiusura istantanee.
-             Accessibile da Impostazioni → Server. -->
+        <!-- ============ SERVER SETTINGS OVERLAY ============ -->
+        <!-- Same pattern as the address overlay: instant open/close.
+             Accessible from Settings → Server. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
                 Background="{DynamicResource ScrimBrush}"
                 Tapped="OnServerOverlayBackdropTapped"
@@ -950,7 +950,7 @@
                     <TextBlock Text="{Binding Loc[server.title]}"
                                FontSize="18" FontWeight="Bold"/>
 
-                    <!-- Host + porta — Desktop: 3 colonne -->
+                    <!-- Host + port — Desktop: 3 columns -->
                     <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto"
                           IsVisible="{Binding IsDesktop}">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Loc[server.host]}"
@@ -966,7 +966,7 @@
                         <CheckBox Grid.Row="1" Grid.Column="2" IsChecked="{Binding UseSsl}"
                                   Margin="10,2,0,0" VerticalAlignment="Center"/>
                     </Grid>
-                    <!-- Host + porta — Mobile: verticale, font più grandi -->
+                    <!-- Host + port — Mobile: vertical, larger font -->
                     <StackPanel Spacing="10" IsVisible="{Binding IsMobile}">
                         <StackPanel Spacing="4">
                             <TextBlock Text="{Binding Loc[server.host]}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
@@ -987,7 +987,7 @@
                         </Grid>
                     </StackPanel>
 
-                    <!-- Azioni — Desktop: in riga -->
+                    <!-- Actions — Desktop: in a row -->
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
                         <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
                                 Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"/>
@@ -996,7 +996,7 @@
                         <Button Content="{Binding Loc[wallet.resetcert]}"
                                 Command="{Binding ResetCertificatesCommand}"/>
                     </StackPanel>
-                    <!-- Azioni — Mobile: in colonna -->
+                    <!-- Actions — Mobile: stacked -->
                     <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
                         <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
                                 Command="{Binding ConnectAndSyncCommand}" IsEnabled="{Binding !IsSyncing}"
@@ -1009,7 +1009,7 @@
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Stato connessione -->
+                    <!-- Connection status -->
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <Ellipse Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center"
                                  IsVisible="{Binding IsConnected}"/>
@@ -1019,7 +1019,7 @@
                                    VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Server conosciuti: clicca per riempire host/porta -->
+                    <!-- Known servers: click to populate host/port -->
                     <TextBlock Text="{Binding Loc[server.known]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <ListBox ItemsSource="{Binding KnownServers}"
                              SelectedItem="{Binding SelectedKnownServer}"
@@ -1038,7 +1038,7 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="net:KnownServer">
                                 <Panel>
-                                    <!-- Desktop: host + porte in 2 colonne -->
+                                    <!-- Desktop: host + ports in 2 columns -->
                                     <Grid ColumnDefinitions="*,Auto"
                                           IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                         <TextBlock Grid.Column="0" Text="{Binding Host}"
@@ -1050,7 +1050,7 @@
                                             <Run Text="  ssl "/><Run Text="{Binding SslPort}"/>
                                         </TextBlock>
                                     </Grid>
-                                    <!-- Mobile: host sopra, porte sotto -->
+                                    <!-- Mobile: host above, ports below -->
                                     <StackPanel Spacing="2" Margin="0,4"
                                                 IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
                                         <TextBlock Text="{Binding Host}"
@@ -1078,8 +1078,8 @@
             </Border>
         </Border>
 
-        <!-- ============ OVERLAY IMPOSTAZIONI ============ -->
-        <!-- In-app invece dei sottomenu annidati: niente popup OS lenti su WSLg. -->
+        <!-- ============ SETTINGS OVERLAY ============ -->
+        <!-- In-app instead of nested submenus: avoids slow OS popups on WSLg. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
                 Background="{DynamicResource ScrimBrush}"
                 Tapped="OnSettingsOverlayBackdropTapped"
@@ -1093,7 +1093,7 @@
                     <TextBlock Text="{Binding Loc[settings.title]}"
                                FontSize="18" FontWeight="Bold"/>
 
-                    <!-- Lingua -->
+                    <!-- Language -->
                     <StackPanel Spacing="6">
                         <TextBlock Text="{Binding Loc[settings.language]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <WrapPanel>
@@ -1118,7 +1118,7 @@
                         </WrapPanel>
                     </StackPanel>
 
-                    <!-- Unità -->
+                    <!-- Unit -->
                     <StackPanel Spacing="6">
                         <TextBlock Text="{Binding Loc[settings.unit]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <WrapPanel>
@@ -1137,7 +1137,7 @@
                         </WrapPanel>
                     </StackPanel>
 
-                    <!-- Server di indicizzazione (configurabile anche prima di aprire un wallet) -->
+                    <!-- Indexing server (configurable even before a wallet is open) -->
                     <Button Content="{Binding Loc[settings.server]}"
                             HorizontalAlignment="Left"
                             Command="{Binding OpenServerSettingsCommand}"/>
@@ -1150,8 +1150,8 @@
             </Border>
         </Border>
 
-        <!-- ============ OVERLAY HELP / INFORMAZIONI ============ -->
-        <!-- Stesso pattern dell'overlay impostazioni: apertura/chiusura istantanee. -->
+        <!-- ============ HELP / ABOUT OVERLAY ============ -->
+        <!-- Same pattern as the settings overlay: instant open/close. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
                 Background="{DynamicResource ScrimBrush}"
                 Tapped="OnHelpOverlayBackdropTapped"

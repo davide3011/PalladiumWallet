@@ -3,16 +3,16 @@ using System.Text.Json;
 namespace PalladiumWallet.Core.Storage;
 
 /// <summary>
-/// Configurazione globale dell'applicazione (blueprint §8), separata dai file
-/// wallet: lingua, unità di visualizzazione, ecc. Persistita in config.json
-/// nella radice dei dati (vale per tutte le reti).
+/// Global application configuration (blueprint §8), separate from wallet
+/// files: language, display unit, etc. Persisted in config.json
+/// in the data root (applies to all networks).
 /// </summary>
 public sealed class AppConfig
 {
-    /// <summary>Codice lingua UI.</summary>
+    /// <summary>UI language code.</summary>
     public string Language { get; set; } = "en";
 
-    /// <summary>Unità di visualizzazione degli importi (vedi <see cref="Wallet.CoinAmount.Units"/>).</summary>
+    /// <summary>Display unit for amounts (see <see cref="Wallet.CoinAmount.Units"/>).</summary>
     public string Unit { get; set; } = "PLM";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
@@ -28,7 +28,7 @@ public sealed class AppConfig
         }
         catch (JsonException)
         {
-            // Config corrotta: si riparte dai default senza bloccare l'avvio.
+            // Corrupted config: fall back to defaults without blocking startup.
             return new AppConfig();
         }
     }

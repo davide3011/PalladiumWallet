@@ -13,7 +13,7 @@ public partial class MainWindowViewModel
     [ObservableProperty]
     private ContactEntry? selectedContactInList;
 
-    /// <summary>Contatto selezionato nella ComboBox del pannello Invia: riempie SendTo.</summary>
+    /// <summary>Contact selected in the Send panel's ComboBox: fills SendTo.</summary>
     [ObservableProperty]
     private ContactEntry? sendToContact;
 

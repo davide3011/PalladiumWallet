@@ -4,31 +4,31 @@ using PalladiumWallet.Core.Chain;
 namespace PalladiumWallet.Core.Crypto;
 
 /// <summary>
-/// Astrazione su tutti i tipi di account wallet (HD da seed, HD da xpub/xprv importata,
-/// chiavi WIF importate). Consente a WalletSynchronizer e TransactionFactory di operare
-/// indipendentemente dal tipo di keystore sottostante (blueprint §4.4–§4.5).
+/// Abstraction over all wallet account types (HD from seed, HD from imported xpub/xprv,
+/// imported WIF keys). Allows WalletSynchronizer and TransactionFactory to operate
+/// independently of the underlying keystore type (blueprint §4.4–§4.5).
 /// </summary>
 public interface IWalletAccount
 {
     ScriptKind Kind { get; }
     ChainProfile Profile { get; }
 
-    /// <summary>True se l'account non può firmare (assenza di chiavi private).</summary>
+    /// <summary>True if the account cannot sign (no private keys present).</summary>
     bool IsWatchOnly { get; }
 
     BitcoinAddress GetAddress(bool isChange, int index);
     BitcoinAddress GetReceiveAddress(int index);
     BitcoinAddress GetChangeAddress(int index);
 
-    /// <summary>Null se la chiave pubblica non è ricavabile dall'account (indirizzi puri watch-only).</summary>
+    /// <summary>Null if the public key cannot be derived from the account (pure watch-only addresses).</summary>
     PubKey? GetPublicKey(bool isChange, int index);
 
-    /// <summary>Null se l'account è watch-only o l'indice è fuori range.</summary>
+    /// <summary>Null if the account is watch-only or the index is out of range.</summary>
     Key? GetPrivateKey(bool isChange, int index);
 
     /// <summary>
-    /// Per gli account con indirizzi fissi (WIF importati) restituisce la lista
-    /// completa da scansionare; null per gli account HD che usano il gap limit.
+    /// For accounts with fixed addresses (imported WIF keys) returns the full list
+    /// to scan; null for HD accounts that use the gap limit.
     /// </summary>
     IReadOnlyList<(BitcoinAddress Address, bool IsChange, int Index)>? FixedAddresses { get; }
 }

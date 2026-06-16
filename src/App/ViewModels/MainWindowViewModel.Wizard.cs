@@ -14,7 +14,7 @@ namespace PalladiumWallet.App.ViewModels;
 
 public partial class MainWindowViewModel
 {
-    // ---- wizard di setup
+    // ---- setup wizard
 
     public const string StepDataLocation = "data-location";
     public const string StepStart = "start";
@@ -85,7 +85,7 @@ public partial class MainWindowViewModel
     [ObservableProperty]
     private string importWifInput = "";
 
-    // Tipo di script rilevato durante la decodifica dell'xkey (per mostrarlo all'utente)
+    // Script type detected during xkey decoding (to display to the user)
     [ObservableProperty]
     private string importXkeyDetectedKind = "";
 
@@ -268,7 +268,7 @@ public partial class MainWindowViewModel
             StatusMessage = Loc.Tr("msg.xkey.required");
             return;
         }
-        // Valida e rileva il tipo: prova prima come xpub, poi come xprv.
+        // Validate and detect the type: try as xpub first, then as xprv.
         if (Slip132.TryDecodePublic(ImportXkeyInput.Trim(), Profile, out _, out var pubKind))
         {
             SelectedScriptKind = pubKind;
@@ -298,7 +298,7 @@ public partial class MainWindowViewModel
             StatusMessage = Loc.Tr("msg.wif.required");
             return;
         }
-        // Valida il WIF con un parsing anticipato.
+        // Validate the WIF with an early parse.
         try
         {
             _ = new NBitcoin.BitcoinSecret(ImportWifInput.Trim(), PalladiumNetworks.For(Net));
@@ -421,9 +421,9 @@ public partial class MainWindowViewModel
     }
 
     /// <summary>
-    /// Costruisce il percorso file dal nome inserito dall'utente.
-    /// Se il nome è vuoto genera un nome automatico (default, wallet-2, …).
-    /// Rimuove i caratteri non validi per il filesystem.
+    /// Builds the file path from the name entered by the user.
+    /// If the name is empty, generates an automatic name (default, wallet-2, …).
+    /// Removes characters that are invalid for the filesystem.
     /// </summary>
     private string WalletPathFromName(string name)
     {
@@ -435,7 +435,7 @@ public partial class MainWindowViewModel
 
         if (string.IsNullOrEmpty(clean))
         {
-            // Nessun nome → nome automatico
+            // No name provided → auto-generated name
             var def = AppPaths.DefaultWalletPath(Net);
             for (var n = 2; WalletStore.Exists(def); n++)
                 def = Path.Combine(AppPaths.WalletsDir(Net), $"wallet-{n}.wallet.json");
@@ -547,8 +547,8 @@ public partial class MainWindowViewModel
         ApplyCache(doc.Cache);
         IsWalletOpen = true;
         StatusMessage = Loc.Tr("msg.opened");
-        _autoReconnect = true;  // keepalive riprova la connessione anche se il primo tentativo fallisce
-        _syncFailed = true;     // forza la prima sync automatica
+        _autoReconnect = true;  // keepalive retries the connection even if the first attempt fails
+        _syncFailed = true;     // force the first automatic sync
         _ = ConnectAndSync();
     }
 }

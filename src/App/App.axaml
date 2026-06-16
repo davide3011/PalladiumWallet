@@ -9,8 +9,8 @@
         <local:ViewLocator/>
     </Application.DataTemplates>
 
-    <!-- Design token semantici (colori, raggi, accento brand): definiti per
-         entrambe le varianti chiaro/scuro. Vedi Styles/Theme.axaml. -->
+    <!-- Semantic design tokens (colors, radii, brand accent): defined for
+         both light/dark variants. See Styles/Theme.axaml. -->
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -21,7 +21,7 @@
 
     <Application.Styles>
         <FluentTheme />
-        <!-- Rifiniture di controllo e classi riutilizzabili (sopra a Fluent) -->
+        <!-- Control refinements and reusable classes (on top of Fluent) -->
         <StyleInclude Source="/Styles/Controls.axaml"/>
     </Application.Styles>
 </Application>

@@ -4,9 +4,9 @@ using PalladiumWallet.Core.Chain;
 namespace PalladiumWallet.Core.Crypto;
 
 /// <summary>
-/// Account da chiavi WIF singole importate (blueprint §4.4 — "Imported"):
-/// lista fissa di indirizzi, nessuna derivazione HD, nessuna catena di change.
-/// Il change va sempre al primo indirizzo importato.
+/// Account built from individually imported WIF keys (blueprint §4.4 — "Imported"):
+/// fixed list of addresses, no HD derivation, no change chain.
+/// Change always goes back to the first imported address.
 /// </summary>
 public sealed class ImportedKeyAccount : IWalletAccount
 {
@@ -24,7 +24,7 @@ public sealed class ImportedKeyAccount : IWalletAccount
         ScriptKind kind, ChainProfile profile)
     {
         if (entries.Count == 0)
-            throw new ArgumentException("Almeno un indirizzo richiesto.", nameof(entries));
+            throw new ArgumentException("At least one address is required.", nameof(entries));
         _entries = [.. entries];
         Kind = kind;
         Profile = profile;
@@ -39,7 +39,7 @@ public sealed class ImportedKeyAccount : IWalletAccount
 
     public BitcoinAddress GetReceiveAddress(int index) => GetAddress(false, index);
 
-    /// <summary>Il change torna sempre al primo indirizzo importato.</summary>
+    /// <summary>Change always returns to the first imported address.</summary>
     public BitcoinAddress GetChangeAddress(int index) => _entries[0].Address;
 
     public PubKey? GetPublicKey(bool isChange, int index)

@@ -17,8 +17,8 @@ public partial class App : Application
     {
         var vm = new MainWindowViewModel();
 
-        // Desktop (Windows/Linux): finestra classica. Mobile (Android): vista
-        // singola. Stessa UI condivisa (MainView) e stesso ViewModel.
+        // Desktop (Windows/Linux): classic window. Mobile (Android): single
+        // view. Same shared UI (MainView) and same ViewModel.
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:

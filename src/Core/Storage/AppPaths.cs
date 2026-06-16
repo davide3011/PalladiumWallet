@@ -3,29 +3,29 @@ using PalladiumWallet.Core.Chain;
 namespace PalladiumWallet.Core.Storage;
 
 /// <summary>
-/// Percorsi dati per piattaforma (blueprint §8). La radice dati può essere:
-/// 1. <b>portable</b>: cartella "palladium-data" accanto all'eseguibile;
-/// 2. <b>personalizzata</b>: scelta dall'utente al primo avvio e memorizzata in
-///    un piccolo file "puntatore" in una posizione di bootstrap fissa;
-/// 3. <b>legacy</b>: vecchia posizione (%APPDATA%/PalladiumWallet) se contiene già dati;
-/// 4. <b>default</b>: ~/.PalladiumWallet (Linux/macOS) o %ProgramFiles%\PalladiumWallet (Windows).
-/// Sotto la radice c'è una sottocartella per rete (config, wallet, header, certificati).
+/// Per-platform data paths (blueprint §8). The data root can be:
+/// 1. <b>portable</b>: "palladium-data" folder next to the executable;
+/// 2. <b>custom</b>: chosen by the user at first launch and stored in
+///    a small "pointer" file at a fixed bootstrap location;
+/// 3. <b>legacy</b>: old location (%APPDATA%/PalladiumWallet) if it already holds data;
+/// 4. <b>default</b>: ~/.PalladiumWallet (Linux/macOS) or %ProgramFiles%\PalladiumWallet (Windows).
+/// Under the root there is a per-network subfolder (config, wallet, header, certificates).
 /// </summary>
 public static class AppPaths
 {
     public const string PortableDirName = "palladium-data";
 
-    /// <summary>Nome cartella applicazione, usato nei vari percorsi.</summary>
+    /// <summary>Application folder name, used in the various paths.</summary>
     public const string AppDirName = "PalladiumWallet";
 
-    /// <summary>Override esplicito della radice dati (es. CLI --data-dir). Ha priorità su tutto.</summary>
+    /// <summary>Explicit override of the data root (e.g. CLI --data-dir). Takes priority over everything.</summary>
     public static string? OverrideDataRoot { get; set; }
 
     /// <summary>
-    /// Radice dati predefinita, secondo la convenzione di ogni piattaforma:
-    /// Windows → %APPDATA%\PalladiumWallet (PascalCase, come Electrum/Bitcoin);
-    /// Linux/macOS → ~/.palladium-wallet (dotfolder minuscolo, come ~/.bitcoin).
-    /// Per-utente e sempre scrivibile, senza privilegi di amministratore.
+    /// Default data root, following each platform's convention:
+    /// Windows → %APPDATA%\PalladiumWallet (PascalCase, like Electrum/Bitcoin);
+    /// Linux/macOS → ~/.palladium-wallet (lowercase dotfolder, like ~/.bitcoin).
+    /// Per-user and always writable, without administrator privileges.
     /// </summary>
     public static string DefaultDataRoot()
     {
@@ -37,8 +37,8 @@ public static class AppPaths
         return Path.Combine(home, ".palladium-wallet");
     }
 
-    /// <summary>File puntatore alla radice dati scelta dall'utente. Vive in una
-    /// posizione di bootstrap sempre scrivibile e indipendente dalla radice dati.</summary>
+    /// <summary>Pointer file to the user-chosen data root. Lives at a
+    /// bootstrap location that is always writable and independent of the data root.</summary>
     private static string LocationPointerPath() =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -50,7 +50,7 @@ public static class AppPaths
     private static bool HasData(string root) =>
         Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any();
 
-    /// <summary>Radice dati effettiva, secondo l'ordine di precedenza documentato in classe.</summary>
+    /// <summary>Effective data root, following the precedence order documented on the class.</summary>
     public static string DataRoot()
     {
         if (!string.IsNullOrEmpty(OverrideDataRoot))
@@ -67,9 +67,9 @@ public static class AppPaths
     }
 
     /// <summary>
-    /// true se la posizione dei dati è già determinata e non serve chiederla
-    /// all'utente: modalità portable, override, puntatore già scritto, oppure
-    /// dati già presenti nella posizione predefinita.
+    /// true if the data location is already determined and need not be asked
+    /// of the user: portable mode, override, pointer already written, or
+    /// data already present at the default location.
     /// </summary>
     public static bool IsDataLocationConfigured() =>
         !string.IsNullOrEmpty(OverrideDataRoot)
@@ -77,7 +77,7 @@ public static class AppPaths
         || ReadPointer() is not null
         || HasData(DefaultDataRoot());
 
-    /// <summary>Memorizza la radice dati scelta dall'utente e la crea su disco.</summary>
+    /// <summary>Stores the user-chosen data root and creates it on disk.</summary>
     public static void ConfigureDataLocation(string root)
     {
         root = Path.GetFullPath(root.Trim());
@@ -96,7 +96,7 @@ public static class AppPaths
         return string.IsNullOrEmpty(path) ? null : path;
     }
 
-    /// <summary>Cartella dati della rete (config, wallet, header, certificati).</summary>
+    /// <summary>Network data folder (config, wallet, header, certificates).</summary>
     public static string ForNetwork(NetKind net)
     {
         var dir = Path.Combine(DataRoot(), ChainProfiles.For(net).NetName);
@@ -114,7 +114,7 @@ public static class AppPaths
     public static string DefaultWalletPath(NetKind net) =>
         Path.Combine(WalletsDir(net), "default.wallet.json");
 
-    /// <summary>Tutti i file wallet della rete, ordinati per nome (multi-wallet §8).</summary>
+    /// <summary>All wallet files for the network, ordered by name (multi-wallet §8).</summary>
     public static IReadOnlyList<string> WalletFiles(NetKind net)
     {
         var dir = WalletsDir(net);

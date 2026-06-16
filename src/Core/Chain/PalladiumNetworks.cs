@@ -4,13 +4,13 @@ using NBitcoin.DataEncoders;
 namespace PalladiumWallet.Core.Chain;
 
 /// <summary>
-/// Costruisce e registra le <see cref="Network"/> NBitcoin di Palladium a partire dai
-/// <see cref="ChainProfiles"/> (blueprint §19.3). Tutto il resto del codice ottiene la
-/// rete da qui, mai da costanti sparse.
+/// Builds and registers the Palladium NBitcoin <see cref="Network"/> instances from the
+/// <see cref="ChainProfiles"/> (blueprint §19.3). All other code obtains the network
+/// from here — never from scattered constants.
 /// </summary>
 /// <summary>
-/// Identità della moneta per NBitcoin: raggruppa le tre reti sotto il codice PLM.
-/// I getter sono lazy, quindi nessuna ricorsione durante la costruzione.
+/// Coin identity for NBitcoin: groups the three networks under the PLM code.
+/// Getters are lazy, so no recursion occurs during construction.
 /// </summary>
 public sealed class PalladiumNetworkSet : INetworkSet
 {
@@ -34,13 +34,13 @@ public sealed class PalladiumNetworkSet : INetworkSet
 
 public static class PalladiumNetworks
 {
-    // Blocco genesi di Bitcoin (la mainnet Palladium lo riusa, blueprint §3).
+    // Bitcoin genesis block (Palladium mainnet reuses it, blueprint §3).
     private const string MainGenesisHex =
         "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a29ab5f49ffff001d1dac2b7c" +
         Coinbase;
 
-    // Genesi testnet3/regtest di Bitcoin: stessa coinbase, cambiano time/bits/nonce.
-    // TODO: confermare contro chainparams.cpp del nodo (vedi ChainProfiles).
+    // Bitcoin testnet3/regtest genesis: same coinbase, different time/bits/nonce.
+    // TODO: confirm against the node's chainparams.cpp (see ChainProfiles).
     private const string TestGenesisHex =
         "0100000000000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4adae5494dffff001d1aa4ae18" +
         Coinbase;
@@ -81,9 +81,9 @@ public static class PalladiumNetworks
                 NetKind.Testnet => ChainName.Testnet,
                 _ => ChainName.Regtest,
             })
-            // Magic P2P solo segnaposto: il wallet SPV non apre mai connessioni P2P
-            // (parla solo col server di indicizzazione, §3). Serve a NBitcoin per
-            // distinguere le reti registrate.
+            // P2P magic is a placeholder only: the SPV wallet never opens P2P connections
+            // (it only talks to the indexing server, §3). Required by NBitcoin to
+            // distinguish registered networks.
             .SetMagic(magic)
             .SetPort(p.NodeP2pPort)
             .SetRPCPort(p.NodeP2pPort + 1)
@@ -91,9 +91,9 @@ public static class PalladiumNetworks
             .SetBase58Bytes(Base58Type.PUBKEY_ADDRESS, [p.AddrP2pkh])
             .SetBase58Bytes(Base58Type.SCRIPT_ADDRESS, [p.AddrP2sh])
             .SetBase58Bytes(Base58Type.SECRET_KEY, [p.WifPrefix])
-            // NBitcoin gestisce una sola coppia di header BIP32 per rete: quella
-            // standard xprv/xpub. Le varianti SLIP-132 (y/z/Y/Z) si serializzano
-            // a mano con ChainProfile.ExtKeyHeaders quando servono.
+            // NBitcoin handles only one BIP32 header pair per network: the standard
+            // xprv/xpub. SLIP-132 variants (y/z/Y/Z) are serialised manually via
+            // ChainProfile.ExtKeyHeaders when needed.
             .SetBase58Bytes(Base58Type.EXT_SECRET_KEY, legacy.PrivateBytes())
             .SetBase58Bytes(Base58Type.EXT_PUBLIC_KEY, legacy.PublicBytes())
             .SetBech32(Bech32Type.WITNESS_PUBKEY_ADDRESS, Encoders.Bech32(p.SegwitHrp))
@@ -102,8 +102,8 @@ public static class PalladiumNetworks
             .SetUriScheme(p.UriScheme)
             .SetConsensus(new Consensus
             {
-                // Valori usati solo dalle API NBitcoin che li richiedono: la validazione
-                // header reale è custom (Core/Spv) con skip PoW + checkpoint (§7).
+                // Values used only by NBitcoin APIs that require them: real header
+                // validation is custom (Core/Spv) with PoW skip + checkpoints (§7).
                 PowLimit = new Target(new uint256("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
                 PowTargetSpacing = TimeSpan.FromSeconds(p.BlockTimeSeconds),
                 PowTargetTimespan = TimeSpan.FromDays(14),

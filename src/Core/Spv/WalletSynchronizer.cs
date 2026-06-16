@@ -8,14 +8,14 @@ using PalladiumWallet.Core.Storage;
 
 namespace PalladiumWallet.Core.Spv;
 
-/// <summary>Indirizzo derivato e tracciato durante la sincronizzazione.</summary>
+/// <summary>Address derived and tracked during synchronisation.</summary>
 public sealed record TrackedAddress(
     BitcoinAddress Address, string ScriptHash, bool IsChange, int Index)
 {
     public Script ScriptPubKey => Address.ScriptPubKey;
 }
 
-/// <summary>Esito di una passata di sincronizzazione.</summary>
+/// <summary>Result of a synchronisation pass.</summary>
 public sealed class SyncResult
 {
     public required int TipHeight { get; init; }
@@ -31,26 +31,26 @@ public sealed class SyncResult
 }
 
 /// <summary>
-/// Sincronizzazione del wallet (blueprint §7.4).
+/// Wallet synchronisation (blueprint §7.4).
 /// </summary>
 public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient client, int gapLimit = 20)
 {
-    /// <summary>Avanzamento leggibile (per CLI e barra di stato GUI).</summary>
+    /// <summary>Human-readable progress (for CLI and GUI status bar).</summary>
     public event Action<string>? Progress;
 
     private readonly ConcurrentDictionary<string, Transaction> _txCache = new();
     private readonly Dictionary<string, int> _verifiedAtHeight = [];
     private readonly ConcurrentDictionary<int, Task<string>> _headerFetches = new();
 
-    // Indici noti dal sync precedente: usati da ScanChainAsync per la discovery
-    // incrementale — gli indirizzi già usati vengono fetchati in un unico burst
-    // invece di batches sequenziali, riducendo i round-trip da O(used/gapLimit) a O(1).
+    // Indices known from the previous sync: used by ScanChainAsync for incremental
+    // discovery — already-used addresses are fetched in a single burst instead of
+    // sequential batches, reducing round-trips from O(used/gapLimit) to O(1).
     private int _knownReceiveIndex;
     private int _knownChangeIndex;
 
     /// <summary>
-    /// Pre-popola le cache interne da dati salvati su disco.
-    /// Chiamare prima di SyncOnceAsync per evitare di riscaricale le tx già note.
+    /// Pre-populates internal caches from data saved on disk.
+    /// Call before SyncOnceAsync to avoid re-downloading already known transactions.
     /// </summary>
     public void PreloadCaches(
         Dictionary<string, string> rawTxHex,
@@ -73,9 +73,9 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     }
 
     /// <summary>
-    /// Esporta le cache correnti in forma serializzabile su disco.
-    /// Solo le tx confermate (height > 0) vengono incluse: le non confermate
-    /// possono cambiare (RBF) e vanno sempre riscaricate.
+    /// Exports the current caches in a serialisable form for disk storage.
+    /// Only confirmed transactions (height > 0) are included: unconfirmed ones
+    /// may change (RBF) and must always be re-downloaded.
     /// </summary>
     public (Dictionary<string, string> RawTxHex,
             Dictionary<string, int> VerifiedAt,
@@ -86,8 +86,8 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             .Where(_txCache.ContainsKey)
             .ToDictionary(txid => txid, txid => _txCache[txid].ToHex());
 
-        // Solo gli header già completati: Task<string> non ancora completate
-        // non vengono persistite (verranno rifetchate al prossimo sync se necessario).
+        // Only already-completed headers: in-progress Task<string> instances
+        // are not persisted (they will be re-fetched on the next sync if needed).
         var headers = new Dictionary<int, string>();
         foreach (var (height, task) in _headerFetches)
             if (task.IsCompletedSuccessfully)
@@ -99,9 +99,9 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     public async Task<SyncResult> SyncOnceAsync(CancellationToken ct = default)
     {
         var tip = await client.SubscribeHeadersAsync(ct);
-        Progress?.Invoke($"tip della catena: {tip.Height}");
+        Progress?.Invoke($"chain tip: {tip.Height}");
 
-        // 1-2. Scansione indirizzi.
+        // 1-2. Address scanning.
         var tracked = new List<TrackedAddress>();
         var historyByAddress = new Dictionary<string, IReadOnlyList<HistoryItem>>();
         int nextReceive, nextChange;
@@ -122,9 +122,9 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         }
         else
         {
-            // Receive e change chain in parallelo (indipendenti per definizione).
-            // ScanChainAsync usa _knownReceiveIndex/_knownChangeIndex per la discovery
-            // incrementale: gli indirizzi già usati vengono fetchati in un burst unico.
+            // Receive and change chains in parallel (independent by definition).
+            // ScanChainAsync uses _knownReceiveIndex/_knownChangeIndex for incremental
+            // discovery: already-used addresses are fetched in a single burst.
             var receiveTask = ScanChainAsync(isChange: false, _knownReceiveIndex, ct);
             var changeTask  = ScanChainAsync(isChange: true,  _knownChangeIndex,  ct);
             var rxScan = await receiveTask;
@@ -145,12 +145,12 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                     RetryOnBusyAsync(() => client.SubscribeScripthashAsync(t.ScriptHash, ct), ct)));
         }
 
-        // 3. Storico unico (txid → altezza massima riportata).
+        // 3. Merged history (txid → highest reported height).
         var txHeights = new Dictionary<string, int>();
         foreach (var item in historyByAddress.Values.SelectMany(h => h))
             txHeights[item.TxHash] = item.Height;
 
-        // 4+5. Download tx mancanti e verifica Merkle in parallelo senza semaforo.
+        // 4+5. Download missing transactions and verify Merkle proofs in parallel.
         var network  = PalladiumNetworks.For(account.Profile.Kind);
         var missing  = txHeights.Keys.Where(txid => !_txCache.ContainsKey(txid)).ToList();
         var toVerify = txHeights
@@ -160,7 +160,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
 
         if (missing.Count > 0 || toVerify.Count > 0)
         {
-            Progress?.Invoke($"scarico {missing.Count} tx, verifico {toVerify.Count} prove…");
+            Progress?.Invoke($"downloading {missing.Count} txs, verifying {toVerify.Count} proofs…");
             var dlDone   = 0;
             var merkDone = 0;
 
@@ -170,7 +170,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                 _txCache[txid] = Transaction.Parse(raw, network);
                 var n = Interlocked.Increment(ref dlDone);
                 if (n % 50 == 0 || n == missing.Count)
-                    Progress?.Invoke($"tx {n}/{missing.Count}, prove {merkDone}/{toVerify.Count}…");
+                    Progress?.Invoke($"tx {n}/{missing.Count}, proofs {merkDone}/{toVerify.Count}…");
             }, ct));
 
             var merkTasks = toVerify.Select(kv => RetryOnBusyAsync(async () =>
@@ -185,10 +185,10 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                         uint256.Parse(txid), proof.Pos,
                         proof.Merkle.Select(uint256.Parse), header.MerkleRoot))
                     throw new SpvVerificationException(
-                        $"Prova di Merkle non valida per {txid} (blocco {height}): server non affidabile.");
+                        $"Invalid Merkle proof for {txid} (block {height}): server is not trustworthy.");
                 var n = Interlocked.Increment(ref merkDone);
                 if (n % 50 == 0 || n == toVerify.Count)
-                    Progress?.Invoke($"tx {dlDone}/{missing.Count}, prove {n}/{toVerify.Count}…");
+                    Progress?.Invoke($"tx {dlDone}/{missing.Count}, proofs {n}/{toVerify.Count}…");
             }, ct));
 
             await Task.WhenAll(dlTasks.Concat(merkTasks));
@@ -199,7 +199,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         var transactions = txHeights.Keys.ToDictionary(txid => txid, txid => _txCache[txid]);
         var verified     = txHeights.ToDictionary(kv => kv.Key, kv => kv.Value > 0);
 
-        // 6. Ricostruzione locale degli UTXO.
+        // 6. Local UTXO reconstruction.
         var byScript = tracked.ToDictionary(t => t.ScriptPubKey, t => t);
         var spent = transactions.Values
             .SelectMany(tx => tx.Inputs)
@@ -229,7 +229,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             }
         }
 
-        // 7. Delta per voce di storico.
+        // 7. Delta per history entry.
         var history = new List<CachedTx>();
         foreach (var (txid, tx) in transactions)
         {
@@ -286,14 +286,14 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     }
 
     /// <summary>
-    /// Scansiona una catena (receiving o change).
+    /// Scans one chain (receiving or change).
     ///
-    /// Phase 1 — indirizzi noti (0..fromIndex-1): tutti i GetHistoryAsync partono
-    /// in un unico burst parallelo, senza batching sequenziale. Per un wallet con
-    /// 100 indirizzi usati → 1 RTT invece di 5 round sequenziali di gapLimit.
+    /// Phase 1 — known addresses (0..fromIndex-1): all GetHistoryAsync calls are
+    /// fired in a single parallel burst, with no sequential batching. A wallet
+    /// with 100 used addresses costs 1 RTT instead of 5 sequential gap-limit rounds.
     ///
-    /// Phase 2 — discovery dal fromIndex in poi: batching con gap limit come prima,
-    /// necessario per sapere dove fermarsi.
+    /// Phase 2 — discovery from fromIndex onwards: gap-limit batching as before,
+    /// required to know when to stop.
     /// </summary>
     private async Task<(int NextIndex,
                          List<TrackedAddress> Tracked,
@@ -303,7 +303,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         var tracked = new List<TrackedAddress>();
         var history = new Dictionary<string, IReadOnlyList<HistoryItem>>();
 
-        // Phase 1: burst unico per tutti gli indirizzi già noti.
+        // Phase 1: single burst for all already-known addresses.
         if (fromIndex > 0)
         {
             var known = Enumerable.Range(0, fromIndex).Select(i =>
@@ -321,7 +321,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                     history[known[i].ScriptHash] = knownHistories[i];
         }
 
-        // Phase 2: discovery gap-limit dal fromIndex in poi.
+        // Phase 2: gap-limit discovery from fromIndex onwards.
         var consecutiveEmpty = 0;
         var index      = fromIndex;
         var firstUnused = fromIndex;
@@ -395,5 +395,5 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         ex.Message.Contains("excessive resource usage", StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>La verifica SPV è fallita: i dati del server contraddicono le prove (§17).</summary>
+/// <summary>SPV verification failed: server data contradicts the proofs (§17).</summary>
 public sealed class SpvVerificationException(string message) : Exception(message);

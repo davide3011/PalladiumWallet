@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace PalladiumWallet.Core.Storage;
 
 /// <summary>
-/// Schema del file wallet (blueprint §8), versionato per consentire migrazioni
-/// automatiche all'apertura. La cifratura (quando c'è una password) avvolge
-/// l'intero documento via <see cref="EncryptedFile"/>.
+/// Wallet file schema (blueprint §8), versioned to allow automatic
+/// migrations on opening. Encryption (when there is a password) wraps
+/// the entire document via <see cref="EncryptedFile"/>.
 /// </summary>
 public sealed class WalletDocument
 {
@@ -14,42 +14,42 @@ public sealed class WalletDocument
 
     public int Version { get; set; } = CurrentVersion;
 
-    /// <summary>Nome rete (mainnet/testnet/regtest), come ChainProfile.NetName.</summary>
+    /// <summary>Network name (mainnet/testnet/regtest), as ChainProfile.NetName.</summary>
     public required string Network { get; set; }
 
-    /// <summary>Tipo di script (nome dell'enum ScriptKind).</summary>
+    /// <summary>Script type (name of the ScriptKind enum).</summary>
     public required string ScriptKind { get; set; }
 
-    /// <summary>Mnemonica BIP39 in chiaro nel documento (il documento va cifrato!); null se watch-only.</summary>
+    /// <summary>BIP39 mnemonic in plaintext in the document (the document must be encrypted!); null if watch-only.</summary>
     public string? Mnemonic { get; set; }
 
-    /// <summary>Extension word BIP39 (§4.1); null se assente.</summary>
+    /// <summary>BIP39 extension word (§4.1); null if absent.</summary>
     public string? Passphrase { get; set; }
 
-    /// <summary>Path di account (es. "84'/746'/0'"); null per importati WIF.</summary>
+    /// <summary>Account path (e.g. "84'/746'/0'"); null for imported WIF.</summary>
     public string? AccountPath { get; set; }
 
-    /// <summary>Xpub di account in SLIP-132 per i wallet HD; null per importati WIF.</summary>
+    /// <summary>Account xpub in SLIP-132 for HD wallets; null for imported WIF.</summary>
     public string? AccountXpub { get; set; }
 
-    /// <summary>Xprv di account in SLIP-132; presente solo per import da xprv senza seed.</summary>
+    /// <summary>Account xprv in SLIP-132; present only for import from xprv without seed.</summary>
     public string? AccountXprv { get; set; }
 
     public string? MasterFingerprint { get; set; }
 
-    /// <summary>Chiavi WIF importate (in chiaro nel documento — va cifrato!).</summary>
+    /// <summary>Imported WIF keys (in plaintext in the document — must be encrypted!).</summary>
     public List<string>? WifKeys { get; set; }
 
-    /// <summary>Gap limit per la scansione indirizzi (§5), configurabile.</summary>
+    /// <summary>Gap limit for address scanning (§5), configurable.</summary>
     public int GapLimit { get; set; } = 20;
 
-    /// <summary>Etichette per indirizzo/txid (§12).</summary>
+    /// <summary>Labels by address/txid (§12).</summary>
     public Dictionary<string, string> Labels { get; set; } = [];
 
-    /// <summary>Rubrica contatti (nome + indirizzo blockchain).</summary>
+    /// <summary>Contact address book (name + blockchain address).</summary>
     public List<StoredContact> Contacts { get; set; } = [];
 
-    /// <summary>Cache dell'ultimo stato sincronizzato (saldo/storico mostrabili offline).</summary>
+    /// <summary>Cache of the last synced state (balance/history viewable offline).</summary>
     public SyncCache? Cache { get; set; }
 
     public bool IsWatchOnly =>
@@ -69,6 +69,7 @@ public sealed class WalletDocument
     {
         var doc = JsonSerializer.Deserialize<WalletDocument>(json, JsonOptions)
             ?? throw new InvalidDataException("File wallet non valido.");
+        // string literal above intentionally left untranslated
         return Migrate(doc);
     }
 
@@ -101,28 +102,28 @@ public sealed class SyncCache
     public List<CachedAddress> Addresses { get; set; } = [];
 
     /// <summary>
-    /// Cache raw delle transazioni confermate (txid → hex). Evita di riscaricale
-    /// ad ogni avvio dell'app: le tx confermate sono immutabili per definizione.
-    /// Popolata anche parzialmente in caso di sync interrotta (es. -101):
-    /// il synchronizer riprende dal punto in cui si era fermato.
+    /// Raw transaction cache (txid → hex). Avoids re-downloading confirmed
+    /// transactions on every launch: confirmed txs are immutable by definition.
+    /// May be partially populated after an interrupted sync (e.g. -101 error);
+    /// the synchronizer resumes from where it left off.
     /// </summary>
     public Dictionary<string, string>? RawTxHex { get; set; }
 
     /// <summary>
-    /// Prove di Merkle già verificate (txid → altezza blocco). Evita di
-    /// riverificare le stesse prove ad ogni avvio: le conferme sono immutabili.
+    /// Already-verified Merkle proofs (txid → block height). Avoids re-verifying
+    /// the same proofs on every launch: confirmations are immutable.
     /// </summary>
     public Dictionary<string, int>? VerifiedAt { get; set; }
 
     /// <summary>
-    /// Header grezzi per altezza (altezza → hex). Immutabili: non vengono mai
-    /// rifetchati una volta salvati. Elimina i GetBlockHeader sulle prove Merkle
-    /// già verificate nei sync successivi.
+    /// Raw headers by height (height → hex). Immutable: never re-fetched once saved.
+    /// Eliminates GetBlockHeader calls for Merkle proofs already verified in
+    /// subsequent syncs.
     /// </summary>
     public Dictionary<int, string>? BlockHeaders { get; set; }
 }
 
-/// <summary>Indirizzo scansionato con saldo proprio e numero di transazioni (vista indirizzi).</summary>
+/// <summary>Scanned address with its own balance and transaction count (address view).</summary>
 public sealed class CachedAddress
 {
     public required string Address { get; set; }

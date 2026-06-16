@@ -17,7 +17,7 @@ public class AddressDerivationTests
     [Fact]
     public void Il_vettore_bip44_produce_lo_stesso_hash_su_bitcoin_e_plm()
     {
-        // Indirizzo noto di abandon-about su m/44'/0'/0'/0/0 (riferimento pubblico).
+        // Known abandon-about address at m/44'/0'/0'/0/0 (public reference).
         var account = HdAccount.FromSeed(AbandonAboutSeed(), ScriptKind.Legacy,
             ChainProfiles.Mainnet, new KeyPath("44'/0'/0'"));
         var pubKey = account.GetPublicKey(isChange: false, 0);
@@ -27,8 +27,8 @@ public class AddressDerivationTests
 
         var plmAddr = account.GetReceiveAddress(0);
         Assert.StartsWith("P", plmAddr.ToString());
-        // Stesso hash160 sotto i due prefissi: la derivazione è identica,
-        // cambia solo la veste di rete.
+        // Same hash160 under the two prefixes: the derivation is identical,
+        // only the network dress changes.
         Assert.Equal(pubKey.Hash, ((BitcoinPubKeyAddress)plmAddr).Hash);
     }
 

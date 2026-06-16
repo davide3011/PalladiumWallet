@@ -4,7 +4,7 @@ namespace PalladiumWallet.Tests.Crypto;
 
 public class Bip39Tests
 {
-    // Vettori ufficiali Trezor (python-mnemonic/vectors.json), passphrase "TREZOR".
+    // Official Trezor vectors (python-mnemonic/vectors.json), passphrase "TREZOR".
     [Theory]
     [InlineData(
         "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
@@ -30,8 +30,8 @@ public class Bip39Tests
     [Fact]
     public void Il_vettore_giapponese_copre_la_normalizzazione_nfkd()
     {
-        // Vettore ufficiale bip32JP (test_JP_BIP39.json[0]): mnemonica con spazi
-        // ideografici U+3000 e passphrase con caratteri da normalizzare NFKD.
+        // Official bip32JP vector (test_JP_BIP39.json[0]): mnemonic with U+3000
+        // ideographic spaces and a passphrase with characters to normalize NFKD.
         const string words =
             "あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あいこくしん　あおぞら";
         const string passphrase = "㍍ガバヴァぱばぐゞちぢ十人十色";
@@ -55,8 +55,8 @@ public class Bip39Tests
     [Fact]
     public void Checksum_invalido_viene_rifiutato()
     {
-        // 12 × "abandon": parole valide ma checksum errato — il caso che il
-        // costruttore NBitcoin non controlla da solo.
+        // 12 × "abandon": valid words but wrong checksum — the case that the
+        // NBitcoin constructor does not check on its own.
         var words = string.Join(' ', Enumerable.Repeat("abandon", 12));
         Assert.False(Bip39.TryParse(words, out _));
     }

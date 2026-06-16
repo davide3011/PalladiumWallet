@@ -6,8 +6,8 @@ using PalladiumWallet.Core.Storage;
 namespace PalladiumWallet.Core.Wallet;
 
 /// <summary>
-/// Factory dei tipi di wallet (blueprint §4.5): dal documento ricostruisce il tipo
-/// di account corretto (HD da seed, HD da xprv importata, importato WIF, watch-only).
+/// Wallet type factory (blueprint §4.5): reconstructs the correct account type
+/// from a document (HD from seed, HD from imported xprv, imported WIF, watch-only).
 /// </summary>
 public static class WalletLoader
 {
@@ -20,25 +20,25 @@ public static class WalletLoader
         var kind = Enum.Parse<ScriptKind>(doc.ScriptKind);
         var network = PalladiumNetworks.For(profile.Kind);
 
-        // 1. HD da seed (caso più comune)
+        // 1. HD from seed (most common case)
         if (doc.Mnemonic is { } words)
         {
             if (!Bip39.TryParse(words, out var mnemonic))
-                throw new InvalidDataException("Mnemonica del file wallet non valida.");
+                throw new InvalidDataException("Invalid mnemonic in wallet file.");
             var path = KeyPath.Parse(doc.AccountPath ?? DerivationPaths.AccountPath(kind, profile).ToString());
             return HdAccount.FromSeed(Bip39.ToSeed(mnemonic!, doc.Passphrase), kind, profile, path);
         }
 
-        // 2. HD da xprv importata (spendibile, senza seed)
+        // 2. HD from imported xprv (spendable, no seed)
         if (doc.AccountXprv is { } xprvStr)
         {
             if (!Slip132.TryDecodePrivate(xprvStr, profile, out var xprv, out _))
-                throw new InvalidDataException("Xprv del file wallet non valida per questa rete.");
+                throw new InvalidDataException("Xprv in wallet file is invalid for this network.");
             var path = doc.AccountPath is { Length: > 0 } p ? KeyPath.Parse(p) : null;
             return HdAccount.FromAccountXprv(xprv!, kind, profile, path);
         }
 
-        // 3. Chiavi WIF importate
+        // 3. Imported WIF keys
         if (doc.WifKeys is { Count: > 0 } wifKeys)
         {
             var entries = wifKeys.Select(wif =>
@@ -51,21 +51,21 @@ public static class WalletLoader
             return new ImportedKeyAccount(entries, kind, profile);
         }
 
-        // 4. Watch-only da xpub
+        // 4. Watch-only from xpub
         if (doc.AccountXpub is null)
-            throw new InvalidDataException("File wallet senza xpub e senza seed.");
+            throw new InvalidDataException("Wallet file has no xpub and no seed.");
         if (!Slip132.TryDecodePublic(doc.AccountXpub, profile, out var xpub, out _))
-            throw new InvalidDataException("Xpub del file wallet non valida per questa rete.");
+            throw new InvalidDataException("Xpub in wallet file is invalid for this network.");
         var accountPath = doc.AccountPath is { Length: > 0 } ap ? KeyPath.Parse(ap) : null;
         return HdAccount.FromAccountXpub(xpub!, kind, profile, accountPath);
     }
 
-    /// <summary>Crea il documento per un nuovo wallet da seed.</summary>
+    /// <summary>Creates the document for a new seed wallet.</summary>
     public static (WalletDocument Doc, HdAccount Account) NewFromMnemonic(
         string words, string? passphrase, ScriptKind kind, ChainProfile profile, KeyPath? customPath = null)
     {
         if (!Bip39.TryParse(words, out var mnemonic))
-            throw new InvalidDataException("Mnemonica non valida (parole o checksum errati).");
+            throw new InvalidDataException("Invalid mnemonic (wrong words or checksum).");
 
         var account = customPath is null
             ? HdAccount.FromMnemonic(mnemonic!, passphrase, kind, profile)
@@ -85,15 +85,15 @@ public static class WalletLoader
     }
 
     /// <summary>
-    /// Crea il documento da una xpub SLIP-132 importata (watch-only).
-    /// Rileva il ScriptKind dagli header SLIP-132; <paramref name="kindOverride"/> lo sovrascrive
-    /// per i prefissi ambigui (xpub può essere Legacy o Taproot).
+    /// Creates the document from an imported SLIP-132 xpub (watch-only).
+    /// Detects the ScriptKind from the SLIP-132 header; <paramref name="kindOverride"/> overrides
+    /// it for ambiguous prefixes (xpub can be Legacy or Taproot).
     /// </summary>
     public static (WalletDocument Doc, HdAccount Account) NewFromXpub(
         string slip132, ChainProfile profile, ScriptKind? kindOverride = null)
     {
         if (!Slip132.TryDecodePublic(slip132.Trim(), profile, out var xpub, out var detectedKind))
-            throw new InvalidDataException("Chiave pubblica estesa non valida o non riconosciuta per questa rete.");
+            throw new InvalidDataException("Extended public key is invalid or unrecognised for this network.");
         var kind = kindOverride ?? detectedKind;
         var account = HdAccount.FromAccountXpub(xpub!, kind, profile);
 
@@ -108,14 +108,14 @@ public static class WalletLoader
     }
 
     /// <summary>
-    /// Crea il documento da una xprv SLIP-132 importata (spendibile senza seed).
-    /// Il documento contiene la xprv in chiaro: deve essere obbligatoriamente cifrato.
+    /// Creates the document from an imported SLIP-132 xprv (spendable without seed).
+    /// The document contains the xprv in plaintext — it must be encrypted.
     /// </summary>
     public static (WalletDocument Doc, HdAccount Account) NewFromXprv(
         string slip132, ChainProfile profile, ScriptKind? kindOverride = null)
     {
         if (!Slip132.TryDecodePrivate(slip132.Trim(), profile, out var xprv, out var detectedKind))
-            throw new InvalidDataException("Chiave privata estesa non valida o non riconosciuta per questa rete.");
+            throw new InvalidDataException("Extended private key is invalid or unrecognised for this network.");
         var kind = kindOverride ?? detectedKind;
         var account = HdAccount.FromAccountXprv(xprv!, kind, profile);
 
@@ -131,14 +131,14 @@ public static class WalletLoader
     }
 
     /// <summary>
-    /// Crea il documento da una o più chiavi WIF importate.
-    /// Il documento contiene le chiavi WIF in chiaro: deve essere obbligatoriamente cifrato.
+    /// Creates the document from one or more imported WIF keys.
+    /// The document contains the WIF keys in plaintext — it must be encrypted.
     /// </summary>
     public static (WalletDocument Doc, ImportedKeyAccount Account) NewFromWif(
         IReadOnlyList<string> wifKeys, ScriptKind kind, ChainProfile profile)
     {
         if (wifKeys.Count == 0)
-            throw new InvalidDataException("Almeno una chiave WIF richiesta.");
+            throw new InvalidDataException("At least one WIF key is required.");
 
         var network = PalladiumNetworks.For(profile.Kind);
         var entries = new List<(BitcoinAddress, Key?)>();
@@ -153,7 +153,7 @@ public static class WalletLoader
             }
             catch (Exception ex)
             {
-                throw new InvalidDataException($"Chiave WIF non valida: {ex.Message}");
+                throw new InvalidDataException($"Invalid WIF key: {ex.Message}");
             }
             var addr = secret.PrivateKey.PubKey
                 .GetAddress(DerivationPaths.ScriptPubKeyTypeFor(kind), network);

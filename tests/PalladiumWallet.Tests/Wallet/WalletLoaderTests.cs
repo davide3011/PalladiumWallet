@@ -120,7 +120,7 @@ public class WalletLoaderTests
         var (doc, accountSeed) = WalletLoader.NewFromMnemonic(
             ValidMnemonic, null, ScriptKind.NativeSegwit, ChainProfiles.Mainnet);
 
-        // Crea documento watch-only rimuovendo la mnemonica
+        // Build a watch-only document by removing the mnemonic.
         var docWo = new WalletDocument
         {
             Network = doc.Network,

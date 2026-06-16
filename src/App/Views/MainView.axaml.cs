@@ -11,10 +11,10 @@ using PalladiumWallet.App.ViewModels;
 namespace PalladiumWallet.App.Views;
 
 /// <summary>
-/// Vista radice dell'app, condivisa tra desktop (ospitata in <see cref="MainWindow"/>)
-/// e mobile (root single-view). Tutti gli overlay sono in-app, quindi non servono
-/// finestre separate. Le API legate al top-level (file picker, clipboard) si
-/// raggiungono via <see cref="TopLevel.GetTopLevel"/> perché un UserControl non le espone.
+/// App root view, shared between desktop (hosted in <see cref="MainWindow"/>)
+/// and mobile (single-view root). All overlays are in-app so no separate windows
+/// are needed. Top-level APIs (file picker, clipboard) are reached via
+/// <see cref="TopLevel.GetTopLevel"/> because a UserControl does not expose them.
 /// </summary>
 public partial class MainView : UserControl
 {
@@ -47,8 +47,8 @@ public partial class MainView : UserControl
         if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;
         if (lb.SelectedItem is not HistoryRow row) return;
 
-        // Overlay in-app: appare subito con lo spinner, i dati arrivano dal
-        // server in background. Niente top-level window (lenta da aprire/chiudere).
+        // In-app overlay: appears immediately with a spinner; data arrives from
+        // the server in the background. No top-level window (slow to open/close).
         _ = vm.ShowTransactionDetailsAsync(row.Txid);
     }
 
@@ -78,8 +78,8 @@ public partial class MainView : UserControl
         vm.ShowAddressInfo(row);
     }
 
-    // Chiusura dell'overlay dettaglio indirizzo: click sullo sfondo scuro
-    // (solo sullo sfondo, non sulla scheda) o tasto Esc.
+    // Close the address-detail overlay: click on the dark backdrop
+    // (backdrop only, not the card itself) or press Esc.
     private void OnAddressOverlayBackdropTapped(object? sender, TappedEventArgs e)
     {
         if (!ReferenceEquals(e.Source, sender)) return;
@@ -140,7 +140,7 @@ public partial class MainView : UserControl
             vm.IsHelpOpen = false;
     }
 
-    // Esc (desktop) o tasto Back (Android) chiudono l'overlay in primo piano.
+    // Esc (desktop) or Back (Android) closes the topmost open overlay.
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if ((e.Key == Key.Escape || e.Key == Key.Back) && DataContext is MainWindowViewModel vm)

@@ -17,7 +17,7 @@ namespace PalladiumWallet.App.ViewModels;
 
 public partial class MainWindowViewModel
 {
-    // ---- saldo e info wallet ----
+    // ---- balance and wallet info ----
 
     [ObservableProperty]
     private string balanceText = "—";
@@ -28,7 +28,7 @@ public partial class MainWindowViewModel
     [ObservableProperty]
     private string networkInfo = "";
 
-    // ---- indirizzo di ricezione e QR ----
+    // ---- receive address and QR ----
 
     [ObservableProperty]
     private string receiveAddress = "";
@@ -60,7 +60,7 @@ public partial class MainWindowViewModel
         }
     }
 
-    // ---- tab indirizzi ----
+    // ---- addresses tab ----
 
     [ObservableProperty]
     private AddressRow? selectedAddressRow;
@@ -74,7 +74,7 @@ public partial class MainWindowViewModel
     [RelayCommand]
     private void CloseAddressInfo() => AddressInfo = null;
 
-    // ---- overlay dettaglio transazione ----
+    // ---- transaction detail overlay ----
 
     [ObservableProperty]
     private bool isTxDetailsOpen;
@@ -169,7 +169,7 @@ public partial class MainWindowViewModel
         }
     }
 
-    // ---- aggiorna display dal risultato della sync ----
+    // ---- update display from the sync result ----
 
     private void ApplyCache(SyncCache? cache)
     {
