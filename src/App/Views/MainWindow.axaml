@@ -4,11 +4,14 @@
         xmlns:views="using:PalladiumWallet.App.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="620"
+        mc:Ignorable="d" d:DesignWidth="1020" d:DesignHeight="680"
         x:Class="PalladiumWallet.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/logo.ico"
-        Width="900" Height="620"
+        Width="1020" Height="680"
+        MinWidth="1020" MinHeight="680"
+        MaxWidth="1020" MaxHeight="680"
+        CanResize="False"
         Title="{Binding WindowTitle}">
 
     <Design.DataContext>

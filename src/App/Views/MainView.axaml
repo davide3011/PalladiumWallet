@@ -332,21 +332,22 @@
                         <Setter Property="HorizontalAlignment" Value="Stretch"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="4,8"/>
+                        <Setter Property="Padding" Value="8,14"/>
+                        <Setter Property="MinWidth" Value="80"/>
                     </Style>
                 </TabControl.Styles>
 
                 <!-- 1. History -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Viewbox Width="24" Height="24" HorizontalAlignment="Center">
                                 <Canvas Width="24" Height="24">
                                     <Path Fill="{Binding $parent[TabItem].Foreground}"
                                           Data="M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Text="{Binding Loc[tab.history]}" FontSize="12"
+                            <TextBlock Text="{Binding Loc[tab.history]}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </TabItem.Header>
@@ -392,143 +393,298 @@
                 <!-- 2. Send -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Viewbox Width="24" Height="24" HorizontalAlignment="Center">
                                 <Canvas Width="24" Height="24">
                                     <Path Fill="{Binding $parent[TabItem].Foreground}"
                                           Data="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Text="{Binding Loc[tab.send]}" FontSize="12"
+                            <TextBlock Text="{Binding Loc[tab.send]}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </TabItem.Header>
-                    <StackPanel Spacing="10" Margin="8" MaxWidth="640" HorizontalAlignment="Left">
-                        <!-- Quick contact -->
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="{Binding Loc[send.from.contact]}" VerticalAlignment="Center"/>
-                            <ComboBox ItemsSource="{Binding Contacts}"
-                                      SelectedItem="{Binding SendToContact}"
-                                      PlaceholderText="{Binding Loc[send.contact.hint]}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:ContactEntry">
-                                        <TextBlock Text="{Binding Name}"/>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                        <Grid ColumnDefinitions="*,Auto">
-                            <TextBox Grid.Column="0"
-                                     PlaceholderText="{Binding Loc[send.to]}" Text="{Binding SendTo}"
-                                     FontFamily="monospace"/>
-                            <Button Grid.Column="1" Margin="6,0,0,0" Padding="8,6"
-                                    IsVisible="{Binding IsMobile}"
-                                    Command="{Binding ScanQrCommand}"
-                                    ToolTip.Tip="{Binding Loc[send.scan]}">
-                                <Viewbox Width="22" Height="22">
-                                    <Canvas Width="24" Height="24">
-                                        <Path Fill="{DynamicResource SystemBaseHighColor}"
-                                              Data="M20,5H16.83L15,3H9L7.17,5H4A2,2 0 0,0 2,7V19A2,2 0 0,0 4,21H20A2,2 0 0,0 22,19V7A2,2 0 0,0 20,5M20,19H4V7H8.05L9.88,5H14.12L15.95,7H20V19M12,8A5,5 0 0,0 7,13A5,5 0 0,0 12,18A5,5 0 0,0 17,13A5,5 0 0,0 12,8M12,16A3,3 0 0,1 9,13A3,3 0 0,1 12,10A3,3 0 0,1 15,13A3,3 0 0,1 12,16Z"/>
-                                    </Canvas>
-                                </Viewbox>
-                            </Button>
-                        </Grid>
-                        <!-- Desktop: amount + fee row in 4 columns -->
-                        <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding IsDesktop}">
-                            <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
-                                     Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
-                            <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
-                                       VerticalAlignment="Center" Margin="6,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                            <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="10,0"
-                                      IsChecked="{Binding SendAll}"/>
-                            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
-                            </StackPanel>
-                        </Grid>
-                        <!-- Mobile: amount and fee on separate rows -->
-                        <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
-                            <Grid ColumnDefinitions="*,Auto,Auto">
-                                <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
-                                         Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
-                                <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
-                                           VerticalAlignment="Center" Margin="6,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="6,0"
-                                          IsChecked="{Binding SendAll}"/>
+                    <ScrollViewer>
+                    <Panel Margin="16,14">
+
+                        <!-- ── DESKTOP: Recipient | Amount side-by-side ── -->
+                        <Grid IsVisible="{Binding IsDesktop}"
+                              RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
+
+                            <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="14">
+                                <!-- Recipient card -->
+                                <Border Grid.Column="0" Classes="card" Padding="22,18">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="{Binding Loc[send.sect.recipient]}" Classes="section"/>
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Grid.Column="0" Text="{Binding Loc[send.from.contact]}"
+                                                       VerticalAlignment="Center" Margin="0,0,10,0"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                            <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                                                      ItemsSource="{Binding Contacts}"
+                                                      SelectedItem="{Binding SendToContact}"
+                                                      PlaceholderText="{Binding Loc[send.contact.hint]}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:ContactEntry">
+                                                        <TextBlock Text="{Binding Name}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Loc[send.to]}" Classes="label"/>
+                                            <TextBox PlaceholderText="{Binding Loc[send.to]}"
+                                                     Text="{Binding SendTo}"
+                                                     FontFamily="monospace" FontSize="13"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Amount & fee card -->
+                                <Border Grid.Column="1" Classes="card" Padding="22,18">
+                                    <StackPanel Spacing="14">
+                                        <TextBlock Text="{Binding Loc[send.sect.amount]}" Classes="section"/>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding Loc[send.amount]}" Classes="label"/>
+                                            <Grid ColumnDefinitions="*,Auto,Auto">
+                                                <TextBox Grid.Column="0"
+                                                         PlaceholderText="0.00000000"
+                                                         Text="{Binding SendAmount}"
+                                                         IsEnabled="{Binding !SendAll}"
+                                                         FontFamily="monospace"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                                           VerticalAlignment="Center" Margin="10,0,0,0"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           FontWeight="Medium"/>
+                                                <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}"
+                                                          IsChecked="{Binding SendAll}"
+                                                          Margin="16,0,0,0" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </StackPanel>
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <TextBlock Grid.Column="0" Text="{Binding Loc[send.feerate]}"
+                                                       VerticalAlignment="Center" Classes="label" Margin="0,0,12,0"/>
+                                            <TextBox Grid.Column="1" Text="{Binding SendFeeRate}"
+                                                     MaxWidth="120" HorizontalAlignment="Left"
+                                                     FontFamily="monospace"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center"/>
-                                <TextBox Text="{Binding SendFeeRate}" MinWidth="60"/>
-                            </StackPanel>
+
+                            <!-- Summary card — full width, visible after Prepare -->
+                            <Border Grid.Row="1" Classes="card" Padding="22,16"
+                                    IsVisible="{Binding SendPreview, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{Binding Loc[send.summary]}" Classes="section"/>
+                                    <SelectableTextBlock Text="{Binding SendPreview}"
+                                                         TextWrapping="Wrap" FontSize="13" Classes="mono"
+                                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Action buttons -->
+                            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="14">
+                                <Button Grid.Column="0" Content="{Binding Loc[send.prepare]}"
+                                        Command="{Binding PrepareSendCommand}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Button Grid.Column="1" Content="{Binding Loc[send.confirm]}" Classes="accent"
+                                        Command="{Binding ConfirmSendCommand}"
+                                        IsEnabled="{Binding HasPendingSend}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- ── MOBILE: vertical stack ── -->
+                        <StackPanel IsVisible="{Binding IsMobile}" Spacing="14">
+                            <Border Classes="card" Padding="20,16">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="{Binding Loc[send.sect.recipient]}" Classes="section"/>
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Loc[send.from.contact]}"
+                                                   VerticalAlignment="Center" Margin="0,0,10,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="13"/>
+                                        <ComboBox Grid.Column="1" HorizontalAlignment="Stretch"
+                                                  ItemsSource="{Binding Contacts}"
+                                                  SelectedItem="{Binding SendToContact}"
+                                                  PlaceholderText="{Binding Loc[send.contact.hint]}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:ContactEntry">
+                                                    <TextBlock Text="{Binding Name}"/>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 PlaceholderText="{Binding Loc[send.to]}"
+                                                 Text="{Binding SendTo}"
+                                                 FontFamily="monospace"/>
+                                        <Button Grid.Column="1" Margin="8,0,0,0" Padding="10,6"
+                                                Command="{Binding ScanQrCommand}"
+                                                ToolTip.Tip="{Binding Loc[send.scan]}">
+                                            <Viewbox Width="20" Height="20">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource SystemBaseHighColor}"
+                                                          Data="M20,5H16.83L15,3H9L7.17,5H4A2,2 0 0,0 2,7V19A2,2 0 0,0 4,21H20A2,2 0 0,0 22,19V7A2,2 0 0,0 20,5M20,19H4V7H8.05L9.88,5H14.12L15.95,7H20V19M12,8A5,5 0 0,0 7,13A5,5 0 0,0 12,18A5,5 0 0,0 17,13A5,5 0 0,0 12,8M12,16A3,3 0 0,1 9,13A3,3 0 0,1 12,10A3,3 0 0,1 15,13A3,3 0 0,1 12,16Z"/>
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Button>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card" Padding="20,16">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="{Binding Loc[send.sect.amount]}" Classes="section"/>
+                                    <Grid ColumnDefinitions="*,Auto,Auto">
+                                        <TextBox Grid.Column="0" PlaceholderText="0.00000000"
+                                                 Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"
+                                                 FontFamily="monospace"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                                   VerticalAlignment="Center" Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}"
+                                                  IsChecked="{Binding SendAll}" Margin="10,0,0,0"/>
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding Loc[send.feerate]}" VerticalAlignment="Center" Classes="label"/>
+                                        <TextBox Text="{Binding SendFeeRate}" MinWidth="80" FontFamily="monospace"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card" Padding="20,16"
+                                    IsVisible="{Binding SendPreview, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="{Binding Loc[send.summary]}" Classes="section"/>
+                                    <SelectableTextBlock Text="{Binding SendPreview}"
+                                                         TextWrapping="Wrap" FontSize="13" Classes="mono"
+                                                         Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                            </Border>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                                <Button Grid.Column="0" Content="{Binding Loc[send.prepare]}"
+                                        Command="{Binding PrepareSendCommand}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                <Button Grid.Column="1" Content="{Binding Loc[send.confirm]}" Classes="accent"
+                                        Command="{Binding ConfirmSendCommand}"
+                                        IsEnabled="{Binding HasPendingSend}"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                            </Grid>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button Content="{Binding Loc[send.prepare]}" Command="{Binding PrepareSendCommand}"/>
-                            <Button Content="{Binding Loc[send.confirm]}" Classes="accent"
-                                    Command="{Binding ConfirmSendCommand}"
-                                    IsEnabled="{Binding HasPendingSend}"/>
-                        </StackPanel>
-                        <SelectableTextBlock Text="{Binding SendPreview}" TextWrapping="Wrap"
-                                             FontSize="13"/>
-                    </StackPanel>
+
+                    </Panel>
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- 3. Receive -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Viewbox Width="24" Height="24" HorizontalAlignment="Center">
                                 <Canvas Width="24" Height="24">
                                     <Path Fill="{Binding $parent[TabItem].Foreground}"
                                           Data="M2,12H4V17H20V12H22V17A2,2 0 0,1 20,19H4A2,2 0 0,1 2,17V12M12,15L17,10L15.59,8.58L13,11.17V2H11V11.17L8.41,8.59L7,10L12,15Z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Text="{Binding Loc[tab.receive]}" FontSize="12"
+                            <TextBlock Text="{Binding Loc[tab.receive]}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </TabItem.Header>
-                    <StackPanel Spacing="10" Margin="8">
-                        <TextBlock Text="{Binding Loc[receive.next]}"/>
-                        <!-- Desktop: address + copy on one row -->
-                        <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
-                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
-                                                 FontFamily="monospace" FontSize="16"
-                                                 VerticalAlignment="Center"/>
-                            <Button Content="{Binding Loc[receive.copy]}"
-                                    Click="OnCopyReceiveAddressClick"
-                                    VerticalAlignment="Center"/>
+                    <ScrollViewer>
+                    <Panel Margin="16,14">
+
+                        <!-- ── DESKTOP: QR left | address right ── -->
+                        <Grid IsVisible="{Binding IsDesktop}"
+                              ColumnDefinitions="Auto,*" ColumnSpacing="14">
+
+                            <!-- QR hero card -->
+                            <Border Grid.Column="0" Classes="card" Padding="28,24"
+                                    IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <StackPanel Spacing="18" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Loc[receive.next]}" Classes="label"
+                                               HorizontalAlignment="Center"/>
+                                    <Border Background="White" Padding="14" CornerRadius="10"
+                                            HorizontalAlignment="Center">
+                                        <Image Source="{Binding ReceiveQr}" Width="230" Height="230"
+                                               RenderOptions.BitmapInterpolationMode="None"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Address + hint column -->
+                            <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Center">
+                                <Border Classes="card" Padding="24,22">
+                                    <StackPanel Spacing="16">
+                                        <TextBlock Text="{Binding Loc[receive.your.address]}" Classes="section"/>
+                                        <Border Background="{DynamicResource SurfaceAltBrush}"
+                                                CornerRadius="8" Padding="16,14">
+                                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                                                 FontFamily="monospace" FontSize="14"
+                                                                 TextWrapping="Wrap" LineHeight="22"/>
+                                        </Border>
+                                        <Button Content="{Binding Loc[receive.copy]}" Classes="accent"
+                                                Click="OnCopyReceiveAddressClick"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Text="{Binding Loc[receive.hint]}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                                           TextWrapping="Wrap" Margin="4,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- ── MOBILE: vertical stack ── -->
+                        <StackPanel IsVisible="{Binding IsMobile}" Spacing="14">
+                            <Border Classes="card" Padding="24,20"
+                                    IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                <StackPanel Spacing="18" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Loc[receive.next]}" Classes="label"
+                                               HorizontalAlignment="Center"/>
+                                    <Border Background="White" Padding="14" CornerRadius="10"
+                                            HorizontalAlignment="Center">
+                                        <Image Source="{Binding ReceiveQr}" Width="200" Height="200"
+                                               RenderOptions.BitmapInterpolationMode="None"/>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="card" Padding="20,18">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="{Binding Loc[receive.your.address]}" Classes="section"/>
+                                    <Border Background="{DynamicResource SurfaceAltBrush}"
+                                            CornerRadius="8" Padding="14,10">
+                                        <SelectableTextBlock Text="{Binding ReceiveAddress}"
+                                                             FontFamily="monospace" FontSize="13"
+                                                             TextWrapping="Wrap"
+                                                             TextAlignment="Center"
+                                                             HorizontalAlignment="Center"/>
+                                    </Border>
+                                    <Button Content="{Binding Loc[receive.copy]}" Classes="accent"
+                                            Click="OnCopyReceiveAddressClick"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Text="{Binding Loc[receive.hint]}"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
+                                       TextWrapping="Wrap" TextAlignment="Center" Margin="4,0"/>
                         </StackPanel>
-                        <!-- Mobile: address on full row + copy below -->
-                        <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
-                            <SelectableTextBlock Text="{Binding ReceiveAddress}"
-                                                 FontFamily="monospace" FontSize="13"
-                                                 TextWrapping="Wrap"/>
-                            <Button Content="{Binding Loc[receive.copy]}"
-                                    Click="OnCopyReceiveAddressClick"
-                                    HorizontalAlignment="Stretch"
-                                    HorizontalContentAlignment="Center"/>
-                        </StackPanel>
-                        <Border Background="White" Padding="12" CornerRadius="6"
-                                HorizontalAlignment="Center"
-                                IsVisible="{Binding ReceiveQr, Converter={x:Static ObjectConverters.IsNotNull}}">
-                            <Image Source="{Binding ReceiveQr}" Width="220" Height="220"
-                                   RenderOptions.BitmapInterpolationMode="None"/>
-                        </Border>
-                        <TextBlock Text="{Binding Loc[receive.hint]}"
-                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"/>
-                    </StackPanel>
+
+                    </Panel>
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- 4. Addresses -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Viewbox Width="24" Height="24" HorizontalAlignment="Center">
                                 <Canvas Width="24" Height="24">
                                     <Path Fill="{Binding $parent[TabItem].Foreground}"
                                           Data="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Text="{Binding Loc[tab.addresses]}" FontSize="12"
+                            <TextBlock Text="{Binding Loc[tab.addresses]}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </TabItem.Header>
@@ -583,14 +739,14 @@
                 <!-- 5. Contacts -->
                 <TabItem>
                     <TabItem.Header>
-                        <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                        <StackPanel Spacing="4" HorizontalAlignment="Center">
+                            <Viewbox Width="24" Height="24" HorizontalAlignment="Center">
                                 <Canvas Width="24" Height="24">
                                     <Path Fill="{Binding $parent[TabItem].Foreground}"
                                           Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5C15.71,5 15.42,5.03 15.14,5.09C15.68,5.95 16,6.94 16,8C16,9.06 15.68,10.05 15.14,10.91C15.42,10.97 15.71,11 16,11Z"/>
                                 </Canvas>
                             </Viewbox>
-                            <TextBlock Text="{Binding Loc[tab.contacts]}" FontSize="12"
+                            <TextBlock Text="{Binding Loc[tab.contacts]}" FontSize="13"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
                     </TabItem.Header>
