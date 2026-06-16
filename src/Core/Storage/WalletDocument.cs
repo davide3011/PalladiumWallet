@@ -113,6 +113,13 @@ public sealed class SyncCache
     /// riverificare le stesse prove ad ogni avvio: le conferme sono immutabili.
     /// </summary>
     public Dictionary<string, int>? VerifiedAt { get; set; }
+
+    /// <summary>
+    /// Header grezzi per altezza (altezza → hex). Immutabili: non vengono mai
+    /// rifetchati una volta salvati. Elimina i GetBlockHeader sulle prove Merkle
+    /// già verificate nei sync successivi.
+    /// </summary>
+    public Dictionary<int, string>? BlockHeaders { get; set; }
 }
 
 /// <summary>Indirizzo scansionato con saldo proprio e numero di transazioni (vista indirizzi).</summary>

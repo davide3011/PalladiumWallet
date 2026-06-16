@@ -131,8 +131,17 @@ static async Task<int> Sync(string[] o)
 
     var sync = new WalletSynchronizer(account, client, doc.GapLimit);
     sync.Progress += msg => Console.WriteLine($"  {msg}");
+    var net = PalladiumNetworks.For(account.Profile.Kind);
+    sync.PreloadCaches(
+        doc.Cache?.RawTxHex ?? [],
+        doc.Cache?.VerifiedAt ?? [],
+        doc.Cache?.BlockHeaders,
+        doc.Cache?.NextReceiveIndex ?? 0,
+        doc.Cache?.NextChangeIndex ?? 0,
+        net);
     var result = await sync.SyncOnceAsync();
 
+    var (rawHex, verifiedAt, blockHeaders) = sync.ExportCaches(net);
     doc.Cache = new SyncCache
     {
         TipHeight = result.TipHeight,
@@ -143,6 +152,9 @@ static async Task<int> Sync(string[] o)
         History = [.. result.History],
         Utxos = [.. result.Utxos],
         Addresses = [.. result.AddressRows],
+        RawTxHex = rawHex,
+        VerifiedAt = verifiedAt,
+        BlockHeaders = blockHeaders,
     };
     WalletStore.Save(doc, path, Opt(o, "--password"));
 

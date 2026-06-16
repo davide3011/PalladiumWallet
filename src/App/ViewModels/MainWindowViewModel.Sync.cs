@@ -221,6 +221,9 @@ public partial class MainWindowViewModel
                 _synchronizer.PreloadCaches(
                     _doc.Cache?.RawTxHex ?? [],
                     _doc.Cache?.VerifiedAt ?? [],
+                    _doc.Cache?.BlockHeaders,
+                    _doc.Cache?.NextReceiveIndex ?? 0,
+                    _doc.Cache?.NextChangeIndex ?? 0,
                     net);
                 _synchronizer.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
             }
@@ -231,7 +234,7 @@ public partial class MainWindowViewModel
                 var result = await _synchronizer.SyncOnceAsync();
                 _lastTransactions = result.Transactions;
 
-                var (rawHex, verifiedAt) = _synchronizer.ExportCaches(
+                var (rawHex, verifiedAt, blockHeaders) = _synchronizer.ExportCaches(
                     PalladiumNetworks.For(_account.Profile.Kind));
                 _doc.Cache = new SyncCache
                 {
@@ -245,6 +248,7 @@ public partial class MainWindowViewModel
                     Addresses = [.. result.AddressRows],
                     RawTxHex = rawHex,
                     VerifiedAt = verifiedAt,
+                    BlockHeaders = blockHeaders,
                 };
                 WalletStore.Save(_doc, _walletPath!, _password);
                 ApplyCache(_doc.Cache);
@@ -334,11 +338,12 @@ public partial class MainWindowViewModel
         try
         {
             var net = PalladiumNetworks.For(_account.Profile.Kind);
-            var (rawHex, verifiedAt) = _synchronizer.ExportCaches(net);
+            var (rawHex, verifiedAt, blockHeaders) = _synchronizer.ExportCaches(net);
             if (rawHex.Count == 0 && verifiedAt.Count == 0)
                 return;
             (_doc.Cache ??= new SyncCache()).RawTxHex = rawHex;
             _doc.Cache.VerifiedAt = verifiedAt;
+            _doc.Cache.BlockHeaders = blockHeaders;
             WalletStore.Save(_doc, _walletPath, _password);
         }
         catch { /* non fatale: il prossimo salvataggio completo recupererà */ }
