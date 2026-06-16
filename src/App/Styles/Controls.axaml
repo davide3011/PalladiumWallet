@@ -1,0 +1,160 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- ============================================================
+         Stili di controllo del wallet Palladium ("fintech pulito").
+         Restano sopra al FluentTheme: rifiniscono spaziatura, stati e
+         classi riutilizzabili senza ritemplare i controlli. I bottoni
+         "accent" restano gestiti da Fluent ma ereditano il blu del brand
+         via SystemAccentColor (vedi Theme.axaml).
+         ============================================================ -->
+
+    <Design.PreviewWith>
+        <Border Padding="20" Width="320">
+            <StackPanel Spacing="12">
+                <TextBlock Classes="h1" Text="Saldo disponibile"/>
+                <TextBlock Classes="amount" Text="1 234,56 PLM"/>
+                <Button Classes="accent" Content="Invia"/>
+                <Button Content="Annulla"/>
+                <Border Classes="card" Padding="16">
+                    <TextBlock Text="Card di esempio"/>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Design.PreviewWith>
+
+    <!-- ===== Tipografia ===== -->
+    <Style Selector="TextBlock.h1">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.label">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+    </Style>
+    <!-- Importi e dati numerici: cifre tabulari per evitare salti di layout -->
+    <Style Selector="TextBlock.amount">
+        <Setter Property="FontSize" Value="34"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
+        <Setter Property="FontFeatures" Value="+tnum"/>
+    </Style>
+    <Style Selector="TextBlock.mono, SelectableTextBlock.mono">
+        <Setter Property="FontFamily" Value="monospace"/>
+        <Setter Property="FontFeatures" Value="+tnum"/>
+    </Style>
+
+    <!-- ===== Bottoni ===== -->
+    <Style Selector="Button">
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Padding" Value="14,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <!-- I bottoni accent (CTA) sono già blu via Fluent+SystemAccentColor.
+         Garantiamo testo bianco leggibile in entrambe le varianti. -->
+    <Style Selector="Button.accent">
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <!-- Variante "ghost": azione secondaria discreta, senza riempimento -->
+    <Style Selector="Button.ghost">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- ===== Input ===== -->
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Padding" Value="10,7"/>
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Padding" Value="10,6"/>
+    </Style>
+
+    <!-- ===== Liste ===== -->
+    <Style Selector="ListBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Margin" Value="0,1"/>
+    </Style>
+    <!-- Hover: tinta neutra; selezione: tinta blu tenue del brand -->
+    <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource PrimarySoftBrush}"/>
+    </Style>
+
+    <!-- ===== Tab (dashboard) ===== -->
+    <!-- Voce selezionata in blu brand + grassetto; non selezionata smorzata -->
+    <Style Selector="TabItem">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+    <Style Selector="TabItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+    </Style>
+    <Style Selector="TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}"/>
+    </Style>
+
+    <!-- ===== Classi riutilizzabili ===== -->
+    <!-- Card: superficie elevata con bordo sottile e angoli morbidi -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="BoxShadow" Value="0 1 3 0 #14000000"/>
+        <Setter Property="Transitions">
+            <Transitions>
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18"/>
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.card:pointerover">
+        <Setter Property="BoxShadow" Value="0 6 16 -4 #26000000"/>
+    </Style>
+    <!-- Card del saldo: accento blu sottile, leggermente più marcata -->
+    <Style Selector="Border.balance-card">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtleBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="14"/>
+        <Setter Property="Padding" Value="20,16"/>
+        <Setter Property="BoxShadow" Value="0 2 8 0 #1A000000"/>
+    </Style>
+    <!-- Card del saldo "hero": gradiente brand + bagliore blu. Elemento
+         distintivo della dashboard; il testo sopra è bianco (classe on-hero). -->
+    <Style Selector="Border.balance-hero">
+        <Setter Property="Background" Value="{DynamicResource BalanceGradientBrush}"/>
+        <Setter Property="CornerRadius" Value="16"/>
+        <Setter Property="Padding" Value="24,20"/>
+        <Setter Property="BoxShadow" Value="0 8 24 -6 #663B82F6"/>
+    </Style>
+    <Style Selector="Border.balance-hero TextBlock.amount">
+        <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+    <Style Selector="Border.balance-hero TextBlock.on-hero">
+        <Setter Property="Foreground" Value="#D6E2FF"/>
+    </Style>
+    <!-- Pillola/badge di stato -->
+    <Style Selector="Border.chip">
+        <Setter Property="CornerRadius" Value="20"/>
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}"/>
+    </Style>
+</Styles>

@@ -8,8 +8,20 @@
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
-  
+
+    <!-- Design token semantici (colori, raggi, accento brand): definiti per
+         entrambe le varianti chiaro/scuro. Vedi Styles/Theme.axaml. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="/Styles/Theme.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
+        <!-- Rifiniture di controllo e classi riutilizzabili (sopra a Fluent) -->
+        <StyleInclude Source="/Styles/Controls.axaml"/>
     </Application.Styles>
 </Application>

@@ -25,7 +25,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*,Auto" Background="{DynamicResource AppBackgroundBrush}">
 
         <!-- ============ MENU (stile Electrum) ============ -->
         <Menu Grid.Row="0" IsVisible="{Binding IsDesktop}">
@@ -61,9 +61,9 @@
                 <!-- Passo 0 (primo avvio): dove salvare i dati -->
                 <StackPanel IsVisible="{Binding IsStepDataLocation}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.data.title]}" FontSize="18" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Loc[wiz.data.info]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBlock Text="{Binding Loc[wiz.data.info]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{Binding Loc[wiz.data.default]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[wiz.data.default]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding DefaultDataPath}"
                                              FontFamily="monospace" FontSize="13" TextWrapping="Wrap"/>
                     </StackPanel>
@@ -132,7 +132,7 @@
                         <SelectableTextBlock Text="{Binding MnemonicInput}"
                                              FontFamily="monospace" FontSize="16" TextWrapping="Wrap"/>
                     </Border>
-                    <TextBlock Foreground="Orange" TextWrapping="Wrap"
+                    <TextBlock Foreground="{DynamicResource WarningBrush}" TextWrapping="Wrap"
                                Text="{Binding Loc[wiz.seed.warning]}"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
@@ -180,12 +180,12 @@
                 <!-- Passo: import xpub/xprv estesa (SLIP-132) -->
                 <StackPanel IsVisible="{Binding IsStepImportXkey}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.importxkey.title]}" FontSize="18" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Loc[wiz.importxkey.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBlock Text="{Binding Loc[wiz.importxkey.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.importxkey.placeholder]}"
                              Text="{Binding ImportXkeyInput}" AcceptsReturn="False"/>
                     <TextBlock Text="{Binding ImportXkeyDetectedKind}"
                                IsVisible="{Binding ImportXkeyDetectedKind, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                               Foreground="Green" FontSize="12"/>
+                               Foreground="{DynamicResource SuccessBrush}" FontSize="12"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
                         <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
@@ -196,7 +196,7 @@
                 <!-- Passo: import chiave WIF singola -->
                 <StackPanel IsVisible="{Binding IsStepImportWif}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.importwif.title]}" FontSize="18" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Loc[wiz.importwif.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBlock Text="{Binding Loc[wiz.importwif.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <TextBox PlaceholderText="{Binding Loc[wiz.importwif.placeholder]}"
                              Text="{Binding ImportWifInput}" AcceptsReturn="True" Height="80"/>
                     <StackPanel Orientation="Horizontal" Spacing="10">
@@ -209,14 +209,14 @@
                 <!-- Passo: scelta del tipo di script/indirizzi -->
                 <StackPanel IsVisible="{Binding IsStepScriptType}" Spacing="12">
                     <TextBlock Text="{Binding Loc[wiz.scripttype.title]}" FontSize="18" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding Loc[wiz.scripttype.hint]}" TextWrapping="Wrap" Foreground="Gray"/>
+                    <TextBlock Text="{Binding Loc[wiz.scripttype.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                     <RadioButton GroupName="ScriptType"
                                  IsChecked="{Binding IsLegacySelected, Mode=OneWay}"
                                  Command="{Binding SelectLegacyCommand}">
                         <StackPanel Spacing="2">
                             <TextBlock Text="Legacy (P2PKH)" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Loc[wiz.scripttype.legacy.desc]}" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.legacy.desc]}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
 
@@ -225,7 +225,7 @@
                                  Command="{Binding SelectWrappedSegwitCommand}">
                         <StackPanel Spacing="2">
                             <TextBlock Text="Wrapped SegWit (P2SH-P2WPKH)" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Loc[wiz.scripttype.wrapped.desc]}" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.wrapped.desc]}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
 
@@ -234,7 +234,7 @@
                                  Command="{Binding SelectNativeSegwitCommand}">
                         <StackPanel Spacing="2">
                             <TextBlock Text="Native SegWit (P2WPKH)" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Loc[wiz.scripttype.native.desc]}" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.native.desc]}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
 
@@ -243,7 +243,7 @@
                                  Command="{Binding SelectTaprootCommand}">
                         <StackPanel Spacing="2">
                             <TextBlock Text="Taproot (P2TR)" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding Loc[wiz.scripttype.taproot.desc]}" Foreground="Gray" FontSize="12"/>
+                            <TextBlock Text="{Binding Loc[wiz.scripttype.taproot.desc]}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                         </StackPanel>
                     </RadioButton>
 
@@ -261,7 +261,7 @@
                     <!-- Sezione nome: bordo distinto dal gruppo password -->
                     <Border BorderBrush="{DynamicResource SystemAccentColor}"
                             BorderThickness="0,0,0,0"
-                            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                            Background="{DynamicResource SurfaceAltBrush}"
                             CornerRadius="6" Padding="12,10">
                         <StackPanel Spacing="6">
                             <TextBlock Text="{Binding Loc[wiz.name.label]}"
@@ -283,7 +283,7 @@
                         <CheckBox Content="{Binding Loc[wiz.password.encrypt]}"
                                   IsChecked="{Binding EncryptWallet}"/>
                         <TextBlock Text="{Binding Loc[wiz.password.encrypt.hint]}"
-                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"
                                    IsVisible="{Binding !EncryptWallet}"/>
                     </StackPanel>
 
@@ -299,14 +299,19 @@
         <!-- ============ PANNELLO WALLET ============ -->
         <Grid Grid.Row="1" RowDefinitions="Auto,*" IsVisible="{Binding IsWalletOpen}" Margin="16">
 
-            <!-- Testata: saldo + rete. Connetti/sincronizza è automatico; chiudi
+            <!-- Testata: card del saldo. Connetti/sincronizza è automatico; chiudi
                  wallet è in File. Lo stato connessione è nella barra in basso. -->
-            <StackPanel Grid.Row="0" Spacing="2" Margin="0,0,0,12">
-                <TextBlock Text="{Binding BalanceText}" FontSize="30" FontWeight="Bold"/>
-                <TextBlock Text="{Binding UnconfirmedText}" Foreground="Orange"
-                           TextWrapping="Wrap"/>
-                <TextBlock Text="{Binding NetworkInfo}" FontSize="12" Foreground="Gray"/>
-            </StackPanel>
+            <Border Grid.Row="0" Classes="balance-hero" Margin="0,0,0,16">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding Loc[addr.balance]}" Classes="label on-hero"/>
+                    <TextBlock Text="{Binding BalanceText}" Classes="amount"/>
+                    <TextBlock Text="{Binding UnconfirmedText}" Foreground="#FCD34D"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding UnconfirmedText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <TextBlock Text="{Binding NetworkInfo}" Classes="on-hero" FontSize="12"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+            </Border>
 
             <!-- Tab: Storico / Invia / Ricevi / Indirizzi / Contatti -->
             <TabControl Grid.Row="1"
@@ -316,7 +321,7 @@
                 <TabControl.Styles>
                     <Style Selector="TabStrip">
                         <Setter Property="HorizontalAlignment" Value="Stretch"/>
-                        <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumBrush}"/>
+                        <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
                         <Setter Property="ItemsPanel">
                             <ItemsPanelTemplate>
                                 <UniformGrid Rows="1"/>
@@ -335,8 +340,12 @@
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <TextBlock Text="≡" FontSize="19" HorizontalAlignment="Center"
-                                       />
+                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{Binding $parent[TabItem].Foreground}"
+                                          Data="M7,5H21V7H7V5M7,13V11H21V13H7M4,4.5A1.5,1.5 0 0,1 5.5,6A1.5,1.5 0 0,1 4,7.5A1.5,1.5 0 0,1 2.5,6A1.5,1.5 0 0,1 4,4.5M4,10.5A1.5,1.5 0 0,1 5.5,12A1.5,1.5 0 0,1 4,13.5A1.5,1.5 0 0,1 2.5,12A1.5,1.5 0 0,1 4,10.5M7,19V17H21V19H7M4,16.5A1.5,1.5 0 0,1 5.5,18A1.5,1.5 0 0,1 4,19.5A1.5,1.5 0 0,1 2.5,18A1.5,1.5 0 0,1 4,16.5Z"/>
+                                </Canvas>
+                            </Viewbox>
                             <TextBlock Text="{Binding Loc[tab.history]}" FontSize="12"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -344,7 +353,7 @@
                     <Grid RowDefinitions="Auto,*" Margin="4">
                         <TextBlock Grid.Row="0" Text="{Binding Loc[history.hint]}"
                                    IsVisible="{Binding IsDesktop}"
-                                   Foreground="Gray" FontSize="11" Margin="6,2"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="6,2"/>
                         <ListBox Grid.Row="1" ItemsSource="{Binding History}"
                                  DoubleTapped="OnHistoryRowDoubleTapped">
                             <ListBox.ItemTemplate>
@@ -353,12 +362,12 @@
                                         <!-- Desktop: 4 colonne fisse -->
                                         <Grid ColumnDefinitions="90,160,*,70"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
-                                            <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Txid}"
                                                        FontFamily="monospace" FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="Green"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="{DynamicResource SuccessBrush}"/>
                                         </Grid>
                                         <!-- Mobile: card verticale -->
                                         <StackPanel Spacing="2"
@@ -367,9 +376,9 @@
                                                 <TextBlock Grid.Column="0" Text="{Binding Importo}"
                                                            FontFamily="monospace" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Verificata}"
-                                                           Foreground="Green" FontSize="11"/>
+                                                           Foreground="{DynamicResource SuccessBrush}" FontSize="11"/>
                                             </Grid>
-                                            <TextBlock Text="{Binding Conferma}" Foreground="Gray" FontSize="11"/>
+                                            <TextBlock Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                                             <TextBlock Text="{Binding Txid}" FontFamily="monospace" FontSize="11"
                                                        TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
@@ -384,8 +393,12 @@
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <TextBlock Text="↑" FontSize="19" HorizontalAlignment="Center"
-                                       />
+                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{Binding $parent[TabItem].Foreground}"
+                                          Data="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                                </Canvas>
+                            </Viewbox>
                             <TextBlock Text="{Binding Loc[tab.send]}" FontSize="12"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -425,7 +438,7 @@
                             <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
                                      Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
                             <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
-                                       VerticalAlignment="Center" Margin="6,0" Foreground="Gray"/>
+                                       VerticalAlignment="Center" Margin="6,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="10,0"
                                       IsChecked="{Binding SendAll}"/>
                             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
@@ -439,7 +452,7 @@
                                 <TextBox Grid.Column="0" PlaceholderText="{Binding Loc[send.amount]}"
                                          Text="{Binding SendAmount}" IsEnabled="{Binding !SendAll}"/>
                                 <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
-                                           VerticalAlignment="Center" Margin="6,0" Foreground="Gray"/>
+                                           VerticalAlignment="Center" Margin="6,0" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 <CheckBox Grid.Column="2" Content="{Binding Loc[send.all]}" Margin="6,0"
                                           IsChecked="{Binding SendAll}"/>
                             </Grid>
@@ -463,8 +476,12 @@
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <TextBlock Text="↓" FontSize="19" HorizontalAlignment="Center"
-                                       />
+                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{Binding $parent[TabItem].Foreground}"
+                                          Data="M2,12H4V17H20V12H22V17A2,2 0 0,1 20,19H4A2,2 0 0,1 2,17V12M12,15L17,10L15.59,8.58L13,11.17V2H11V11.17L8.41,8.59L7,10L12,15Z"/>
+                                </Canvas>
+                            </Viewbox>
                             <TextBlock Text="{Binding Loc[tab.receive]}" FontSize="12"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -497,7 +514,7 @@
                                    RenderOptions.BitmapInterpolationMode="None"/>
                         </Border>
                         <TextBlock Text="{Binding Loc[receive.hint]}"
-                                   Foreground="Gray" FontSize="12" TextWrapping="Wrap"/>
+                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" TextWrapping="Wrap"/>
                     </StackPanel>
                 </TabItem>
 
@@ -505,8 +522,12 @@
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <TextBlock Text="⊙" FontSize="19" HorizontalAlignment="Center"
-                                       />
+                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{Binding $parent[TabItem].Foreground}"
+                                          Data="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/>
+                                </Canvas>
+                            </Viewbox>
                             <TextBlock Text="{Binding Loc[tab.addresses]}" FontSize="12"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -532,12 +553,12 @@
                                         <!-- Desktop: 5 colonne fisse -->
                                         <Grid ColumnDefinitions="90,60,*,140,60"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
-                                            <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="Gray"/>
-                                            <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="0" Text="{Binding Tipo}" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                            <TextBlock Grid.Column="1" Text="{Binding Indice}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Indirizzo}"
                                                        FontFamily="monospace" FontSize="13"/>
                                             <TextBlock Grid.Column="3" Text="{Binding Saldo}" FontFamily="monospace"/>
-                                            <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="Gray"/>
+                                            <TextBlock Grid.Column="4" Text="{Binding NumTx}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                         </Grid>
                                         <!-- Mobile: card verticale -->
                                         <StackPanel Spacing="1" Margin="0,3"
@@ -546,10 +567,10 @@
                                                        FontFamily="monospace" FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="{Binding Tipo}" Foreground="Gray" FontSize="11"/>
-                                                <TextBlock Text="{Binding Indice}" Foreground="Gray" FontSize="11"/>
+                                                <TextBlock Text="{Binding Tipo}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock Text="{Binding Indice}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock Text="{Binding Saldo}" FontFamily="monospace" FontSize="11"/>
-                                                <TextBlock Text="{Binding NumTx}" Foreground="Gray" FontSize="11"/>
+                                                <TextBlock Text="{Binding NumTx}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                                             </StackPanel>
                                         </StackPanel>
                                     </Panel>
@@ -563,8 +584,12 @@
                 <TabItem>
                     <TabItem.Header>
                         <StackPanel Spacing="2" HorizontalAlignment="Center">
-                            <TextBlock Text="⊕" FontSize="19" HorizontalAlignment="Center"
-                                       />
+                            <Viewbox Width="22" Height="22" HorizontalAlignment="Center">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{Binding $parent[TabItem].Foreground}"
+                                          Data="M16,13C15.71,13 15.38,13 15.03,13.05C16.19,13.89 17,15 17,16.5V19H23V16.5C23,14.17 18.33,13 16,13M8,13C5.67,13 1,14.17 1,16.5V19H15V16.5C15,14.17 10.33,13 8,13M8,11A3,3 0 0,0 11,8A3,3 0 0,0 8,5A3,3 0 0,0 5,8A3,3 0 0,0 8,11M16,11A3,3 0 0,0 19,8A3,3 0 0,0 16,5C15.71,5 15.42,5.03 15.14,5.09C15.68,5.95 16,6.94 16,8C16,9.06 15.68,10.05 15.14,10.91C15.42,10.97 15.71,11 16,11Z"/>
+                                </Canvas>
+                            </Viewbox>
                             <TextBlock Text="{Binding Loc[tab.contacts]}" FontSize="12"
                                        HorizontalAlignment="Center"/>
                         </StackPanel>
@@ -641,8 +666,9 @@
 
         <!-- Barra di stato: messaggio a sinistra, stato connessione a destra.
              Lo stato connessione è cliccabile e apre le impostazioni del server. -->
-        <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
-                Padding="10,6">
+        <Border Grid.Row="2" Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="0,1,0,0"
+                Padding="12,7">
             <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" FontSize="12"
                            TextWrapping="Wrap" VerticalAlignment="Center"/>
@@ -651,9 +677,9 @@
                             Cursor="Hand" Background="Transparent"
                             ToolTip.Tip="{Binding Loc[server.title]}"
                             Tapped="OnConnectionStatusTapped">
-                    <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center"
                              IsVisible="{Binding IsConnected}"/>
-                    <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
+                    <Ellipse Width="10" Height="10" Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"
                              IsVisible="{Binding !IsConnected}"/>
                     <TextBlock Text="{Binding ConnectionStatus}" FontSize="12"
                                Foreground="{DynamicResource SystemAccentColor}"
@@ -666,11 +692,11 @@
         <!-- Overlay in-app invece di una Window separata: apertura/chiusura
              istantanee (niente create/destroy di una top-level window). -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-                Background="#99000000"
+                Background="{DynamicResource ScrimBrush}"
                 Tapped="OnAddressOverlayBackdropTapped"
                 IsVisible="{Binding AddressInfo, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="540" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     DataContext="{Binding AddressInfo}">
@@ -681,7 +707,7 @@
 
                     <!-- Indirizzo -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{Binding Loc[addr.address]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[addr.address]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding Address}"
                                              FontFamily="monospace" FontSize="13"
                                              TextWrapping="Wrap"/>
@@ -689,14 +715,14 @@
 
                     <!-- Derivation path -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{Binding Loc[addr.derivpath]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[addr.derivpath]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding DerivPath}"
                                              FontFamily="monospace" FontSize="13"/>
                     </StackPanel>
 
                     <!-- Chiave pubblica -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="{Binding Loc[addr.pubkey]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[addr.pubkey]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <SelectableTextBlock Text="{Binding PubKey}"
                                              FontFamily="monospace" FontSize="12"
                                              TextWrapping="Wrap"/>
@@ -704,10 +730,10 @@
 
                     <!-- Chiave privata (solo se disponibile) -->
                     <StackPanel Spacing="4" IsVisible="{Binding HasPrivKey}">
-                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="OrangeRed"/>
+                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="{DynamicResource DangerBrush}"/>
                         <SelectableTextBlock Text="{Binding PrivKey}"
                                              FontFamily="monospace" FontSize="12"
-                                             Foreground="OrangeRed"
+                                             Foreground="{DynamicResource DangerBrush}"
                                              TextWrapping="Wrap"/>
                     </StackPanel>
 
@@ -723,11 +749,11 @@
         <!-- Overlay in-app (come indirizzo): appare subito con lo spinner, i dati
              arrivano dal server in background; chiusura istantanea. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-                Background="#99000000"
+                Background="{DynamicResource ScrimBrush}"
                 Tapped="OnTxDetailsOverlayBackdropTapped"
                 IsVisible="{Binding IsTxDetailsOpen}">
-            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="540" MaxHeight="600" Margin="16" Padding="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Panel Margin="24">
@@ -736,7 +762,7 @@
                     <StackPanel IsVisible="{Binding IsTxDetailsLoading}"
                                 HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14">
                         <ProgressBar IsIndeterminate="True" Width="220"/>
-                        <TextBlock Text="{Binding Loc[tx.loading]}" Foreground="Gray"
+                        <TextBlock Text="{Binding Loc[tx.loading]}" Foreground="{DynamicResource TextSecondaryBrush}"
                                    HorizontalAlignment="Center"/>
                     </StackPanel>
 
@@ -764,41 +790,41 @@
                                         <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.status]}"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.status]}"/>
                                     <SelectableTextBlock Grid.Row="0" Grid.Column="1" FontSize="13" TextWrapping="Wrap" Text="{Binding StatusText}"/>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.date]}"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.date]}"/>
                                     <SelectableTextBlock Grid.Row="1" Grid.Column="1" FontSize="13" Text="{Binding DateText}"/>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding CounterpartyHeader}"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding CounterpartyHeader}"/>
                                     <SelectableTextBlock Grid.Row="2" Grid.Column="1" FontSize="13" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding CounterpartyText}"/>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding AmountHeader}"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding AmountHeader}"/>
                                     <SelectableTextBlock Grid.Row="3" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding AmountText}"/>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.fee]}"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.fee]}"/>
                                     <SelectableTextBlock Grid.Row="4" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeText}"/>
 
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.feerate]}"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.feerate]}"/>
                                     <SelectableTextBlock Grid.Row="5" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeRateText}"/>
 
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.net]}"/>
+                                    <TextBlock Grid.Row="6" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.net]}"/>
                                     <SelectableTextBlock Grid.Row="6" Grid.Column="1" FontSize="13" FontFamily="monospace" FontWeight="Bold" Text="{Binding NetText}"/>
 
-                                    <TextBlock Grid.Row="7" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.id]}"/>
+                                    <TextBlock Grid.Row="7" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.id]}"/>
                                     <SelectableTextBlock Grid.Row="7" Grid.Column="1" FontSize="12" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding Txid}"/>
 
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.total]}"/>
+                                    <TextBlock Grid.Row="8" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.size.total]}"/>
                                     <SelectableTextBlock Grid.Row="8" Grid.Column="1" FontSize="13" Text="{Binding TotalSizeText}"/>
 
-                                    <TextBlock Grid.Row="9" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.size.virtual]}"/>
+                                    <TextBlock Grid.Row="9" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.size.virtual]}"/>
                                     <SelectableTextBlock Grid.Row="9" Grid.Column="1" FontSize="13" Text="{Binding VirtualSizeText}"/>
 
-                                    <TextBlock Grid.Row="10" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.rbf]}"/>
+                                    <TextBlock Grid.Row="10" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.rbf]}"/>
                                     <SelectableTextBlock Grid.Row="10" Grid.Column="1" FontSize="13" Text="{Binding RbfText}"/>
 
-                                    <TextBlock Grid.Row="11" Grid.Column="0" Foreground="Gray" FontSize="12" Text="{Binding Loc[tx.verified]}"/>
-                                    <SelectableTextBlock Grid.Row="11" Grid.Column="1" FontSize="13" Foreground="Green" Text="{Binding VerifiedText}"/>
+                                    <TextBlock Grid.Row="11" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.verified]}"/>
+                                    <SelectableTextBlock Grid.Row="11" Grid.Column="1" FontSize="13" Foreground="{DynamicResource SuccessBrush}" Text="{Binding VerifiedText}"/>
                                 </Grid>
 
                                 <TextBlock Text="{Binding Loc[tx.inputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
@@ -807,7 +833,7 @@
                                         <DataTemplate x:DataType="vm:TxIoRow">
                                             <Grid ColumnDefinitions="170,*,Auto" Margin="0,2">
                                                 <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                           FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Address}"
                                                            FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
                                                            Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
@@ -824,7 +850,7 @@
                                         <DataTemplate x:DataType="vm:TxIoRow">
                                             <Grid ColumnDefinitions="60,*,Auto" Margin="0,2">
                                                 <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                           FontFamily="monospace" FontSize="11" Foreground="Gray"/>
+                                                           FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Address}"
                                                            FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
                                                            Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
@@ -847,11 +873,11 @@
         <!-- Stesso pattern dell'overlay indirizzo: apertura/chiusura istantanee.
              Accessibile da Impostazioni → Server. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-                Background="#99000000"
+                Background="{DynamicResource ScrimBrush}"
                 Tapped="OnServerOverlayBackdropTapped"
                 IsVisible="{Binding IsServerSettingsOpen}">
-            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1"
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1"
                     Classes.desktop-overlay="{Binding IsDesktop}">
                 <ScrollViewer>
                 <StackPanel Margin="24" Spacing="14">
@@ -862,11 +888,11 @@
                     <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto"
                           IsVisible="{Binding IsDesktop}">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Loc[server.host]}"
-                                   FontSize="11" Foreground="Gray"/>
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Loc[server.port]}"
-                                   FontSize="11" Foreground="Gray" Margin="10,0,0,0" Width="90"/>
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="10,0,0,0" Width="90"/>
                         <TextBlock Grid.Row="0" Grid.Column="2" Text="TLS"
-                                   FontSize="11" Foreground="Gray" Margin="10,0,0,0"/>
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}" Margin="10,0,0,0"/>
                         <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding ServerHost}"
                                  FontFamily="monospace" Margin="0,2,0,0"/>
                         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ServerPort}"
@@ -877,17 +903,17 @@
                     <!-- Host + porta — Mobile: verticale, font più grandi -->
                     <StackPanel Spacing="10" IsVisible="{Binding IsMobile}">
                         <StackPanel Spacing="4">
-                            <TextBlock Text="{Binding Loc[server.host]}" FontSize="13" Foreground="Gray"/>
+                            <TextBlock Text="{Binding Loc[server.host]}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
                             <TextBox Text="{Binding ServerHost}" FontFamily="monospace" FontSize="15"/>
                         </StackPanel>
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <TextBlock Text="{Binding Loc[server.port]}" FontSize="13" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Loc[server.port]}" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                 <TextBox Text="{Binding ServerPort}" FontFamily="monospace" FontSize="15"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="4" Margin="20,0,0,0"
                                         VerticalAlignment="Center">
-                                <TextBlock Text="TLS" FontSize="13" Foreground="Gray"
+                                <TextBlock Text="TLS" FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center"/>
                                 <CheckBox IsChecked="{Binding UseSsl}"
                                           HorizontalAlignment="Center"/>
@@ -919,16 +945,16 @@
 
                     <!-- Stato connessione -->
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Ellipse Width="10" Height="10" Fill="LimeGreen" VerticalAlignment="Center"
+                        <Ellipse Width="10" Height="10" Fill="{DynamicResource SuccessBrush}" VerticalAlignment="Center"
                                  IsVisible="{Binding IsConnected}"/>
-                        <Ellipse Width="10" Height="10" Fill="IndianRed" VerticalAlignment="Center"
+                        <Ellipse Width="10" Height="10" Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"
                                  IsVisible="{Binding !IsConnected}"/>
-                        <TextBlock Text="{Binding ConnectionStatus}" Foreground="Gray"
+                        <TextBlock Text="{Binding ConnectionStatus}" Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <!-- Server conosciuti: clicca per riempire host/porta -->
-                    <TextBlock Text="{Binding Loc[server.known]}" FontSize="11" Foreground="Gray"/>
+                    <TextBlock Text="{Binding Loc[server.known]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     <ListBox ItemsSource="{Binding KnownServers}"
                              SelectedItem="{Binding SelectedKnownServer}"
                              MaxHeight="300">
@@ -937,7 +963,7 @@
                                 <Setter Property="Template">
                                     <ControlTemplate>
                                         <TextBlock Text="{Binding Loc[server.empty]}"
-                                                   Foreground="Gray" FontSize="12"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"
                                                    TextWrapping="Wrap" Margin="8"/>
                                     </ControlTemplate>
                                 </Setter>
@@ -952,7 +978,7 @@
                                         <TextBlock Grid.Column="0" Text="{Binding Host}"
                                                    FontFamily="monospace" FontSize="13"
                                                    VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" FontSize="11" Foreground="Gray"
+                                        <TextBlock Grid.Column="1" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                                    VerticalAlignment="Center">
                                             <Run Text="tcp "/><Run Text="{Binding TcpPort}"/>
                                             <Run Text="  ssl "/><Run Text="{Binding SslPort}"/>
@@ -965,10 +991,10 @@
                                                    FontFamily="monospace" FontSize="15"
                                                    TextTrimming="CharacterEllipsis"/>
                                         <StackPanel Orientation="Horizontal" Spacing="16">
-                                            <TextBlock FontSize="12" Foreground="Gray">
+                                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}">
                                                 <Run Text="tcp "/><Run Text="{Binding TcpPort}"/>
                                             </TextBlock>
-                                            <TextBlock FontSize="12" Foreground="Gray">
+                                            <TextBlock FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}">
                                                 <Run Text="ssl "/><Run Text="{Binding SslPort}"/>
                                             </TextBlock>
                                         </StackPanel>
@@ -989,11 +1015,11 @@
         <!-- ============ OVERLAY IMPOSTAZIONI ============ -->
         <!-- In-app invece dei sottomenu annidati: niente popup OS lenti su WSLg. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-                Background="#99000000"
+                Background="{DynamicResource ScrimBrush}"
                 Tapped="OnSettingsOverlayBackdropTapped"
                 IsVisible="{Binding IsSettingsOpen}">
-            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="440" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ScrollViewer MaxHeight="640">
@@ -1003,7 +1029,7 @@
 
                     <!-- Lingua -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="{Binding Loc[settings.language]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[settings.language]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <WrapPanel>
                             <RadioButton GroupName="lang" Content="Italiano" Margin="0,0,14,4"
                                          IsChecked="{Binding IsLangIt, Mode=OneWay}"
@@ -1028,7 +1054,7 @@
 
                     <!-- Unità -->
                     <StackPanel Spacing="6">
-                        <TextBlock Text="{Binding Loc[settings.unit]}" FontSize="11" Foreground="Gray"/>
+                        <TextBlock Text="{Binding Loc[settings.unit]}" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         <WrapPanel>
                             <RadioButton GroupName="unit" Content="PLM" Margin="0,0,14,4"
                                          IsChecked="{Binding IsUnitPlm, Mode=OneWay}"
@@ -1061,11 +1087,11 @@
         <!-- ============ OVERLAY HELP / INFORMAZIONI ============ -->
         <!-- Stesso pattern dell'overlay impostazioni: apertura/chiusura istantanee. -->
         <Border Grid.Row="0" Grid.RowSpan="3"
-                Background="#99000000"
+                Background="{DynamicResource ScrimBrush}"
                 Tapped="OnHelpOverlayBackdropTapped"
                 IsVisible="{Binding IsHelpOpen}">
-            <Border Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                    BorderBrush="Gray" BorderThickness="1" CornerRadius="8"
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="440" Margin="16"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel Margin="24" Spacing="16">
@@ -1074,7 +1100,7 @@
 
                     <StackPanel Spacing="4">
                         <TextBlock Text="Palladium Wallet" FontSize="16" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding WindowTitle}" FontSize="12" Foreground="Gray"/>
+                        <TextBlock Text="{Binding WindowTitle}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
                     </StackPanel>
 
                     <TextBlock Text="{Binding Loc[help.info]}" TextWrapping="Wrap"/>

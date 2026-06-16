@@ -1,0 +1,96 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- ============================================================
+         Design token del wallet Palladium.
+         Identità: blu cobalto (fiducia) + verde (denaro/positivo),
+         derivati dal logo. Stile "fintech pulito".
+
+         Tutti i colori sono SEMANTICI (ruolo, non nome): i componenti
+         non devono mai usare hex inline ma questi brush. Definiti per
+         entrambe le varianti (chiaro/scuro) via ThemeDictionaries, così
+         l'app segue il tema di sistema senza ulteriore configurazione.
+         ============================================================ -->
+
+    <ResourceDictionary.ThemeDictionaries>
+
+        <!-- ============ TEMA CHIARO ============ -->
+        <ResourceDictionary x:Key="Light">
+            <!-- Superfici -->
+            <SolidColorBrush x:Key="AppBackgroundBrush" Color="#F1F5F9"/>     <!-- slate-100 -->
+            <SolidColorBrush x:Key="SurfaceBrush"        Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#F8FAFC"/>     <!-- slate-50 -->
+            <SolidColorBrush x:Key="OverlayCardBrush"    Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="ScrimBrush"          Color="#66000000"/>   <!-- 40% -->
+            <!-- Bordi e separatori -->
+            <SolidColorBrush x:Key="BorderSubtleBrush"   Color="#E2E8F0"/>     <!-- slate-200 -->
+            <SolidColorBrush x:Key="BorderStrongBrush"   Color="#CBD5E1"/>     <!-- slate-300 -->
+            <!-- Testo -->
+            <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#0F172A"/>     <!-- slate-900 -->
+            <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#475569"/>     <!-- slate-600 -->
+            <SolidColorBrush x:Key="TextMutedBrush"      Color="#94A3B8"/>     <!-- slate-400 -->
+            <!-- Brand / stato -->
+            <SolidColorBrush x:Key="PrimaryBrush"        Color="#2563EB"/>     <!-- blue-600 -->
+            <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#1D4ED8"/>     <!-- blue-700 -->
+            <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="PrimarySoftBrush"    Color="#EFF6FF"/>     <!-- blue-50 -->
+            <SolidColorBrush x:Key="SuccessBrush"        Color="#16A34A"/>     <!-- green-600 -->
+            <SolidColorBrush x:Key="WarningBrush"        Color="#D97706"/>     <!-- amber-600 -->
+            <SolidColorBrush x:Key="DangerBrush"         Color="#DC2626"/>     <!-- red-600 -->
+            <!-- Gradiente hero della card saldo: blu → indaco -->
+            <LinearGradientBrush x:Key="BalanceGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#2563EB"/>
+                <GradientStop Offset="1" Color="#4F46E5"/>
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+        <!-- ============ TEMA SCURO ============ -->
+        <ResourceDictionary x:Key="Dark">
+            <!-- Superfici -->
+            <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0F172A"/>      <!-- slate-900 -->
+            <SolidColorBrush x:Key="SurfaceBrush"        Color="#1E293B"/>     <!-- slate-800 -->
+            <SolidColorBrush x:Key="SurfaceAltBrush"     Color="#273449"/>
+            <SolidColorBrush x:Key="OverlayCardBrush"    Color="#1E293B"/>
+            <SolidColorBrush x:Key="ScrimBrush"          Color="#99000000"/>   <!-- 60% -->
+            <!-- Bordi e separatori -->
+            <SolidColorBrush x:Key="BorderSubtleBrush"   Color="#334155"/>     <!-- slate-700 -->
+            <SolidColorBrush x:Key="BorderStrongBrush"   Color="#475569"/>     <!-- slate-600 -->
+            <!-- Testo -->
+            <SolidColorBrush x:Key="TextPrimaryBrush"    Color="#F8FAFC"/>     <!-- slate-50 -->
+            <SolidColorBrush x:Key="TextSecondaryBrush"  Color="#94A3B8"/>     <!-- slate-400 -->
+            <SolidColorBrush x:Key="TextMutedBrush"      Color="#64748B"/>     <!-- slate-500 -->
+            <!-- Brand / stato (toni più luminosi su fondo scuro) -->
+            <SolidColorBrush x:Key="PrimaryBrush"        Color="#3B82F6"/>     <!-- blue-500 -->
+            <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#60A5FA"/>     <!-- blue-400 -->
+            <SolidColorBrush x:Key="OnPrimaryBrush"      Color="#0B1120"/>
+            <SolidColorBrush x:Key="PrimarySoftBrush"    Color="#1E3A8A"/>     <!-- blue-900 -->
+            <SolidColorBrush x:Key="SuccessBrush"        Color="#22C55E"/>     <!-- green-500 -->
+            <SolidColorBrush x:Key="WarningBrush"        Color="#F59E0B"/>     <!-- amber-500 -->
+            <SolidColorBrush x:Key="DangerBrush"         Color="#EF4444"/>     <!-- red-500 -->
+            <!-- Gradiente hero della card saldo: blu → indaco (toni più profondi) -->
+            <LinearGradientBrush x:Key="BalanceGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#1D4ED8"/>
+                <GradientStop Offset="1" Color="#4338CA"/>
+            </LinearGradientBrush>
+        </ResourceDictionary>
+
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- ============================================================
+         Override dell'accento Fluent → blu del brand. Recolora in modo
+         coerente i controlli che leggono SystemAccentColor (bottoni
+         accent, selezioni, indicatore tab, focus) senza ritemplare nulla.
+         Indipendente dalla variante: #2563EB funziona su chiaro e scuro.
+         ============================================================ -->
+    <Color x:Key="SystemAccentColor">#2563EB</Color>
+    <Color x:Key="SystemAccentColorDark1">#1D4ED8</Color>
+    <Color x:Key="SystemAccentColorDark2">#1E40AF</Color>
+    <Color x:Key="SystemAccentColorDark3">#1E3A8A</Color>
+    <Color x:Key="SystemAccentColorLight1">#3B82F6</Color>
+    <Color x:Key="SystemAccentColorLight2">#60A5FA</Color>
+    <Color x:Key="SystemAccentColorLight3">#93C5FD</Color>
+
+    <!-- Raggi globali dei controlli Fluent: arrotonda bottoni, input, combo,
+         liste in modo uniforme senza dover ritemplare ogni controllo. -->
+    <CornerRadius x:Key="ControlCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="OverlayCornerRadius">12</CornerRadius>
+</ResourceDictionary>
