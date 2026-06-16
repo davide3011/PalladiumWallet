@@ -778,88 +778,154 @@
                                 Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseTransactionDetailsCommand}"/>
 
                         <ScrollViewer>
-                            <StackPanel Spacing="14">
+                            <StackPanel Spacing="18">
 
-                                <Grid ColumnDefinitions="170,*" RowSpacing="8">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                                <!-- Header: importo netto in evidenza + badge stato/SPV -->
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="{Binding AmountHeader}" Classes="label"/>
+                                    <SelectableTextBlock Text="{Binding NetText}"
+                                                         FontFamily="monospace" FontFeatures="+tnum"
+                                                         FontSize="28" FontWeight="Bold"/>
+                                    <WrapPanel>
+                                        <!-- Badge coinbase: monete generate dal mining (nessun mittente) -->
+                                        <Border Classes="chip" Margin="0,0,8,6" IsVisible="{Binding IsCoinbase}"
+                                                Background="{DynamicResource WarningBrush}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Viewbox Width="14" Height="14" VerticalAlignment="Center">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="#FFFFFF"
+                                                              Data="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5M12,4.15L6.04,7.5L12,10.85L17.96,7.5L12,4.15M5,15.91L11,19.29V12.58L5,9.21V15.91M19,15.91V9.21L13,12.58V19.29L19,15.91Z"/>
+                                                    </Canvas>
+                                                </Viewbox>
+                                                <TextBlock Text="{Binding Loc[tx.coinbase]}"
+                                                           Foreground="#FFFFFF"
+                                                           FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Classes="chip" Margin="0,0,8,6"
+                                                Background="{DynamicResource PrimarySoftBrush}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <Viewbox Width="14" Height="14" VerticalAlignment="Center">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource SuccessBrush}"
+                                                              Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+                                                    </Canvas>
+                                                </Viewbox>
+                                                <TextBlock Text="{Binding VerifiedText}"
+                                                           Foreground="{DynamicResource SuccessBrush}"
+                                                           FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Classes="chip" Margin="0,0,8,6">
+                                            <TextBlock Text="{Binding StatusText}" FontSize="12"
+                                                       Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                        </Border>
+                                    </WrapPanel>
+                                </StackPanel>
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.status]}"/>
-                                    <SelectableTextBlock Grid.Row="0" Grid.Column="1" FontSize="13" TextWrapping="Wrap" Text="{Binding StatusText}"/>
+                                <!-- Sezione: Panoramica -->
+                                <TextBlock Classes="section" Text="{Binding Loc[tx.sect.overview]}"/>
+                                <Border Classes="card" Padding="16,12">
+                                    <StackPanel Spacing="10">
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.date]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Text="{Binding DateText}"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding CounterpartyHeader}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Classes="mono"
+                                                                 TextWrapping="Wrap" Text="{Binding CounterpartyText}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.date]}"/>
-                                    <SelectableTextBlock Grid.Row="1" Grid.Column="1" FontSize="13" Text="{Binding DateText}"/>
+                                <!-- Sezione: Importi e commissioni -->
+                                <TextBlock Classes="section" Text="{Binding Loc[tx.sect.amounts]}"/>
+                                <Border Classes="card" Padding="16,12">
+                                    <StackPanel Spacing="10">
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding AmountHeader}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Classes="mono" Text="{Binding AmountText}"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.fee]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Classes="mono" Text="{Binding FeeText}"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.feerate]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Classes="mono" Text="{Binding FeeRateText}"/>
+                                        </Grid>
+                                        <Border Height="1" Background="{DynamicResource BorderSubtleBrush}" Margin="0,2"/>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.net]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="14" Classes="mono"
+                                                                 FontWeight="Bold" Text="{Binding NetText}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding CounterpartyHeader}"/>
-                                    <SelectableTextBlock Grid.Row="2" Grid.Column="1" FontSize="13" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding CounterpartyText}"/>
+                                <!-- Sezione: Dettagli tecnici -->
+                                <TextBlock Classes="section" Text="{Binding Loc[tx.sect.tech]}"/>
+                                <Border Classes="card" Padding="16,12">
+                                    <StackPanel Spacing="10">
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Classes="label" Text="{Binding Loc[tx.id]}"/>
+                                            <SelectableTextBlock FontSize="12" Classes="mono"
+                                                                 TextWrapping="Wrap" Text="{Binding Txid}"/>
+                                        </StackPanel>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.size.total]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Text="{Binding TotalSizeText}"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.size.virtual]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Text="{Binding VirtualSizeText}"/>
+                                        </Grid>
+                                        <Grid ColumnDefinitions="150,*">
+                                            <TextBlock Grid.Column="0" Classes="label" Text="{Binding Loc[tx.rbf]}"/>
+                                            <SelectableTextBlock Grid.Column="1" FontSize="13" Text="{Binding RbfText}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding AmountHeader}"/>
-                                    <SelectableTextBlock Grid.Row="3" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding AmountText}"/>
+                                <TextBlock Classes="section" Text="{Binding Loc[tx.inputs]}"/>
+                                <Border Classes="card" Padding="14,6">
+                                    <ItemsControl ItemsSource="{Binding Inputs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:TxIoRow">
+                                                <Grid ColumnDefinitions="160,*,Auto" Margin="0,4">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                               FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
+                                                               TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                               FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                               Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                               FontFamily="monospace" FontFeatures="+tnum" FontSize="11" Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
 
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.fee]}"/>
-                                    <SelectableTextBlock Grid.Row="4" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeText}"/>
-
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.feerate]}"/>
-                                    <SelectableTextBlock Grid.Row="5" Grid.Column="1" FontSize="13" FontFamily="monospace" Text="{Binding FeeRateText}"/>
-
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.net]}"/>
-                                    <SelectableTextBlock Grid.Row="6" Grid.Column="1" FontSize="13" FontFamily="monospace" FontWeight="Bold" Text="{Binding NetText}"/>
-
-                                    <TextBlock Grid.Row="7" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.id]}"/>
-                                    <SelectableTextBlock Grid.Row="7" Grid.Column="1" FontSize="12" FontFamily="monospace" TextWrapping="Wrap" Text="{Binding Txid}"/>
-
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.size.total]}"/>
-                                    <SelectableTextBlock Grid.Row="8" Grid.Column="1" FontSize="13" Text="{Binding TotalSizeText}"/>
-
-                                    <TextBlock Grid.Row="9" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.size.virtual]}"/>
-                                    <SelectableTextBlock Grid.Row="9" Grid.Column="1" FontSize="13" Text="{Binding VirtualSizeText}"/>
-
-                                    <TextBlock Grid.Row="10" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.rbf]}"/>
-                                    <SelectableTextBlock Grid.Row="10" Grid.Column="1" FontSize="13" Text="{Binding RbfText}"/>
-
-                                    <TextBlock Grid.Row="11" Grid.Column="0" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12" Text="{Binding Loc[tx.verified]}"/>
-                                    <SelectableTextBlock Grid.Row="11" Grid.Column="1" FontSize="13" Foreground="{DynamicResource SuccessBrush}" Text="{Binding VerifiedText}"/>
-                                </Grid>
-
-                                <TextBlock Text="{Binding Loc[tx.inputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
-                                <ItemsControl ItemsSource="{Binding Inputs}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:TxIoRow">
-                                            <Grid ColumnDefinitions="170,*,Auto" Margin="0,2">
-                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                           FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
-                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
-                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
-                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
-                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-
-                                <TextBlock Text="{Binding Loc[tx.outputs]}" FontWeight="Bold" Margin="0,4,0,0"/>
-                                <ItemsControl ItemsSource="{Binding Outputs}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate x:DataType="vm:TxIoRow">
-                                            <Grid ColumnDefinitions="60,*,Auto" Margin="0,2">
-                                                <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                           FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Address}"
-                                                           FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
-                                                           Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
-                                                <TextBlock Grid.Column="2" Text="{Binding Amount}"
-                                                           FontFamily="monospace" FontSize="11" Margin="8,0,0,0"/>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <TextBlock Classes="section" Text="{Binding Loc[tx.outputs]}"/>
+                                <Border Classes="card" Padding="14,6">
+                                    <ItemsControl ItemsSource="{Binding Outputs}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:TxIoRow">
+                                                <Grid ColumnDefinitions="44,*,Auto" Margin="0,4">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Position}"
+                                                               FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Address}"
+                                                               FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                               Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                               FontFamily="monospace" FontFeatures="+tnum" FontSize="11" Margin="8,0,0,0"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
 
                             </StackPanel>
                         </ScrollViewer>

@@ -47,6 +47,13 @@
         <Setter Property="FontFamily" Value="monospace"/>
         <Setter Property="FontFeatures" Value="+tnum"/>
     </Style>
+    <!-- Intestazione di sezione (es. dettaglio transazione) -->
+    <Style Selector="TextBlock.section">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}"/>
+        <Setter Property="LetterSpacing" Value="0.8"/>
+    </Style>
 
     <!-- ===== Bottoni ===== -->
     <Style Selector="Button">

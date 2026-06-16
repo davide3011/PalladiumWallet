@@ -27,6 +27,7 @@ public sealed class TransactionDetailsViewModel
         _unit = unit;
 
         Txid = d.Txid;
+        IsCoinbase = d.IsCoinbase;
         StatusText = BuildStatus(d, loc);
         DateText = d.BlockTime is { } t
             ? t.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
@@ -34,9 +35,12 @@ public sealed class TransactionDetailsViewModel
 
         var counterparties = d.CounterpartyAddresses;
         CounterpartyHeader = d.IsIncoming ? loc["tx.from"] : loc["tx.to"];
-        CounterpartyText = counterparties.Count > 0
-            ? string.Join(Environment.NewLine, counterparties)
-            : "—";
+        // Una coinbase non ha mittente: le monete sono generate dal mining.
+        CounterpartyText = d.IsCoinbase
+            ? loc["tx.coinbase.newcoins"]
+            : counterparties.Count > 0
+                ? string.Join(Environment.NewLine, counterparties)
+                : "—";
 
         // Debito (uscita verso terzi) o Credito (entrata netta sui nostri output).
         AmountHeader = d.IsIncoming ? loc["tx.credit"] : loc["tx.debit"];
@@ -61,8 +65,8 @@ public sealed class TransactionDetailsViewModel
         VerifiedText = d.Verified ? "✓ SPV" : "—";
 
         Inputs = new ObservableCollection<TxIoRow>(d.Inputs.Select((i, n) => new TxIoRow(
-            i.IsCoinbase ? "coinbase" : $"{Shorten(i.PrevTxid)}:{i.PrevIndex}",
-            i.Address ?? "—",
+            i.IsCoinbase ? loc["tx.coinbase"] : $"{Shorten(i.PrevTxid)}:{i.PrevIndex}",
+            i.IsCoinbase ? loc["tx.coinbase.newcoins"] : i.Address ?? "—",
             i.AmountSats is { } a ? CoinAmount.FormatIn(a, unit) : "—",
             i.IsMine)));
 
@@ -74,6 +78,7 @@ public sealed class TransactionDetailsViewModel
     }
 
     public string Txid { get; }
+    public bool IsCoinbase { get; }
     public string StatusText { get; }
     public string DateText { get; }
     public string CounterpartyHeader { get; }
