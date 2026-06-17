@@ -96,6 +96,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsMobile => !IsDesktop;
 
+    // Tab bar sizing: compact on mobile so all 5 tabs fit in one row.
+    public double TabIconSize  => IsMobile ? 20 : 24;
+    public double TabFontSize  => IsMobile ? 10 : 13;
+    public double TabSpacing   => IsMobile ? 4  : 4;
+
     public string UnitLabel => _config.Unit;
     public AppConfig CurrentConfig => _config;
 

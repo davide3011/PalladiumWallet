@@ -117,6 +117,11 @@
     <Style Selector="TabItem:selected /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="TextElement.Foreground" Value="{DynamicResource PrimaryBrush}"/>
     </Style>
+    <!-- Push tab header content up so the 2px selection indicator (drawn at Panel bottom)
+         does not overlap the text label. -->
+    <Style Selector="TabItem /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
 
     <!-- ===== Reusable classes ===== -->
     <!-- Card: elevated surface with a subtle border and soft corners -->
