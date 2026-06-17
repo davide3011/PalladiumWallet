@@ -1378,12 +1378,68 @@
                     <TextBlock Text="{Binding Loc[help.title]}"
                                FontSize="18" FontWeight="Bold"/>
 
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="Palladium Wallet" FontSize="16" FontWeight="Bold"/>
-                        <TextBlock Text="{Binding WindowTitle}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
-                    </StackPanel>
+                    <TabControl>
+                        <!-- Tab: Info -->
+                        <TabItem Header="{Binding Loc[help.tab.info]}">
+                            <StackPanel Spacing="12" Margin="0,12,0,0">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="Palladium Wallet" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding WindowTitle}" FontSize="12"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding Loc[help.info]}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </TabItem>
 
-                    <TextBlock Text="{Binding Loc[help.info]}" TextWrapping="Wrap"/>
+                        <!-- Tab: Donate -->
+                        <TabItem Header="{Binding Loc[help.tab.donate]}">
+                            <StackPanel Spacing="12" Margin="0,12,0,0">
+                                <TextBlock Text="{Binding Loc[donate.desc]}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                                <!-- Dev address (read-only) -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding Loc[donate.dev.address]}" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <SelectableTextBlock Text="{x:Static vm:MainWindowViewModel.DevAddress}"
+                                                         FontFamily="monospace" FontSize="11"
+                                                         TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <!-- Amount input -->
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding Loc[donate.amount]}" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding DonateAmount}"
+                                                 PlaceholderText="{Binding UnitLabel}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding UnitLabel}"
+                                                   VerticalAlignment="Center" Margin="8,0,0,0"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Preview -->
+                                <SelectableTextBlock Text="{Binding DonatePreview}"
+                                                     IsVisible="{Binding DonatePreview,
+                                                         Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                                     FontFamily="monospace" FontSize="11"
+                                                     TextWrapping="Wrap"
+                                                     Foreground="{DynamicResource TextSecondaryBrush}"/>
+
+                                <!-- Buttons -->
+                                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                    <Button Content="{Binding Loc[donate.confirm]}"
+                                            Classes="accent"
+                                            IsEnabled="{Binding HasPendingDonate}"
+                                            Command="{Binding ConfirmDonateCommand}"/>
+                                    <Button Content="{Binding Loc[donate.prepare]}"
+                                            Command="{Binding PrepareDonateCommand}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </TabItem>
+                    </TabControl>
 
                     <Button Content="{Binding Loc[addr.close]}"
                             HorizontalAlignment="Right"

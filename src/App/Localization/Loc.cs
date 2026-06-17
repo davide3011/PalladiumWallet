@@ -60,6 +60,19 @@ public sealed class Loc
             "Portefeuille SPV pour la cryptomonnaie Palladium (PLM).",
             "Carteira SPV para a criptomoeda Palladium (PLM).",
             "SPV-Wallet für die Kryptowährung Palladium (PLM)."],
+        ["help.tab.info"]         = ["Info",                                                               "Info",                         "Info",                                 "Info",                                     "Info",                                     "Info"],
+        ["help.tab.donate"]       = ["Dona",                                                               "Donate",                       "Donar",                                "Faire un don",                             "Doar",                                     "Spenden"],
+        ["donate.desc"]           = [
+            "Se questo wallet ti è utile, considera una piccola donazione allo sviluppatore.",
+            "If you find this wallet useful, consider a small donation to the developer.",
+            "Si esta wallet te resulta útil, considera una pequeña donación al desarrollador.",
+            "Si ce portefeuille vous est utile, envisagez un petit don au développeur.",
+            "Se esta carteira é útil para você, considere uma pequena doação ao desenvolvedor.",
+            "Wenn Ihnen dieses Wallet nützlich ist, erwägen Sie eine kleine Spende an den Entwickler."],
+        ["donate.dev.address"]    = ["Indirizzo sviluppatore",                                             "Developer address",            "Dirección del desarrollador",          "Adresse du développeur",                   "Endereço do desenvolvedor",                "Entwickleradresse"],
+        ["donate.amount"]         = ["Importo donazione",                                                  "Donation amount",              "Monto de donación",                    "Montant du don",                           "Valor da doação",                          "Spendenbetrag"],
+        ["donate.prepare"]        = ["Prepara donazione",                                                  "Prepare donation",             "Preparar donación",                    "Préparer le don",                          "Preparar doação",                          "Spende vorbereiten"],
+        ["donate.confirm"]        = ["Conferma e invia",                                                   "Confirm and send",             "Confirmar y enviar",                   "Confirmer et envoyer",                     "Confirmar e enviar",                       "Bestätigen und senden"],
         ["settings.unit.short"]   = ["Unità",                                                             "Unit",                         "Unidad",                               "Unité",                                    "Unidade",                                  "Einheit"],
 
         // Wizard

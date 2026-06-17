@@ -70,5 +70,5 @@ public partial class MainWindowViewModel
     private void OpenHelp() => IsHelpOpen = true;
 
     [RelayCommand]
-    private void CloseHelp() => IsHelpOpen = false;
+    private void CloseHelp() { IsHelpOpen = false; ResetDonate(); }
 }

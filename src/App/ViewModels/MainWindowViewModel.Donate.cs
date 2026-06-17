@@ -1,0 +1,96 @@
+using System;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using NBitcoin;
+using PalladiumWallet.Core.Chain;
+using PalladiumWallet.Core.Net;
+using PalladiumWallet.Core.Wallet;
+
+namespace PalladiumWallet.App.ViewModels;
+
+public partial class MainWindowViewModel
+{
+    public const string DevAddress = "plm1qdq3gu2zvg9lyr8gxd6yln4wavc5tlp8prmvfay";
+
+    [ObservableProperty]
+    private string donateAmount = "";
+
+    [ObservableProperty]
+    private string donatePreview = "";
+
+    [ObservableProperty]
+    private bool hasPendingDonate;
+
+    private BuiltTransaction? _pendingDonate;
+
+    [RelayCommand]
+    private async Task PrepareDonate()
+    {
+        _pendingDonate = null;
+        HasPendingDonate = false;
+
+        if (_account is null || _doc?.Cache is null || _lastTransactions is null)
+        {
+            DonatePreview = "Sincronizza prima di inviare.";
+            return;
+        }
+        try
+        {
+            var destination = BitcoinAddress.Create(DevAddress, PalladiumNetworks.For(Net));
+            if (!CoinAmount.TryParseIn(DonateAmount.Trim(), _config.Unit, out var amount) || amount <= 0)
+            {
+                DonatePreview = "Importo non valido.";
+                return;
+            }
+            if (!decimal.TryParse(SendFeeRate, System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out var feeRate) || feeRate <= 0)
+                feeRate = 1m;
+
+            _pendingDonate = new TransactionFactory(_account).Build(
+                _doc.Cache.Utxos, _lastTransactions, destination, amount, feeRate,
+                _doc.Cache.NextChangeIndex, sendAll: false);
+
+            DonatePreview = $"txid {_pendingDonate.Txid[..16]}… · " +
+                $"fee {Fmt(_pendingDonate.Fee.Satoshi)} " +
+                $"({_pendingDonate.Transaction.GetVirtualSize()} vB)" +
+                (_pendingDonate.Signed ? "" : " · watch-only");
+            HasPendingDonate = _pendingDonate.Signed;
+        }
+        catch (Exception ex)
+        {
+            _pendingDonate = null;
+            HasPendingDonate = false;
+            DonatePreview = $"Errore: {ex.Message}";
+        }
+        await Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task ConfirmDonate()
+    {
+        if (_pendingDonate is null || _client is null)
+            return;
+        try
+        {
+            var txid = await _client.BroadcastAsync(_pendingDonate.ToHex());
+            DonatePreview = $"Grazie! txid: {txid}";
+            DonateAmount = "";
+            _pendingDonate = null;
+            HasPendingDonate = false;
+            await ConnectAndSync();
+        }
+        catch (Exception ex)
+        {
+            DonatePreview = $"Errore broadcast: {ex.Message}";
+        }
+    }
+
+    private void ResetDonate()
+    {
+        DonateAmount = "";
+        DonatePreview = "";
+        HasPendingDonate = false;
+        _pendingDonate = null;
+    }
+}
