@@ -19,8 +19,6 @@ On **every requested change**, before implementing, judge whether it makes sense
 
 SPV wallet (Sparrow-style) for the **Palladium (PLM)** cryptocurrency, a Bitcoin-derived UTXO chain. Targets desktop (Windows/Linux) and Android, from the same source. Lightning is excluded from the first release.
 
-[blueprint.md](blueprint.md) is a **reference for understanding** (consensus parameters verified against the node, algorithms, network protocol): consult it when it helps to understand an area, but **it is no longer binding** — it need not be followed to the letter or read before every change. The source of truth is the current code; the `§` references below point to the blueprint only as further reading.
-
 ## Stack and structure
 
 .NET 10 + Avalonia UI 12 + NBitcoin.
@@ -64,11 +62,11 @@ Note: a plain `dotnet build` at the solution level needs the Android SDK path fo
 
 ## Architecture (points that require reading multiple files)
 
-- **Layers (§2):** GUI → wallet domain → SPV/Sync → Network → Cryptography → Persistence; each layer depends only downward.
-- **Network profile (§3):** all chain constants (address prefixes, BIP32 headers, bech32 HRP, genesis, ports, coin_type 746) **centralized in `Core/Chain`** (`ChainProfiles`/`PalladiumNetworks`), selectable per network (mainnet/testnet/regtest). No scattered magic numbers.
-- **LWMA / skip PoW (§3, §7):** LWMA difficulty, 2-minute blocks; an SPV client cannot recompute it → `SkipPowValidation = true`, trust anchored to **hardcoded checkpoints** (§7.3). Custom layer: NBitcoin assumes Bitcoin's retargeting.
-- **NBitcoin vs custom (§19.2):** NBitcoin covers the custom network, BIP32/39, addresses, transactions, PSBT, signing, encoding, hashing — **do not reimplement these**. Hand-written custom code: JSON-RPC client for the indexing server (ElectrumX-like, §10); SPV sync with Merkle verification (§7.4); header/checkpoint validation; coin selection and fee policy; versioned encrypted JSON wallet file.
-- **PSBT-centric (§6.5):** every signing flow goes through PSBT (offline/air-gapped/multisig/hardware).
+- **Layers:** GUI → wallet domain → SPV/Sync → Network → Cryptography → Persistence; each layer depends only downward.
+- **Network profile:** all chain constants (address prefixes, BIP32 headers, bech32 HRP, genesis, ports, coin_type 746) **centralized in `Core/Chain`** (`ChainProfiles`/`PalladiumNetworks`), selectable per network (mainnet/testnet/regtest). No scattered magic numbers.
+- **LWMA / skip PoW:** LWMA difficulty, 2-minute blocks; an SPV client cannot recompute it → `SkipPowValidation = true`, trust anchored to **hardcoded checkpoints**. Custom layer: NBitcoin assumes Bitcoin's retargeting.
+- **NBitcoin vs custom:** NBitcoin covers the custom network, BIP32/39, addresses, transactions, PSBT, signing, encoding, hashing — **do not reimplement these**. Hand-written custom code: JSON-RPC client for the indexing server (ElectrumX-like); SPV sync with Merkle verification; header/checkpoint validation; coin selection and fee policy; versioned encrypted JSON wallet file.
+- **PSBT-centric:** every signing flow goes through PSBT (offline/air-gapped/multisig/hardware).
 - **Ports:** 50001/50002 = indexing server (what the SPV wallet talks to), **not** the node's P2P port (2333).
 
 ## GUI conventions (`src/App`)
@@ -80,14 +78,7 @@ Note: a plain `dotnet build` at the solution level needs the Android SDK path fo
 - **App version:** single source = `<Version>` in `src/App/PalladiumWallet.App.csproj`; read at runtime (`MainWindowViewModel.AppVersion`) and shown in the title.
 - **Storage paths:** `Core/Storage/AppPaths` resolves data locations; `AppPaths.OverrideDataRoot` (top priority) is the per-platform seam — the Android head sets it to the app sandbox (`Context.FilesDir`), desktop leaves it null.
 
-## Implementation state (§16 steps 1–7 + GUI)
-
-`Core/Chain` network profiles; `Core/Crypto` BIP39/32/SLIP-132/`HdAccount`; `Core/Storage` JSON wallet v1 + AES-GCM (PBKDF2-SHA512) + data paths; `Core/Net` `ElectrumClient` (newline JSON-RPC over TCP/TLS, TOFU in `server-certs.json`, concurrent requests) + `ElectrumApi`; `Core/Spv` scripthash, mandatory Merkle verification on every confirmed tx, sync with gap limit; `Core/Wallet` `TransactionFactory` (RBF on, send-all, watch-only PSBT), `TransactionInspector` (tx detail from the server), `WalletLoader`. GUI: setup wizard, dashboard (history/send/receive with QR+copy/addresses/contacts), transaction detail, settings/server/help, multi-wallet. Runs on desktop and Android from one shared UI (debug apk builds end-to-end).
-
-**TODO (§16 steps 8–9):** multisig, hardware wallet, coin control UI, fee ETA/mempool, RBF/CPFP UI, on-disk header chain, multi-server pool, proxy/Tor.
-
 ## Working rules
 
-- **Cross-implementation tests (§16):** compare addresses, txids, and PSBTs against a reference wallet (golden vectors). A different address or txid is a blocking bug.
-- **Security (§17):** seed and private keys never in plaintext on disk/logs/network; every server response validated with Merkle + checkpoints; watch-only truly read-only.
-- *(Optional)* blueprint features may be deferred but must still be considered in the design.
+- **Cross-implementation tests:** compare addresses, txids, and PSBTs against a reference wallet (golden vectors). A different address or txid is a blocking bug.
+- **Security:** seed and private keys never in plaintext on disk/logs/network; every server response validated with Merkle + checkpoints; watch-only truly read-only.
