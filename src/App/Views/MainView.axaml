@@ -895,7 +895,7 @@
                              IsVisible="{Binding IsConnected}"/>
                     <Ellipse Width="10" Height="10" Fill="{DynamicResource DangerBrush}" VerticalAlignment="Center"
                              IsVisible="{Binding !IsConnected}"/>
-                    <TextBlock Text="{Binding ConnectionStatus}" FontSize="12"
+                    <TextBlock Text="{Binding ConnectionStatusShort}" FontSize="12"
                                Foreground="{DynamicResource SystemAccentColor}"
                                VerticalAlignment="Center"/>
                 </StackPanel>

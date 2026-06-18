@@ -47,6 +47,9 @@ public partial class MainWindowViewModel
     private string connectionStatus = Loc.Tr("conn.none");
 
     [ObservableProperty]
+    private string connectionStatusShort = Loc.Tr("conn.none");
+
+    [ObservableProperty]
     private bool isConnected;
 
     [ObservableProperty]
@@ -103,11 +106,24 @@ public partial class MainWindowViewModel
         KnownServers.Clear();
         foreach (var server in Registry.All)
             KnownServers.Add(server);
-        SelectedKnownServer = KnownServers.FirstOrDefault();
-        if (SelectedKnownServer is null)
+
+        if (_config.LastServerHost is { Length: > 0 } savedHost && _config.LastServerPort is { } savedPort)
         {
-            ServerHost = "127.0.0.1";
-            ServerPort = (UseSsl ? Profile.DefaultSslPort : Profile.DefaultTcpPort).ToString();
+            _syncingServerFields = true;
+            UseSsl = _config.LastServerUseSsl;
+            ServerHost = savedHost;
+            ServerPort = savedPort.ToString();
+            SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == savedHost);
+            _syncingServerFields = false;
+        }
+        else
+        {
+            SelectedKnownServer = KnownServers.FirstOrDefault();
+            if (SelectedKnownServer is null)
+            {
+                ServerHost = "127.0.0.1";
+                ServerPort = (UseSsl ? Profile.DefaultSslPort : Profile.DefaultTcpPort).ToString();
+            }
         }
     }
 
@@ -179,6 +195,7 @@ public partial class MainWindowViewModel
                 foreach (var (h, p) in candidates)
                 {
                     ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {h}:{p}…";
+                    ConnectionStatusShort = Loc.Tr("conn.connectingto") + "…";
                     try
                     {
                         var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
@@ -188,10 +205,12 @@ public partial class MainWindowViewModel
                         {
                             IsConnected = false;
                             ConnectionStatus = Loc.Tr("conn.none");
+                            ConnectionStatusShort = Loc.Tr("conn.none");
                         });
                         IsConnected = true;
                         _autoReconnect = true;
                         ConnectionStatus = $"{Loc.Tr("conn.connectedto")} {h}:{p}";
+                        ConnectionStatusShort = Loc.Tr("conn.connectedto");
                         // Update the UI to reflect the server actually connected.
                         _syncingServerFields = true;
                         ServerHost = h;
@@ -199,6 +218,11 @@ public partial class MainWindowViewModel
                         SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == h)
                             ?? SelectedKnownServer;
                         _syncingServerFields = false;
+                        // Persist the last-used server so it is restored on next launch.
+                        _config.LastServerHost = h;
+                        _config.LastServerPort = p;
+                        _config.LastServerUseSsl = UseSsl;
+                        _config.Save();
                         lastError = null;
                         break;
                     }
@@ -264,12 +288,14 @@ public partial class MainWindowViewModel
         {
             IsConnected = false;
             ConnectionStatus = Loc.Tr("conn.none");
+            ConnectionStatusShort = Loc.Tr("conn.none");
             StatusMessage = ex.Message;
         }
         catch (Exception ex)
         {
             IsConnected = _client?.IsConnected == true;
             ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
+            ConnectionStatusShort = IsConnected ? Loc.Tr("conn.connectedto") : Loc.Tr("conn.none");
             StatusMessage = $"Errore: {ex.Message}";
             if (_account is not null)
             {

@@ -15,6 +15,11 @@ public sealed class AppConfig
     /// <summary>Display unit for amounts (see <see cref="Wallet.CoinAmount.Units"/>).</summary>
     public string Unit { get; set; } = "PLM";
 
+    /// <summary>Last successfully connected server, persisted across sessions.</summary>
+    public string? LastServerHost { get; set; }
+    public int? LastServerPort { get; set; }
+    public bool LastServerUseSsl { get; set; } = true;
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     public static AppConfig Load(string? path = null)
