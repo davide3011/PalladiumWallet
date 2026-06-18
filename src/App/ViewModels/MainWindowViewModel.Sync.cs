@@ -31,10 +31,13 @@ public partial class MainWindowViewModel
     private bool isServerSettingsOpen;
 
     [RelayCommand]
-    private void OpenServerSettings()
+    private async Task OpenServerSettings()
     {
         IsSettingsOpen = false;
+        RefreshServers();
         IsServerSettingsOpen = true;
+        if (_client is { IsConnected: true })
+            await DiscoverServers();
     }
 
     [RelayCommand]
@@ -188,7 +191,7 @@ public partial class MainWindowViewModel
                         });
                         IsConnected = true;
                         _autoReconnect = true;
-                        ConnectionStatus = Loc.Tr("conn.connectedto");
+                        ConnectionStatus = $"{Loc.Tr("conn.connectedto")} {h}:{p}";
                         // Update the UI to reflect the server actually connected.
                         _syncingServerFields = true;
                         ServerHost = h;
