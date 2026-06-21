@@ -70,5 +70,11 @@ public partial class MainWindowViewModel
     private void OpenHelp() => IsHelpOpen = true;
 
     [RelayCommand]
+    private static void QuitApp() =>
+        (Avalonia.Application.Current?.ApplicationLifetime
+            as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)
+            ?.Shutdown();
+
+    [RelayCommand]
     private void CloseHelp() { IsHelpOpen = false; ResetDonate(); }
 }

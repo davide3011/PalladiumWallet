@@ -36,10 +36,12 @@
                 <Separator/>
                 <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
                           IsEnabled="{Binding IsWalletOpen}"/>
+                <Separator/>
+                <MenuItem Header="{Binding Loc[menu.file.quit]}" Command="{Binding QuitAppCommand}"/>
             </MenuItem>
             <MenuItem Header="{Binding Loc[menu.wallet]}"
                       Command="{Binding OpenWalletInfoCommand}"
-                      IsEnabled="{Binding IsWalletOpen}"/>
+                      IsVisible="{Binding IsWalletOpen}"/>
             <MenuItem Header="{Binding Loc[menu.settings]}"
                       Command="{Binding OpenSettingsCommand}"/>
             <MenuItem Header="{Binding Loc[menu.help]}"
@@ -52,7 +54,7 @@
                     IsVisible="{Binding IsMobile}">
             <Button Content="{Binding Loc[menu.wallet]}"
                     Command="{Binding OpenWalletInfoCommand}"
-                    IsEnabled="{Binding IsWalletOpen}"/>
+                    IsVisible="{Binding IsWalletOpen}"/>
             <Button Content="{Binding Loc[menu.settings]}" Command="{Binding OpenSettingsCommand}"/>
             <Button Content="{Binding Loc[menu.help]}"     Command="{Binding OpenHelpCommand}"/>
         </StackPanel>
