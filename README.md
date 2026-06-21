@@ -55,8 +55,8 @@ For desktop and the CLI you only need the **.NET 10 SDK**. The core and crypto a
 
 1. Install the .NET 10 SDK through your distro's package manager, or without root via the official script:
    ```bash
-   curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0
-   export PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="$HOME/.dotnet"
+   curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 10.0 --install-dir "$HOME/.dotnet10"
+   export PATH="$HOME/.dotnet10:$PATH" DOTNET_ROOT="$HOME/.dotnet10"
    ```
    (add the two `export` lines to your `~/.bashrc` to make them permanent)
 2. Clone and restore:
