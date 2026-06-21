@@ -68,11 +68,81 @@ public partial class MainWindowViewModel
     [ObservableProperty]
     private AddressInfo? addressInfo;
 
+    [ObservableProperty]
+    private bool isAddressPrivKeyRevealed;
+
+    // ---- private key password prompt ----
+
+    [ObservableProperty]
+    private bool isPrivKeyPromptOpen;
+
+    [ObservableProperty]
+    private string privKeyPromptPassword = "";
+
+    [ObservableProperty]
+    private string privKeyPromptError = "";
+
+    partial void OnAddressInfoChanged(AddressInfo? value)
+    {
+        IsAddressPrivKeyRevealed = false;
+        ClosePrivKeyPromptInternal();
+    }
+
+    private void ClosePrivKeyPromptInternal()
+    {
+        IsPrivKeyPromptOpen = false;
+        PrivKeyPromptPassword = "";
+        PrivKeyPromptError = "";
+    }
+
     public void ShowAddressInfo(AddressRow row) =>
         AddressInfo = new AddressInfo(Loc, row.Indirizzo, row.DerivPath, row.PubKey, row.PrivKey);
 
     [RelayCommand]
-    private void CloseAddressInfo() => AddressInfo = null;
+    private void CloseAddressInfo()
+    {
+        ClosePrivKeyPromptInternal();
+        AddressInfo = null;
+    }
+
+    [RelayCommand]
+    private void RequestPrivKeyReveal()
+    {
+        if (AddressInfo is null || !AddressInfo.HasPrivKey) return;
+        if (string.IsNullOrEmpty(_password))
+        {
+            // No encryption: reveal directly
+            IsAddressPrivKeyRevealed = true;
+        }
+        else
+        {
+            // Encrypted: open password prompt
+            PrivKeyPromptPassword = "";
+            PrivKeyPromptError = "";
+            IsPrivKeyPromptOpen = true;
+        }
+    }
+
+    [RelayCommand]
+    private void ConfirmPrivKeyPassword()
+    {
+        if (PrivKeyPromptPassword != _password)
+        {
+            PrivKeyPromptError = Loc.Tr("msg.wrongpassword");
+            return;
+        }
+        IsAddressPrivKeyRevealed = true;
+        ClosePrivKeyPromptInternal();
+    }
+
+    [RelayCommand]
+    private void CancelPrivKeyPrompt() => ClosePrivKeyPromptInternal();
+
+    [RelayCommand]
+    private void HideAddressPrivKey()
+    {
+        IsAddressPrivKeyRevealed = false;
+    }
 
     // ---- transaction detail overlay ----
 
