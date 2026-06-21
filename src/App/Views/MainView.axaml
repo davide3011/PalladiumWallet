@@ -369,25 +369,20 @@
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HistoryRow">
                                     <Panel Cursor="Hand">
-                                        <!-- Desktop: 4 fixed columns -->
-                                        <Grid ColumnDefinitions="90,160,*,70"
+                                        <!-- Desktop: 3 fixed columns -->
+                                        <Grid ColumnDefinitions="90,160,*"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                             <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Txid}"
                                                        FontFamily="monospace" FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Grid.Column="3" Text="{Binding Verificata}" Foreground="{DynamicResource SuccessBrush}"/>
                                         </Grid>
                                         <!-- Mobile: vertical card -->
                                         <StackPanel Spacing="2"
                                                     IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsMobile}">
-                                            <Grid ColumnDefinitions="*,Auto">
-                                                <TextBlock Grid.Column="0" Text="{Binding Importo}"
-                                                           FontFamily="monospace" FontWeight="SemiBold"/>
-                                                <TextBlock Grid.Column="1" Text="{Binding Verificata}"
-                                                           Foreground="{DynamicResource SuccessBrush}" FontSize="11"/>
-                                            </Grid>
+                                            <TextBlock Text="{Binding Importo}"
+                                                       FontFamily="monospace" FontWeight="SemiBold"/>
                                             <TextBlock Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                                             <TextBlock Text="{Binding Txid}" FontFamily="monospace" FontSize="11"
                                                        TextTrimming="CharacterEllipsis"/>
@@ -1065,20 +1060,6 @@
                                                 <TextBlock Text="{Binding Loc[tx.coinbase]}"
                                                            Foreground="#FFFFFF"
                                                            FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <Border Classes="chip" Margin="0,0,8,6"
-                                                Background="{DynamicResource PrimarySoftBrush}">
-                                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                                <Viewbox Width="14" Height="14" VerticalAlignment="Center">
-                                                    <Canvas Width="24" Height="24">
-                                                        <Path Fill="{DynamicResource SuccessBrush}"
-                                                              Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
-                                                    </Canvas>
-                                                </Viewbox>
-                                                <TextBlock Text="{Binding VerifiedText}"
-                                                           Foreground="{DynamicResource SuccessBrush}"
-                                                           FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
                                         <Border Classes="chip" Margin="0,0,8,6">

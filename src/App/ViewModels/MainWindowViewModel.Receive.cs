@@ -272,8 +272,7 @@ public partial class MainWindowViewModel
             History.Add(new HistoryRow(
                 tx.Height > 0 ? tx.Height.ToString() : "mempool",
                 (tx.DeltaSats >= 0 ? "+" : "") + Fmt(tx.DeltaSats, withLabel: false),
-                tx.Txid,
-                tx.Verified ? "✓ SPV" : "—"));
+                tx.Txid));
 
         Addresses.Clear();
         foreach (var a in cache.Addresses)

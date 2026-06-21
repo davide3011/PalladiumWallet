@@ -62,8 +62,6 @@ public sealed class TransactionDetailsViewModel
         VersionText = d.Version.ToString();
         LockTimeText = d.LockTime.ToString();
         RbfText = loc[d.RbfSignaled ? "tx.yes" : "tx.no"];
-        VerifiedText = d.Verified ? "✓ SPV" : "—";
-
         Inputs = new ObservableCollection<TxIoRow>(d.Inputs.Select((i, n) => new TxIoRow(
             i.IsCoinbase ? loc["tx.coinbase"] : $"{Shorten(i.PrevTxid)}:{i.PrevIndex}",
             i.IsCoinbase ? loc["tx.coinbase.newcoins"] : i.Address ?? "—",
@@ -93,7 +91,6 @@ public sealed class TransactionDetailsViewModel
     public string VersionText { get; }
     public string LockTimeText { get; }
     public string RbfText { get; }
-    public string VerifiedText { get; }
     public ObservableCollection<TxIoRow> Inputs { get; }
     public ObservableCollection<TxIoRow> Outputs { get; }
 

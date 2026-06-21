@@ -17,7 +17,7 @@ using PalladiumWallet.Core.Wallet;
 namespace PalladiumWallet.App.ViewModels;
 
 /// <summary>Transaction history row for the view.</summary>
-public sealed record HistoryRow(string Conferma, string Importo, string Txid, string Verificata);
+public sealed record HistoryRow(string Conferma, string Importo, string Txid);
 
 /// <summary>Address view row with pre-computed keys and derivation path.</summary>
 public sealed record AddressRow(
