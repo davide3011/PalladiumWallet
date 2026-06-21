@@ -31,8 +31,6 @@
         <Menu Grid.Row="0" IsVisible="{Binding IsDesktop}">
             <MenuItem Header="{Binding Loc[menu.file]}">
                 <MenuItem Header="{Binding Loc[menu.file.new]}" Command="{Binding NewWalletCommand}"/>
-                <MenuItem Header="{Binding Loc[menu.file.open]}" Click="OnOpenWalletFileClick"
-                          IsVisible="{Binding IsDesktop}"/>
                 <Separator/>
                 <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
                           IsEnabled="{Binding IsWalletOpen}"/>

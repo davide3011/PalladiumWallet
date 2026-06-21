@@ -23,25 +23,6 @@ public partial class MainView : UserControl
         InitializeComponent();
     }
 
-    private async void OnOpenWalletFileClick(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is not MainWindowViewModel vm) return;
-        if (TopLevel.GetTopLevel(this)?.StorageProvider is not { } storage) return;
-
-        var files = await storage.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Apri file wallet",
-            AllowMultiple = false,
-            FileTypeFilter =
-            [
-                new FilePickerFileType("Wallet Palladium") { Patterns = ["*.wallet.json", "*.json"] },
-            ],
-        });
-
-        if (files.FirstOrDefault()?.TryGetLocalPath() is { } path)
-            vm.OpenFromPath(path);
-    }
-
     private void OnHistoryRowDoubleTapped(object? sender, TappedEventArgs e)
     {
         if (sender is not ListBox lb || DataContext is not MainWindowViewModel vm) return;

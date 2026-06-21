@@ -477,41 +477,6 @@ public partial class MainWindowViewModel
         }
     }
 
-    public void OpenFromPath(string path)
-    {
-        var newLock = WalletLock.TryAcquire(path);
-        if (newLock is null) { StatusMessage = Loc.Tr("msg.wallet.locked"); return; }
-
-        try
-        {
-            var doc = WalletStore.Load(path);
-            if (IsWalletOpen)
-                CloseWallet();
-            OpenLoaded(doc, WalletLoader.ToAccount(doc), path, password: null, newLock);
-        }
-        catch (WrongPasswordException)
-        {
-            newLock.Dispose();
-            if (IsWalletOpen)
-                CloseWallet();
-            _pendingOpenPath = path;
-            WalletFileExists = true;
-            PasswordInput = "";
-            SetupStep = StepOpen;
-            StatusMessage = "";
-        }
-        catch (UnauthorizedAccessException)
-        {
-            newLock.Dispose();
-            StatusMessage = Loc.Tr("msg.wallet.noaccess");
-        }
-        catch (Exception ex)
-        {
-            newLock.Dispose();
-            StatusMessage = $"Errore: {ex.Message}";
-        }
-    }
-
     [RelayCommand]
     private void NewWallet()
     {
