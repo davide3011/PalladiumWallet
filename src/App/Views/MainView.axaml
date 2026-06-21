@@ -37,6 +37,9 @@
                 <MenuItem Header="{Binding Loc[menu.file.close]}" Command="{Binding CloseWalletCommand}"
                           IsEnabled="{Binding IsWalletOpen}"/>
             </MenuItem>
+            <MenuItem Header="{Binding Loc[menu.wallet]}"
+                      Command="{Binding OpenWalletInfoCommand}"
+                      IsEnabled="{Binding IsWalletOpen}"/>
             <MenuItem Header="{Binding Loc[menu.settings]}"
                       Command="{Binding OpenSettingsCommand}"/>
             <MenuItem Header="{Binding Loc[menu.help]}"
@@ -47,6 +50,9 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8"
                     HorizontalAlignment="Right" Margin="8,4"
                     IsVisible="{Binding IsMobile}">
+            <Button Content="{Binding Loc[menu.wallet]}"
+                    Command="{Binding OpenWalletInfoCommand}"
+                    IsEnabled="{Binding IsWalletOpen}"/>
             <Button Content="{Binding Loc[menu.settings]}" Command="{Binding OpenSettingsCommand}"/>
             <Button Content="{Binding Loc[menu.help]}"     Command="{Binding OpenHelpCommand}"/>
         </StackPanel>
@@ -943,12 +949,25 @@
                     </StackPanel>
 
                     <!-- Private key (only when available) -->
-                    <StackPanel Spacing="4" IsVisible="{Binding HasPrivKey}">
-                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11" Foreground="{DynamicResource DangerBrush}"/>
-                        <SelectableTextBlock Text="{Binding PrivKey}"
-                                             FontFamily="monospace" FontSize="12"
-                                             Foreground="{DynamicResource DangerBrush}"
-                                             TextWrapping="Wrap"/>
+                    <StackPanel Spacing="8" IsVisible="{Binding HasPrivKey}">
+                        <TextBlock Text="{Binding Loc[addr.privkey]}" FontSize="11"
+                                   Foreground="{DynamicResource DangerBrush}"/>
+
+                        <!-- Not yet revealed: single reveal button -->
+                        <Button IsVisible="{Binding !$parent[UserControl].((vm:MainWindowViewModel)DataContext).IsAddressPrivKeyRevealed}"
+                                Content="{Binding Loc[walletinfo.seed.reveal]}"
+                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RequestPrivKeyRevealCommand}"/>
+
+                        <!-- Revealed: key text + hide button -->
+                        <StackPanel IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsAddressPrivKeyRevealed}"
+                                    Spacing="6">
+                            <SelectableTextBlock Text="{Binding PrivKey}"
+                                                 FontFamily="monospace" FontSize="12"
+                                                 Foreground="{DynamicResource DangerBrush}"
+                                                 TextWrapping="Wrap"/>
+                            <Button Content="{Binding Loc[walletinfo.seed.hide]}"
+                                    Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).HideAddressPrivKeyCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <Button Content="{Binding Loc[addr.close]}"
@@ -956,6 +975,38 @@
                             Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).CloseAddressInfoCommand}"/>
                 </StackPanel>
                 </ScrollViewer>
+            </Border>
+        </Border>
+
+        <!-- ============ PRIVATE KEY PASSWORD PROMPT ============ -->
+        <!-- Appears on top of the address detail overlay when the wallet is encrypted. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{DynamicResource ScrimBrush}"
+                IsVisible="{Binding IsPrivKeyPromptOpen}">
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
+                    MaxWidth="360" Margin="16"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="14">
+                    <TextBlock Text="{Binding Loc[addr.privkey.prompt.title]}"
+                               FontSize="16" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[addr.privkey.prompt.desc]}"
+                               FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox Text="{Binding PrivKeyPromptPassword}"
+                             PasswordChar="●"
+                             PlaceholderText="{Binding Loc[wiz.open.placeholder]}"/>
+                    <TextBlock Text="{Binding PrivKeyPromptError}"
+                               Foreground="{DynamicResource DangerBrush}" FontSize="12"
+                               IsVisible="{Binding PrivKeyPromptError,
+                                   Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="{Binding Loc[addr.close]}"
+                                Command="{Binding CancelPrivKeyPromptCommand}"/>
+                        <Button Content="{Binding Loc[walletinfo.seed.reveal]}" Classes="accent"
+                                Command="{Binding ConfirmPrivKeyPasswordCommand}"/>
+                    </StackPanel>
+                </StackPanel>
             </Border>
         </Border>
 
@@ -1262,6 +1313,154 @@
                     <Button Content="{Binding Loc[addr.close]}"
                             HorizontalAlignment="Right"
                             Command="{Binding CloseServerSettingsCommand}"/>
+                </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Border>
+
+        <!-- ============ WALLET INFO OVERLAY ============ -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{DynamicResource ScrimBrush}"
+                Tapped="OnWalletInfoOverlayBackdropTapped"
+                IsVisible="{Binding IsWalletInfoOpen}">
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
+                    MaxWidth="500" Margin="16"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ScrollViewer MaxHeight="620">
+                <StackPanel Margin="24" Spacing="14">
+                    <TextBlock Text="{Binding Loc[walletinfo.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+
+                    <!-- File name -->
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding Loc[walletinfo.file]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <SelectableTextBlock Text="{Binding WalletInfoFileName}"
+                                             FontFamily="monospace" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Network -->
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding Loc[walletinfo.network]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding WalletInfoNetwork}" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Wallet type -->
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding Loc[walletinfo.type]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding WalletInfoType}" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Script kind -->
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding Loc[walletinfo.script]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding WalletInfoScriptKind}" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Derivation path (only if present) -->
+                    <StackPanel Spacing="3"
+                                IsVisible="{Binding WalletInfoDerivPath,
+                                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding Loc[walletinfo.derivpath]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <SelectableTextBlock Text="{Binding WalletInfoDerivPath}"
+                                             FontFamily="monospace" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Master fingerprint (only if present) -->
+                    <StackPanel Spacing="3"
+                                IsVisible="{Binding WalletInfoFingerprint,
+                                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding Loc[walletinfo.fingerprint]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <SelectableTextBlock Text="{Binding WalletInfoFingerprint}"
+                                             FontFamily="monospace" FontSize="13"/>
+                    </StackPanel>
+
+                    <!-- Account xpub (only if present) -->
+                    <StackPanel Spacing="3"
+                                IsVisible="{Binding WalletInfoXpub,
+                                    Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding Loc[walletinfo.xpub]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <SelectableTextBlock Text="{Binding WalletInfoXpub}"
+                                             FontFamily="monospace" FontSize="11"
+                                             TextWrapping="Wrap"/>
+                    </StackPanel>
+
+                    <!-- BIP39 passphrase indicator -->
+                    <StackPanel Spacing="3" IsVisible="{Binding WalletInfoHasPassphrase}">
+                        <TextBlock Text="{Binding Loc[walletinfo.passphrase]}" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"/>
+                        <TextBlock Text="{Binding Loc[walletinfo.passphrase.set]}"
+                                   FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    </StackPanel>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="{DynamicResource BorderSubtleBrush}" Margin="0,4"/>
+
+                    <!-- Seed section -->
+                    <TextBlock Text="{Binding Loc[walletinfo.seed.section]}"
+                               FontSize="13" FontWeight="SemiBold"/>
+
+                    <!-- No seed wallet -->
+                    <TextBlock IsVisible="{Binding !WalletInfoHasSeed}"
+                               Text="{Binding Loc[walletinfo.seed.noseed]}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               FontSize="12" TextWrapping="Wrap"/>
+
+                    <!-- Seed wallet: needs password -->
+                    <StackPanel IsVisible="{Binding WalletInfoHasSeed}" Spacing="10">
+
+                        <!-- Not yet revealed + password needed -->
+                        <StackPanel IsVisible="{Binding WalletInfoSeedNeedsPassword}" Spacing="8">
+                            <StackPanel IsVisible="{Binding !IsWalletInfoSeedRevealed}" Spacing="8">
+                                <TextBlock Text="{Binding Loc[walletinfo.seed.password]}"
+                                           FontSize="12" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                <TextBox Text="{Binding WalletInfoSeedPasswordInput}"
+                                         PasswordChar="●"
+                                         PlaceholderText="{Binding Loc[wiz.open.placeholder]}"/>
+                                <TextBlock Text="{Binding WalletInfoSeedError}"
+                                           Foreground="{DynamicResource DangerBrush}" FontSize="12"
+                                           IsVisible="{Binding WalletInfoSeedError,
+                                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                <Button Content="{Binding Loc[walletinfo.seed.reveal]}"
+                                        Command="{Binding RevealSeedCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Not yet revealed + no password needed -->
+                        <Button IsVisible="{Binding !WalletInfoSeedNeedsPassword}"
+                                Content="{Binding Loc[walletinfo.seed.reveal]}"
+                                Command="{Binding RevealSeedCommand}"
+                                IsEnabled="{Binding !IsWalletInfoSeedRevealed}"/>
+
+                        <!-- Revealed seed -->
+                        <StackPanel IsVisible="{Binding IsWalletInfoSeedRevealed}" Spacing="8">
+                            <Border BorderBrush="{DynamicResource DangerBrush}" BorderThickness="1"
+                                    CornerRadius="6" Padding="14"
+                                    Background="{DynamicResource SurfaceAltBrush}">
+                                <SelectableTextBlock Text="{Binding WalletInfoSeedText}"
+                                                     FontFamily="monospace" FontSize="15"
+                                                     TextWrapping="Wrap"/>
+                            </Border>
+                            <TextBlock Text="{Binding Loc[walletinfo.seed.warning]}"
+                                       Foreground="{DynamicResource DangerBrush}"
+                                       FontSize="12" TextWrapping="Wrap"/>
+                            <Button Content="{Binding Loc[walletinfo.seed.hide]}"
+                                    Command="{Binding HideSeedCommand}"/>
+                        </StackPanel>
+
+                    </StackPanel>
+
+                    <Button Content="{Binding Loc[addr.close]}"
+                            HorizontalAlignment="Right"
+                            Command="{Binding CloseWalletInfoCommand}"/>
                 </StackPanel>
                 </ScrollViewer>
             </Border>

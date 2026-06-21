@@ -126,6 +126,13 @@ public partial class MainView : UserControl
             vm.IsServerSettingsOpen = true;
     }
 
+    private void OnWalletInfoOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.CloseWalletInfoCommand.Execute(null);
+    }
+
     private void OnSettingsOverlayBackdropTapped(object? sender, TappedEventArgs e)
     {
         if (!ReferenceEquals(e.Source, sender)) return;
@@ -146,8 +153,10 @@ public partial class MainView : UserControl
         if ((e.Key == Key.Escape || e.Key == Key.Back) && DataContext is MainWindowViewModel vm)
         {
             if (vm.IsTxDetailsOpen) { vm.CloseTransactionDetailsCommand.Execute(null); e.Handled = true; return; }
-            if (vm.AddressInfo is not null) { vm.AddressInfo = null; e.Handled = true; return; }
+            if (vm.IsPrivKeyPromptOpen) { vm.CancelPrivKeyPromptCommand.Execute(null); e.Handled = true; return; }
+            if (vm.AddressInfo is not null) { vm.CloseAddressInfoCommand.Execute(null); e.Handled = true; return; }
             if (vm.IsServerSettingsOpen) { vm.IsServerSettingsOpen = false; e.Handled = true; return; }
+            if (vm.IsWalletInfoOpen) { vm.CloseWalletInfoCommand.Execute(null); e.Handled = true; return; }
             if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }
             if (vm.IsHelpOpen) { vm.IsHelpOpen = false; e.Handled = true; return; }
         }
