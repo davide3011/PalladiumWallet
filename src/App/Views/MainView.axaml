@@ -1014,7 +1014,7 @@
                 IsVisible="{Binding IsTxDetailsOpen}">
             <Border Background="{DynamicResource OverlayCardBrush}"
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
-                    MaxWidth="540" MaxHeight="600" Margin="16" Padding="0"
+                    MaxWidth="660" MaxHeight="800" Margin="16" Padding="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Panel Margin="24">
 
@@ -1135,38 +1135,48 @@
                                 </Border>
 
                                 <TextBlock Classes="section" Text="{Binding Loc[tx.inputs]}"/>
-                                <Border Classes="card" Padding="14,6">
+                                <Border Classes="card" Padding="14,4">
                                     <ItemsControl ItemsSource="{Binding Inputs}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:TxIoRow">
-                                                <Grid ColumnDefinitions="160,*,Auto" Margin="0,4">
-                                                    <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                               FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"
-                                                               TextTrimming="CharacterEllipsis" Margin="0,0,8,0"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Address}"
-                                                               FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
-                                                               Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Amount}"
-                                                               FontFamily="monospace" FontFeatures="+tnum" FontSize="11" Margin="8,0,0,0"/>
-                                                </Grid>
+                                                <!-- Two-line layout: txid ref on first line, address+amount on second -->
+                                                <StackPanel Margin="0,6,0,4">
+                                                    <SelectableTextBlock Text="{Binding Position}"
+                                                                         FontFamily="monospace" FontSize="10"
+                                                                         Foreground="{DynamicResource TextMutedBrush}"
+                                                                         TextWrapping="Wrap"/>
+                                                    <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+                                                        <SelectableTextBlock Grid.Column="0" Text="{Binding Address}"
+                                                                             FontFamily="monospace" FontSize="11"
+                                                                             TextWrapping="Wrap" VerticalAlignment="Top"
+                                                                             Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                        <SelectableTextBlock Grid.Column="1" Text="{Binding Amount}"
+                                                                             FontFamily="monospace" FontFeatures="+tnum" FontSize="11"
+                                                                             VerticalAlignment="Top" Margin="12,0,0,0"/>
+                                                    </Grid>
+                                                </StackPanel>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </Border>
 
                                 <TextBlock Classes="section" Text="{Binding Loc[tx.outputs]}"/>
-                                <Border Classes="card" Padding="14,6">
+                                <Border Classes="card" Padding="14,4">
                                     <ItemsControl ItemsSource="{Binding Outputs}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:TxIoRow">
-                                                <Grid ColumnDefinitions="44,*,Auto" Margin="0,4">
+                                                <Grid ColumnDefinitions="44,*,Auto" Margin="0,6">
                                                     <TextBlock Grid.Column="0" Text="{Binding Position}"
-                                                               FontFamily="monospace" FontSize="11" Foreground="{DynamicResource TextMutedBrush}"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Address}"
-                                                               FontFamily="monospace" FontSize="11" TextTrimming="CharacterEllipsis"
-                                                               Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Amount}"
-                                                               FontFamily="monospace" FontFeatures="+tnum" FontSize="11" Margin="8,0,0,0"/>
+                                                               FontFamily="monospace" FontSize="11"
+                                                               Foreground="{DynamicResource TextMutedBrush}"
+                                                               VerticalAlignment="Top"/>
+                                                    <SelectableTextBlock Grid.Column="1" Text="{Binding Address}"
+                                                                         FontFamily="monospace" FontSize="11"
+                                                                         TextWrapping="Wrap" VerticalAlignment="Top"
+                                                                         Foreground="{Binding IsMine, Converter={x:Static vm:MineColorConverter.Instance}}"/>
+                                                    <SelectableTextBlock Grid.Column="2" Text="{Binding Amount}"
+                                                                         FontFamily="monospace" FontFeatures="+tnum" FontSize="11"
+                                                                         VerticalAlignment="Top" Margin="12,0,0,0"/>
                                                 </Grid>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
@@ -1545,6 +1555,9 @@
                                                    Foreground="{DynamicResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                     <TextBlock Text="{Binding Loc[help.info]}" TextWrapping="Wrap"/>
+                                    <Button Content="{Binding Loc[help.bug.report]}"
+                                            Click="OnOpenBugReportClick"
+                                            HorizontalAlignment="Left"/>
                                     <Border BorderBrush="{DynamicResource BorderSubtleBrush}"
                                             BorderThickness="0,1,0,0" Margin="0,4,0,0"/>
                                     <StackPanel Spacing="4">

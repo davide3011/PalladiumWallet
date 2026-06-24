@@ -63,7 +63,7 @@ public sealed class TransactionDetailsViewModel
         LockTimeText = d.LockTime.ToString();
         RbfText = loc[d.RbfSignaled ? "tx.yes" : "tx.no"];
         Inputs = new ObservableCollection<TxIoRow>(d.Inputs.Select((i, n) => new TxIoRow(
-            i.IsCoinbase ? loc["tx.coinbase"] : $"{Shorten(i.PrevTxid)}:{i.PrevIndex}",
+            i.IsCoinbase ? loc["tx.coinbase"] : $"{i.PrevTxid}:{i.PrevIndex}",
             i.IsCoinbase ? loc["tx.coinbase.newcoins"] : i.Address ?? "—",
             i.AmountSats is { } a ? CoinAmount.FormatIn(a, unit) : "—",
             i.IsMine)));
@@ -108,7 +108,4 @@ public sealed class TransactionDetailsViewModel
     }
 
     private string Abs(long sats) => CoinAmount.FormatIn(Math.Abs(sats), _unit);
-
-    private static string Shorten(string txid) =>
-        txid.Length > 16 ? $"{txid[..8]}…{txid[^4..]}" : txid;
 }
