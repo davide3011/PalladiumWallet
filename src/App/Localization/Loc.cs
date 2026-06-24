@@ -62,6 +62,7 @@ public sealed class Loc
             "SPV-Wallet für die Kryptowährung Palladium (PLM)."],
         ["help.tab.info"]         = ["Info",                                                               "Info",                         "Info",                                 "Info",                                     "Info",                                     "Info"],
         ["help.tab.donate"]       = ["Dona",                                                               "Donate",                       "Donar",                                "Faire un don",                             "Doar",                                     "Spenden"],
+        ["help.bug.report"]       = ["Segnala un bug",                                                     "Report a bug",                 "Informar un error",                    "Signaler un bug",                          "Reportar um bug",                          "Fehler melden"],
         ["donate.desc"]           = [
             "Se questo wallet ti è utile, considera una piccola donazione allo sviluppatore.",
             "If you find this wallet useful, consider a small donation to the developer.",

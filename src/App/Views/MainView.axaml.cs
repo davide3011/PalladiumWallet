@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -126,6 +127,16 @@ public partial class MainView : UserControl
         if (!ReferenceEquals(e.Source, sender)) return;
         if (DataContext is MainWindowViewModel vm)
             vm.IsHelpOpen = false;
+    }
+
+    private async void OnOpenBugReportClick(object? sender, RoutedEventArgs e)
+    {
+        // TODO: replace with the final GitHub URL once the repo is on GitHub
+        // e.g. https://github.com/davide3011/PalladiumWallet/issues/new?assignees=&labels=bug&template=bug_report.yml
+        const string issueUrl = "https://santantonio.sytes.net/davide/PalladiumWallet/issues/new";
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        if (launcher is not null)
+            await launcher.LaunchUriAsync(new Uri(issueUrl));
     }
 
     // Esc (desktop) or Back (Android) closes the topmost open overlay.

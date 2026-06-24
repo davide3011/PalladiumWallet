@@ -1,0 +1,91 @@
+name: Bug Report
+description: Report a problem with Palladium Wallet
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+        Please fill in every section — incomplete reports are hard to reproduce and may be closed.
+
+  - type: input
+    id: version
+    attributes:
+      label: Wallet version
+      description: Shown in Help → Info (e.g. `1.0.0`).
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Linux
+        - Android
+    validations:
+      required: true
+
+  - type: dropdown
+    id: network
+    attributes:
+      label: Network
+      options:
+        - Mainnet
+        - Testnet
+        - Regtest
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly and concisely. What did you see? What did you expect?
+      placeholder: "When I click … the wallet shows … instead of …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps that reliably trigger the bug.
+      placeholder: |
+        1. Open the wallet
+        2. Go to …
+        3. Click …
+        4. Observe …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error messages
+      description: |
+        Paste any error dialogs, crash messages, or stack traces.
+        Leave blank if none.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate
+          required: true
+        - label: I reproduced this on the latest available version
+          required: false
