@@ -131,9 +131,7 @@ public partial class MainView : UserControl
 
     private async void OnOpenBugReportClick(object? sender, RoutedEventArgs e)
     {
-        // TODO: replace with the final GitHub URL once the repo is on GitHub
-        // e.g. https://github.com/davide3011/PalladiumWallet/issues/new?assignees=&labels=bug&template=bug_report.yml
-        const string issueUrl = "https://santantonio.sytes.net/davide/PalladiumWallet/issues/new";
+        const string issueUrl = "https://github.com/davide3011/PalladiumWallet/issues/new?template=bug_report.yml";
         var launcher = TopLevel.GetTopLevel(this)?.Launcher;
         if (launcher is not null)
             await launcher.LaunchUriAsync(new Uri(issueUrl));

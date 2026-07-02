@@ -28,17 +28,6 @@ body:
     validations:
       required: true
 
-  - type: dropdown
-    id: network
-    attributes:
-      label: Network
-      options:
-        - Mainnet
-        - Testnet
-        - Regtest
-    validations:
-      required: true
-
   - type: textarea
     id: description
     attributes:
