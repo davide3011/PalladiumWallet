@@ -26,6 +26,8 @@ public static class ChainProfiles
         ExplorerUrl = "https://explorer.palladium-coin.com/",
         SkipPowValidation = true,
         BlockTimeSeconds = 120,
+        CoinbaseMaturity = 120,
+        MinConfirmations = 6,
         ExtKeyHeaders = new Dictionary<ScriptKind, ExtKeyHeaders>
         {
             [ScriptKind.Legacy] = new(0x0488ade4, 0x0488b21e),                // xprv / xpub
@@ -53,6 +55,7 @@ public static class ChainProfiles
     {
         Kind = NetKind.Testnet,
         NetName = "testnet",
+        MinConfirmations = 1,
         WifPrefix = 0xff,
         AddrP2pkh = 127,
         AddrP2sh = 115,

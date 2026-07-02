@@ -73,7 +73,7 @@ public partial class MainWindowViewModel
 
             _pendingSend = new TransactionFactory(_account).Build(
                 _doc.Cache.Utxos, _lastTransactions, destination, amount, feeRate,
-                _doc.Cache.NextChangeIndex, SendAll);
+                _doc.Cache.NextChangeIndex, _doc.Cache.TipHeight, SendAll);
 
             SendPreview = $"txid {_pendingSend.Txid[..16]}… · " +
                 $"fee {Fmt(_pendingSend.Fee.Satoshi)} " +

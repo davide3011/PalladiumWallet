@@ -225,6 +225,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                     IsChange      = addr.IsChange,
                     AddressIndex  = addr.Index,
                     Height        = txHeights[txid],
+                    IsCoinbase    = tx.IsCoinBase,
                 });
             }
         }

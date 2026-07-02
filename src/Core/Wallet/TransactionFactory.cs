@@ -40,6 +40,7 @@ public sealed class TransactionFactory(IWalletAccount account)
     /// <param name="amountSats">Amount; ignored when <paramref name="sendAll"/> is true.</param>
     /// <param name="feeRateSatPerVByte">Fixed fee rate in sat/vByte (§6.4).</param>
     /// <param name="changeIndex">Index of the next change address (internal chain).</param>
+    /// <param name="tipHeight">Current chain tip height, used to enforce confirmation thresholds.</param>
     /// <param name="sendAll">Send all: fee subtracted from the amount (§6.1).</param>
     public BuiltTransaction Build(
         IReadOnlyList<CachedUtxo> utxos,
@@ -48,16 +49,52 @@ public sealed class TransactionFactory(IWalletAccount account)
         long amountSats,
         decimal feeRateSatPerVByte,
         int changeIndex,
+        int tipHeight,
         bool sendAll = false)
     {
-        // Only confirmed UTXOs are spent: mempool funds appear in the "pending"
-        // balance but are not spendable until confirmed.
-        var spendable = utxos.Where(u => !u.Frozen && u.Height > 0).ToList();
+        var coinbaseMaturity = account.Profile.CoinbaseMaturity;
+        var minConf = account.Profile.MinConfirmations;
+
+        // A UTXO is spendable when it has enough confirmations:
+        //   - coinbase: COINBASE_MATURITY + 1 confirmations (matches the Qt wallet: the consensus
+        //     rule is nSpendHeight - nHeight >= 120, so at the current tip a TX can be mined in
+        //     the next block when tipHeight - height + 1 >= 121)
+        //   - regular: MinConfirmations (wallet policy, no consensus rule)
+        int coinbaseThreshold = coinbaseMaturity + 1;
+        var spendable = utxos.Where(u =>
+            !u.Frozen &&
+            u.Height > 0 &&
+            (tipHeight - u.Height + 1) >= (u.IsCoinbase ? coinbaseThreshold : minConf)
+        ).ToList();
+
         if (spendable.Count == 0)
         {
-            var pending = utxos.Where(u => !u.Frozen && u.Height <= 0).Sum(u => u.ValueSats);
-            throw new WalletSpendException(pending > 0
-                ? $"No confirmed funds: {CoinAmount.Format(pending)} pending confirmation (not spendable)."
+            var reasons = new System.Text.StringBuilder();
+
+            var mempool = utxos.Where(u => !u.Frozen && u.Height <= 0).ToList();
+            if (mempool.Count > 0)
+                reasons.Append($"{mempool.Count} output(s) unconfirmed ({CoinAmount.Format(mempool.Sum(u => u.ValueSats))} in mempool). ");
+
+            var immature = utxos.Where(u =>
+                !u.Frozen && u.Height > 0 && u.IsCoinbase &&
+                (tipHeight - u.Height + 1) < coinbaseThreshold).ToList();
+            if (immature.Count > 0)
+            {
+                var best = immature.Max(u => tipHeight - u.Height + 1);
+                reasons.Append($"{immature.Count} coinbase output(s) not yet mature ({best}/{coinbaseThreshold} confirmations). ");
+            }
+
+            var underConf = utxos.Where(u =>
+                !u.Frozen && u.Height > 0 && !u.IsCoinbase &&
+                (tipHeight - u.Height + 1) < minConf).ToList();
+            if (underConf.Count > 0)
+            {
+                var best = underConf.Max(u => tipHeight - u.Height + 1);
+                reasons.Append($"{underConf.Count} output(s) need {minConf} confirmations ({best} so far). ");
+            }
+
+            throw new WalletSpendException(reasons.Length > 0
+                ? $"No spendable UTXOs: {reasons.ToString().TrimEnd()}"
                 : "No spendable UTXOs selected.");
         }
 

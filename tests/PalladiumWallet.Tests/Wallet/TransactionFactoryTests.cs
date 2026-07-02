@@ -48,7 +48,7 @@ public class TransactionFactoryTests
 
         var built = new TransactionFactory(account).Build(
             utxos, txs, destination, amountSats: 400_000,
-            feeRateSatPerVByte: 2, changeIndex: 0);
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100);
 
         Assert.True(built.Signed);
         // Output: recipient + change.
@@ -74,7 +74,7 @@ public class TransactionFactoryTests
 
         var built = new TransactionFactory(account).Build(
             utxos, txs, destination, amountSats: 0,
-            feeRateSatPerVByte: 1, changeIndex: 0, sendAll: true);
+            feeRateSatPerVByte: 1, changeIndex: 0, tipHeight: 100, sendAll: true);
 
         var output = Assert.Single(built.Transaction.Outputs);
         Assert.Equal(500_000, output.Value.Satoshi + built.Fee.Satoshi);
@@ -88,7 +88,7 @@ public class TransactionFactoryTests
 
         Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
             utxos, txs, account.GetReceiveAddress(1), amountSats: 900_000,
-            feeRateSatPerVByte: 2, changeIndex: 0));
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100));
     }
 
     [Fact]
@@ -100,8 +100,8 @@ public class TransactionFactoryTests
 
         var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
             utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
-            feeRateSatPerVByte: 2, changeIndex: 0));
-        Assert.Contains("pending confirmation", ex.Message);
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100));
+        Assert.Contains("unconfirmed", ex.Message);
     }
 
     [Fact]
@@ -113,7 +113,62 @@ public class TransactionFactoryTests
 
         Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
             utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
-            feeRateSatPerVByte: 2, changeIndex: 0));
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100));
+    }
+
+    [Fact]
+    public void Gli_utxo_coinbase_immaturi_non_sono_spendibili()
+    {
+        var account = Account();
+        var (utxos, txs) = Fund(account, 1_000_000);
+        utxos[0].IsCoinbase = true;
+        utxos[0].Height = 100;
+        // Threshold = COINBASE_MATURITY + 1 = 121 (mirrors the Qt wallet: consensus rule is
+        // nSpendHeight - nHeight >= 120, plus one block of safety margin).
+        // At height=100, tip=219 → confs = 219-100+1 = 120 < 121 → immature.
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 219));
+        Assert.Contains("coinbase", ex.Message);
+        Assert.Contains("120/121", ex.Message);
+
+        // tip=220 → confs = 121 ≥ 121 → mature and spendable.
+        var built = new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(1), amountSats: 100_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 220);
+        Assert.True(built.Signed);
+    }
+
+    [Fact]
+    public void Gli_utxo_con_meno_di_minconf_non_sono_spendibili_su_mainnet()
+    {
+        var mainnetAccount = HdAccount.FromMnemonic(
+            Bip39.TryParse("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about", out var m) ? m! : throw new Exception(),
+            null, ScriptKind.NativeSegwit, ChainProfiles.Mainnet);
+
+        var funding = PalladiumNetworks.Mainnet.CreateTransaction();
+        funding.Inputs.Add(new TxIn(new OutPoint(uint256.One, 0)));
+        funding.Outputs.Add(Money.Satoshis(1_000_000), mainnetAccount.GetReceiveAddress(0));
+        var txid = funding.GetHash().ToString();
+        var utxos = new List<CachedUtxo>
+        {
+            new() { Txid = txid, Vout = 0, ValueSats = 1_000_000,
+                    Address = mainnetAccount.GetReceiveAddress(0).ToString(),
+                    IsChange = false, AddressIndex = 0, Height = 100, IsCoinbase = false },
+        };
+        var txs = new Dictionary<string, Transaction> { [txid] = funding };
+
+        // 5 confirmations (tipHeight=104): below the mainnet minimum of 6.
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(mainnetAccount).Build(
+            utxos, txs, mainnetAccount.GetReceiveAddress(1), amountSats: 100_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 104));
+        Assert.Contains("5 so far", ex.Message);
+
+        // 6 confirmations (tipHeight=105): exactly at the threshold → spendable.
+        var built = new TransactionFactory(mainnetAccount).Build(
+            utxos, txs, mainnetAccount.GetReceiveAddress(1), amountSats: 100_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 105);
+        Assert.True(built.Signed);
     }
 
     [Fact]
@@ -127,7 +182,7 @@ public class TransactionFactoryTests
 
         var built = new TransactionFactory(watchOnly).Build(
             utxos, txs, full.GetReceiveAddress(5), amountSats: 400_000,
-            feeRateSatPerVByte: 2, changeIndex: 0);
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100);
 
         Assert.False(built.Signed);
         // Air-gapped flow (§6.5): the online-machine PSBT is signed

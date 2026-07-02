@@ -126,6 +126,12 @@ public sealed record ChainProfile
     /// <summary>Target block time in seconds (LWMA v2: 120s).</summary>
     public required int BlockTimeSeconds { get; init; }
 
+    /// <summary>Blocks a coinbase output must wait before it can be spent.</summary>
+    public required int CoinbaseMaturity { get; init; }
+
+    /// <summary>Minimum confirmations required for a regular UTXO to be spendable.</summary>
+    public required int MinConfirmations { get; init; }
+
     /// <summary>BIP32/SLIP-132 headers for each script type.</summary>
     public required IReadOnlyDictionary<ScriptKind, ExtKeyHeaders> ExtKeyHeaders { get; init; }
 

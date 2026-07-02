@@ -150,5 +150,6 @@ public sealed class CachedUtxo
     public bool IsChange { get; set; }
     public int AddressIndex { get; set; }
     public int Height { get; set; }
+    public bool IsCoinbase { get; set; }
     public bool Frozen { get; set; }
 }

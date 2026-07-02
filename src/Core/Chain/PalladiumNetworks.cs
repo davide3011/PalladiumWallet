@@ -114,7 +114,7 @@ public static class PalladiumNetworks
                 MajorityRejectBlockOutdated = 950,
                 MajorityWindow = 1000,
                 MinimumChainWork = uint256.Zero,
-                CoinbaseMaturity = 100,
+                CoinbaseMaturity = 120,
                 SupportSegwit = true,
                 SupportTaproot = true,
                 ConsensusFactory = new ConsensusFactory(),

@@ -193,7 +193,7 @@ static async Task<int> Send(string[] o)
 
     var built = new TransactionFactory(account).Build(
         doc.Cache.Utxos, transactions, destination, amount, feeRate,
-        doc.Cache.NextChangeIndex, sendAll);
+        doc.Cache.NextChangeIndex, doc.Cache.TipHeight, sendAll);
 
     Console.WriteLine($"txid:  {built.Txid}");
     Console.WriteLine($"fee:   {CoinAmount.Format(built.Fee.Satoshi, account.Profile.CoinUnit)} " +

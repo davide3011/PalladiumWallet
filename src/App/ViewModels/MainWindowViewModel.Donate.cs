@@ -49,7 +49,7 @@ public partial class MainWindowViewModel
 
             _pendingDonate = new TransactionFactory(_account).Build(
                 _doc.Cache.Utxos, _lastTransactions, destination, amount, feeRate,
-                _doc.Cache.NextChangeIndex, sendAll: false);
+                _doc.Cache.NextChangeIndex, _doc.Cache.TipHeight, sendAll: false);
 
             DonatePreview = $"txid {_pendingDonate.Txid[..16]}… · " +
                 $"fee {Fmt(_pendingDonate.Fee.Satoshi)} " +
