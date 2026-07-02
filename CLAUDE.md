@@ -84,3 +84,4 @@ Note: a plain `dotnet build` at the solution level needs the Android SDK path fo
 
 - **Cross-implementation tests:** compare addresses, txids, and PSBTs against a reference wallet (golden vectors). A different address or txid is a blocking bug.
 - **Security:** seed and private keys never in plaintext on disk/logs/network; every server response validated with Merkle + checkpoints; watch-only truly read-only.
+- **Releases:** whenever a new version tag is created (bumping `<Version>` in `src/App/PalladiumWallet.App.csproj`), update `CHANGELOG.md` with an entry for that version before/with the tag — it's the technical record of what shipped, not optional bookkeeping.

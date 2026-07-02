@@ -218,8 +218,11 @@ The ABI restriction uses the `AbiArm64Only` flag, which is scoped to the Android
 command line, it leaks to the `net10.0` projects (`Core`/`App`) and breaks the build. (The legacy
 `AndroidSupportedAbis` property is deprecated and ignored.)
 
-(Set `ANDROID_HOME` to skip the `-p:AndroidSdkDirectory` flag.) Release signing with your own
-keystore is not set up yet; the debug apk is fine for personal sideloading.
+(Set `ANDROID_HOME` to skip the `-p:AndroidSdkDirectory` flag.) This debug apk is fine for personal
+sideloading, but debug builds are signed with a key regenerated per build machine/container, so a
+newer debug apk won't install over an older one without an uninstall first. For a stable signature
+across releases (needed to update an existing install in place), build via
+`./docker/build.sh android` instead — see [docker/keystore/README.md](docker/keystore/README.md).
 
 > **Verification status.** The default multi-ABI apk is verified running on the x86_64 emulator
 > (UI renders, connects to a server over TLS). The arm64-only apk builds correctly (41 MB,
@@ -331,6 +334,10 @@ dotnet run --project src/Cli -- send     --to ADDRESS (--amount X | --all) [--fe
 The default wallet file is `~/.palladium-wallet/<network>/wallets/default.wallet.json` (override with `--file`).
 
 ---
+
+## Changelog
+
+Technical, per-version changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
