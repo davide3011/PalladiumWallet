@@ -22,7 +22,7 @@ It does **not** protect against:
 This wallet is an SPV client, not a full node. It validates:
 
 - Block headers (proof of work checked up to the last checkpoint; `SkipPowValidation` is enabled because LWMA difficulty cannot be recomputed client-side — trust is anchored to hardcoded checkpoints in `Core/Chain/ChainProfiles.cs`)
-- Transaction inclusion in a confirmed block (Merkle branch proof, mandatory for every confirmed transaction — see `Core/Spv/MerkleVerifier.cs`)
+- Transaction inclusion in a confirmed block (Merkle branch proof, mandatory for every confirmed transaction — see `Core/Spv/MerkleProof.cs`)
 
 It does **not** validate:
 
