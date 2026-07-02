@@ -1638,5 +1638,34 @@
                 </StackPanel>
             </Border>
         </Border>
+
+        <!-- ============ UPDATE AVAILABLE OVERLAY ============ -->
+        <!-- Same pattern as the help overlay: instant open/close. -->
+        <Border Grid.Row="0" Grid.RowSpan="3"
+                Background="{DynamicResource ScrimBrush}"
+                Tapped="OnUpdateAvailableOverlayBackdropTapped"
+                IsVisible="{Binding IsUpdateAvailableOpen}">
+            <Border Background="{DynamicResource OverlayCardBrush}"
+                    BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
+                    MaxWidth="440" Margin="16"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="24" Spacing="16">
+                    <TextBlock Text="{Binding Loc[update.title]}"
+                               FontSize="18" FontWeight="Bold"/>
+                    <TextBlock TextWrapping="Wrap">
+                        <Run Text="{Binding Loc[update.message]}"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding UpdateAvailableTag}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Content="{Binding Loc[update.download]}"
+                                Classes="accent"
+                                Click="OnOpenReleasePageClick"/>
+                        <Button Content="{Binding Loc[update.dismiss]}"
+                                Command="{Binding CloseUpdateAvailableCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </UserControl>

@@ -158,6 +158,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _keepAliveTimer = new DispatcherTimer { Interval = System.TimeSpan.FromSeconds(20) };
         _keepAliveTimer.Tick += async (_, _) => await KeepAliveTickAsync();
         _keepAliveTimer.Start();
+        _ = CheckForUpdatesAsync();
     }
 
     private async System.Threading.Tasks.Task KeepAliveTickAsync()

@@ -129,12 +129,28 @@ public partial class MainView : UserControl
             vm.IsHelpOpen = false;
     }
 
+    private void OnUpdateAvailableOverlayBackdropTapped(object? sender, TappedEventArgs e)
+    {
+        if (!ReferenceEquals(e.Source, sender)) return;
+        if (DataContext is MainWindowViewModel vm)
+            vm.IsUpdateAvailableOpen = false;
+    }
+
     private async void OnOpenBugReportClick(object? sender, RoutedEventArgs e)
     {
         const string issueUrl = "https://github.com/davide3011/PalladiumWallet/issues/new?template=bug_report.yml";
         var launcher = TopLevel.GetTopLevel(this)?.Launcher;
         if (launcher is not null)
             await launcher.LaunchUriAsync(new Uri(issueUrl));
+    }
+
+    private async void OnOpenReleasePageClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || string.IsNullOrEmpty(vm.UpdateReleaseUrl)) return;
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        if (launcher is not null)
+            await launcher.LaunchUriAsync(new Uri(vm.UpdateReleaseUrl));
+        vm.IsUpdateAvailableOpen = false;
     }
 
     // Esc (desktop) or Back (Android) closes the topmost open overlay.
@@ -149,6 +165,7 @@ public partial class MainView : UserControl
             if (vm.IsWalletInfoOpen) { vm.CloseWalletInfoCommand.Execute(null); e.Handled = true; return; }
             if (vm.IsSettingsOpen) { vm.IsSettingsOpen = false; e.Handled = true; return; }
             if (vm.IsHelpOpen) { vm.IsHelpOpen = false; e.Handled = true; return; }
+            if (vm.IsUpdateAvailableOpen) { vm.IsUpdateAvailableOpen = false; e.Handled = true; return; }
         }
         base.OnKeyDown(e);
     }
