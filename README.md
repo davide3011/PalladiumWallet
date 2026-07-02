@@ -139,9 +139,34 @@ Run only the tests in one project:
 dotnet test tests/PalladiumWallet.Tests
 ```
 
+Measure code coverage (the [coverlet](https://github.com/coverlet-coverage/coverlet) collector is already referenced; the report is a Cobertura XML under `TestResults/`):
+```bash
+dotnet test tests/PalladiumWallet.Tests --collect:"XPlat Code Coverage"
+```
+
 > Cross-implementation tests compare addresses, txids and PSBTs against reference golden vectors: a different address or txid is a blocking bug.
 
-The suite includes **property-based tests** ([CsCheck](https://github.com/AnthonyLloyd/CsCheck)) in `tests/PalladiumWallet.Tests/PropertyTests.cs`. These generate hundreds of random inputs per test and verify invariants that must hold universally — no crash on arbitrary strings, encrypt/decrypt roundtrip for any plaintext and password, every leaf in a randomly-built Merkle tree verifies against its root. They run automatically with `dotnet test` and take ~30 s.
+### What the suite covers
+
+The tests mirror the `Core` layout (`tests/PalladiumWallet.Tests/<area>/`):
+
+| Area | What is verified |
+|---|---|
+| `Chain/` | Network profiles (prefixes, ports, coin type 746, SLIP-132 headers), NBitcoin network registration |
+| `Crypto/` | BIP39 (official Trezor vectors, NFKD normalisation), BIP32/44/49/84/86 derivation against public golden vectors, SLIP-132 encode/decode, HD and imported-key accounts, watch-only isolation |
+| `Spv/` | Scripthash (vectors computed independently in Python), Merkle proofs (Bitcoin block 100000 + random trees), header parsing, and the full **`WalletSynchronizer`**: gap-limit scanning, UTXO/history reconstruction, unconfirmed/immature balances, busy-retry, disk-cache reuse — including the path where a lying server fails Merkle verification and the sync must abort |
+| `Net/` | JSON-RPC transport (pipelining, error mapping, notifications, disconnection, cancellation), typed protocol wrappers, peer discovery/persistence, TLS trust-on-first-use pinning end-to-end (pin, match, mismatch, reset), release-tag parsing |
+| `Storage/` | AES-GCM encryption (roundtrip, tampering, fresh salt/nonce), wallet document schema/versioning, atomic saves, single-instance lock, data paths |
+| `Wallet/` | Transaction building and signing (spendability rules, coinbase maturity, dust change, multi-UTXO selection, all standard destination types, watch-only PSBT flow, a golden txid for the PSBT signing path), transaction detail assembly (fees, mine/theirs attribution, RBF, coinbase), amount parsing/formatting |
+
+Network-facing code is tested against an **in-process fake ElectrumX server**
+(`tests/PalladiumWallet.Tests/Net/FakeElectrumServer.cs`): a real loopback TCP
+socket speaking newline-delimited JSON-RPC (optionally TLS with a self-signed
+certificate), with per-method handlers and call counters. Client, synchroniser
+and inspector therefore exercise the same code paths used in production —
+framing, retries, TLS pinning included — without any external dependency.
+
+The suite also includes **property-based tests** ([CsCheck](https://github.com/AnthonyLloyd/CsCheck)) in `tests/PalladiumWallet.Tests/PropertyTests.cs`. These generate hundreds of random inputs per test and verify invariants that must hold universally — no crash on arbitrary strings, encrypt/decrypt roundtrip for any plaintext and password, SLIP-132 key roundtrip for every script kind and network, every leaf in a randomly-built Merkle tree verifies against its root. They run automatically with `dotnet test` and take ~30 s.
 
 ---
 

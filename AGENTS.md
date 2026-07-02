@@ -29,6 +29,7 @@ src/App/          shared Avalonia UI library (App, Views, ViewModels, Loc, Asset
 src/App.Desktop/  desktop head (WinExe): Program.cs, app.manifest, .ico -> runnable
 src/App.Android/  Android head (net10.0-android): MainApplication/MainActivity -> apk
 src/Cli/          CLI on the same Core            tests/   xUnit
+docker/           reproducible release builds (build.sh + pinned Dockerfiles) -> dist/
 ```
 
 The Avalonia UI lives **once** in `src/App` (a library); the two heads only carry the
@@ -43,11 +44,12 @@ by `MainWindow` on desktop and as the single-view root on Android.
 `export PATH="$HOME/.dotnet10:$PATH" DOTNET_ROOT="$HOME/.dotnet10"`.
 
 - Build: `dotnet build`
-- Tests (headless, the primary verification layer): `dotnet test` -- single: `dotnet test --filter "FullyQualifiedName~TestName"`; property-based tests (CsCheck, `PropertyTests.cs`) run in the same command and take ~30 s
+- Tests (headless, the primary verification layer): `dotnet test` -- single: `dotnet test --filter "FullyQualifiedName~TestName"`; property-based tests (CsCheck, `PropertyTests.cs`) run in the same command and take ~30 s; coverage: `dotnet test tests/PalladiumWallet.Tests --collect:"XPlat Code Coverage"` (coverlet, Cobertura XML). Network/SPV code (`ElectrumClient`, `WalletSynchronizer`, `TransactionInspector`, TOFU pinning) is tested against the in-process fake ElectrumX server in `tests/PalladiumWallet.Tests/Net/FakeElectrumServer.cs` (loopback TCP + optional TLS, per-method handlers, call counters): extend that, don't mock the client -- it isn't an interface, by design.
 - GUI hot reload: `dotnet watch --project src/App.Desktop` (on WSL2/WSLg the window shows on the Windows desktop, no graphics dependencies to install)
 - CLI: `dotnet run --project src/Cli -- <command>` (no args -> usage)
-- Windows publish: `dotnet publish src/App.Desktop -r win-x64 -p:PublishSingleFile=true --self-contained`
-- Linux publish: `dotnet publish src/App.Desktop -r linux-x64 --self-contained` (then AppImage via PupNet Deploy)
+- **Release binaries (all 3 targets): `./docker/build.sh [windows|linux|android|all]`** -- reproducible builds in Docker (toolchain pinned in `docker/Dockerfile.*`, no SDK needed on host), artifacts in `dist/`, version taken from the App csproj. See `docker/README.md`. Gotchas already encoded there: single-file desktop publishes need `-p:IncludeNativeLibrariesForSelfExtract=true` (without it Avalonia's native libs -- Skia/HarfBuzz/ANGLE -- stay outside the exe, which then silently fails to start); the android workload dictates the SDK API level (error XA5207 -> bump `ANDROID_SDK_PLATFORM` in `Dockerfile.android`). Android release builds need a persistent signing keystore, generated once with `docker/keystore/generate-keystore.sh` (never committed -- see `docker/keystore/README.md`): without it every build gets a different random signature and users must uninstall the old app to receive an update instead of updating in place.
+- Manual Windows publish: `dotnet publish src/App.Desktop -r win-x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --self-contained`
+- Manual Linux publish: same with `-r linux-x64` (single-file binary; AppImage via PupNet Deploy is a future step, no pupnet.conf yet)
 
 **Android (apk).** Needs the `android` workload (`dotnet workload install android`), a JDK
 (`JAVA_HOME`), and the Android SDK. To provision the SDK once:
@@ -82,3 +84,4 @@ Note: a plain `dotnet build` at the solution level needs the Android SDK path fo
 
 - **Cross-implementation tests:** compare addresses, txids, and PSBTs against a reference wallet (golden vectors). A different address or txid is a blocking bug.
 - **Security:** seed and private keys never in plaintext on disk/logs/network; every server response validated with Merkle + checkpoints; watch-only truly read-only.
+- **Releases:** whenever a new version tag is created (bumping `<Version>` in `src/App/PalladiumWallet.App.csproj`), update `CHANGELOG.md` with an entry for that version before/with the tag -- it's the technical record of what shipped, not optional bookkeeping.
