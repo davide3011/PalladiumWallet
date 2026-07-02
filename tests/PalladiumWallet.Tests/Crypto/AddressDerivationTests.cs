@@ -20,7 +20,7 @@ public class AddressDerivationTests
         // Known abandon-about address at m/44'/0'/0'/0/0 (public reference).
         var account = HdAccount.FromSeed(AbandonAboutSeed(), ScriptKind.Legacy,
             ChainProfiles.Mainnet, new KeyPath("44'/0'/0'"));
-        var pubKey = account.GetPublicKey(isChange: false, 0);
+        var pubKey = account.GetPublicKey(isChange: false, 0)!;
 
         var bitcoinAddr = pubKey.GetAddress(ScriptPubKeyType.Legacy, Network.Main);
         Assert.Equal("1LqBGSKuX5yYUonjxT5qGfpUsXKYYWeabA", bitcoinAddr.ToString());
@@ -37,7 +37,7 @@ public class AddressDerivationTests
     {
         var account = HdAccount.FromSeed(AbandonAboutSeed(), ScriptKind.WrappedSegwit,
             ChainProfiles.Mainnet, new KeyPath("49'/0'/0'"));
-        var pubKey = account.GetPublicKey(isChange: false, 0);
+        var pubKey = account.GetPublicKey(isChange: false, 0)!;
 
         var bitcoinAddr = pubKey.GetAddress(ScriptPubKeyType.SegwitP2SH, Network.Main);
         Assert.Equal("37VucYSaXLCAsxYyAPfbSi9eh4iEcbShgf", bitcoinAddr.ToString());

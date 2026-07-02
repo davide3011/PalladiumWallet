@@ -28,8 +28,8 @@ public class WalletLoaderTests
         Assert.Equal("NativeSegwit", doc.ScriptKind);
         Assert.Equal(ValidMnemonic, doc.Mnemonic);
         Assert.Null(doc.Passphrase);
-        Assert.NotEmpty(doc.AccountXpub);
-        Assert.NotEmpty(doc.MasterFingerprint);
+        Assert.NotEmpty(doc.AccountXpub!);
+        Assert.NotEmpty(doc.MasterFingerprint!);
         Assert.False(doc.IsWatchOnly);
     }
 
@@ -66,7 +66,7 @@ public class WalletLoaderTests
         var (doc, _) = WalletLoader.NewFromMnemonic(
             ValidMnemonic24, null, ScriptKind.NativeSegwit, ChainProfiles.Mainnet);
         Assert.Equal("mainnet", doc.Network);
-        Assert.NotEmpty(doc.AccountXpub);
+        Assert.NotEmpty(doc.AccountXpub!);
     }
 
     [Fact]

@@ -83,7 +83,7 @@ public class Bip84Slip132Tests
         bool isChange, int index, string? expectedPubKeyHex, string bitcoinAddress)
     {
         var account = Account();
-        var pubKey = account.GetPublicKey(isChange, index);
+        var pubKey = account.GetPublicKey(isChange, index)!;
 
         if (expectedPubKeyHex is not null)
             Assert.Equal(expectedPubKeyHex, pubKey.ToHex());

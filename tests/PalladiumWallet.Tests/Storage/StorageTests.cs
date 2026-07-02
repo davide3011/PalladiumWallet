@@ -77,6 +77,31 @@ public class StorageTests
         Assert.False(EncryptedFile.IsEncrypted("non è json"));
     }
 
+    // Regression: valid JSON whose root is not an object (found by the
+    // property test) must not throw from TryGetProperty.
+    [Theory]
+    [InlineData("5")]
+    [InlineData("true")]
+    [InlineData("\"stringa\"")]
+    [InlineData("[1, 2]")]
+    public void IsEncrypted_restituisce_false_per_json_con_radice_non_oggetto(string content)
+    {
+        Assert.False(EncryptedFile.IsEncrypted(content));
+    }
+
+    [Fact]
+    public void IsEncrypted_restituisce_false_per_utf16_invalido()
+    {
+        // Lone surrogate: cannot be transcoded to UTF-8 for JSON parsing.
+        Assert.False(EncryptedFile.IsEncrypted("\ud800"));
+    }
+
+    [Fact]
+    public void IsEncrypted_restituisce_false_se_Format_non_e_una_stringa()
+    {
+        Assert.False(EncryptedFile.IsEncrypted("{\"Format\": 42}"));
+    }
+
     // ---- WalletDocument JSON ----
 
     [Fact]

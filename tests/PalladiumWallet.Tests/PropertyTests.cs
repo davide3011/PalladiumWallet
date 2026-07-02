@@ -182,6 +182,121 @@ public class PropertyTests
         });
     }
 
+    // ── Scripthash ────────────────────────────────────────────────────────────
+
+    /// The scripthash must equal an independent SHA-256-and-reverse computation
+    /// for any script bytes (cross-check, not a re-run of the same code).
+    [Fact]
+    public void Scripthash_coincide_con_il_calcolo_indipendente_per_ogni_script()
+    {
+        Gen.Byte.Array[0, 64].Sample(bytes =>
+        {
+            var expected = System.Security.Cryptography.SHA256.HashData(bytes);
+            Array.Reverse(expected);
+            Assert.Equal(
+                Convert.ToHexString(expected).ToLowerInvariant(),
+                Core.Spv.Scripthash.FromScript(Script.FromBytesUnsafe(bytes)));
+        });
+    }
+
+    // ── Slip132 ───────────────────────────────────────────────────────────────
+
+    private static readonly Gen<Core.Chain.ScriptKind> GenScriptKind = Gen.OneOfConst(
+        Core.Chain.ScriptKind.Legacy,
+        Core.Chain.ScriptKind.WrappedSegwit,
+        Core.Chain.ScriptKind.NativeSegwit,
+        Core.Chain.ScriptKind.WrappedSegwitMultisig,
+        Core.Chain.ScriptKind.NativeSegwitMultisig);
+
+    private static readonly Gen<Core.Chain.ChainProfile> GenProfile = Gen.OneOfConst(
+        Core.Chain.ChainProfiles.Mainnet, Core.Chain.ChainProfiles.Testnet);
+
+    /// Encode → TryDecodePrivate must roundtrip key bytes and header family
+    /// for any key, script kind, and network.
+    [Fact]
+    public void Slip132_roundtrip_chiave_privata_per_ogni_kind_e_rete()
+    {
+        Gen.Select(Gen.Byte.Array[32, 64], GenScriptKind, GenProfile).Sample((seed, kind, profile) =>
+        {
+            var key = ExtKey.CreateFromSeed(seed);
+            var encoded = Core.Crypto.Slip132.Encode(key, kind, profile);
+
+            Assert.True(Core.Crypto.Slip132.TryDecodePrivate(encoded, profile, out var decoded, out var decodedKind));
+            Assert.Equal(key.ToBytes(), decoded!.ToBytes());
+            // Legacy and Taproot share the BIP32 header: compare header families, not enum values.
+            Assert.Equal(profile.ExtKeyHeaders[kind], profile.ExtKeyHeaders[decodedKind]);
+            // A private key must never decode as public.
+            Assert.False(Core.Crypto.Slip132.TryDecodePublic(encoded, profile, out _, out _));
+        });
+    }
+
+    /// Same roundtrip for the public (watch-only import) side.
+    [Fact]
+    public void Slip132_roundtrip_chiave_pubblica_per_ogni_kind_e_rete()
+    {
+        Gen.Select(Gen.Byte.Array[32, 64], GenScriptKind, GenProfile).Sample((seed, kind, profile) =>
+        {
+            var xpub = ExtKey.CreateFromSeed(seed).Neuter();
+            var encoded = Core.Crypto.Slip132.Encode(xpub, kind, profile);
+
+            Assert.True(Core.Crypto.Slip132.TryDecodePublic(encoded, profile, out var decoded, out var decodedKind));
+            Assert.Equal(xpub.ToBytes(), decoded!.ToBytes());
+            Assert.Equal(profile.ExtKeyHeaders[kind], profile.ExtKeyHeaders[decodedKind]);
+            Assert.False(Core.Crypto.Slip132.TryDecodePrivate(encoded, profile, out _, out _));
+        });
+    }
+
+    /// TryDecode must never throw on arbitrary input strings.
+    [Fact]
+    public void Slip132_TryDecode_non_lancia_mai_su_input_arbitrario()
+    {
+        Gen.String.Sample(text =>
+        {
+            try
+            {
+                Core.Crypto.Slip132.TryDecodePublic(text, Core.Chain.ChainProfiles.Mainnet, out _, out _);
+                Core.Crypto.Slip132.TryDecodePrivate(text, Core.Chain.ChainProfiles.Mainnet, out _, out _);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"TryDecode threw {ex.GetType().Name} for '{text}'");
+            }
+        });
+    }
+
+    // ── WalletDocument ────────────────────────────────────────────────────────
+
+    /// ToJson → FromJson must preserve labels and contacts for arbitrary strings
+    /// (unicode, quotes, control characters…).
+    [Fact]
+    public void WalletDocument_roundtrip_json_con_etichette_e_contatti_arbitrari()
+    {
+        Gen.Select(Gen.Select(Gen.String, Gen.String).Array[0, 8], Gen.String).Sample((pairs, contactName) =>
+        {
+            // Lone UTF-16 surrogates are not representable in JSON (the writer
+            // replaces them): an exact roundtrip is impossible by design, skip.
+            if (pairs.Any(p => p.Item1.Any(char.IsSurrogate) || p.Item2.Any(char.IsSurrogate))
+                || contactName.Any(char.IsSurrogate))
+                return;
+
+            var doc = new WalletDocument
+            {
+                Network = "regtest",
+                ScriptKind = "NativeSegwit",
+                AccountPath = "84'/1'/0'",
+                AccountXpub = "vpub-test",
+                Contacts = { new StoredContact { Name = contactName, Address = "rplm1qtest" } },
+            };
+            foreach (var (k, v) in pairs)
+                doc.Labels[k] = v;
+
+            var restored = WalletDocument.FromJson(doc.ToJson());
+
+            Assert.Equal(doc.Labels, restored.Labels);
+            Assert.Equal(contactName, Assert.Single(restored.Contacts).Name);
+        });
+    }
+
     // helper: builds the branch for the given position
     private static List<uint256> BuildBranch(IReadOnlyList<uint256> leaves, int position)
     {

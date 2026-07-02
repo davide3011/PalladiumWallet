@@ -244,6 +244,104 @@ public class TransactionFactoryTests
         }
     }
 
+    [Theory]
+    [InlineData(ScriptPubKeyType.Legacy)]
+    [InlineData(ScriptPubKeyType.SegwitP2SH)]
+    [InlineData(ScriptPubKeyType.Segwit)]
+    public void Si_puo_pagare_ogni_tipo_di_indirizzo_standard(ScriptPubKeyType kind)
+    {
+        var account = Account();
+        var (utxos, txs) = Fund(account, 1_000_000);
+        var destination = new Key().PubKey.GetAddress(kind, Net);
+
+        var built = new TransactionFactory(account).Build(
+            utxos, txs, destination, amountSats: 400_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100);
+
+        Assert.True(built.Signed);
+        Assert.Contains(built.Transaction.Outputs,
+            o => o.ScriptPubKey == destination.ScriptPubKey && o.Value.Satoshi == 400_000);
+    }
+
+    [Fact]
+    public void Piu_utxo_vengono_combinati_quando_uno_solo_non_basta()
+    {
+        var account = Account();
+        var allUtxos = new List<CachedUtxo>();
+        var allTxs = new Dictionary<string, Transaction>();
+        for (var i = 0; i < 3; i++)
+        {
+            var funding = Net.CreateTransaction();
+            funding.Inputs.Add(new TxIn(new OutPoint(uint256.One, (uint)i)));
+            funding.Outputs.Add(Money.Satoshis(300_000), account.GetReceiveAddress(i));
+            var txid = funding.GetHash().ToString();
+            allTxs[txid] = funding;
+            allUtxos.Add(new CachedUtxo
+            {
+                Txid = txid, Vout = 0, ValueSats = 300_000,
+                Address = account.GetReceiveAddress(i).ToString(),
+                IsChange = false, AddressIndex = i, Height = 100,
+            });
+        }
+
+        var built = new TransactionFactory(account).Build(
+            allUtxos, allTxs, account.GetReceiveAddress(5), amountSats: 700_000,
+            feeRateSatPerVByte: 1, changeIndex: 0, tipHeight: 100);
+
+        // 700k > any pair? No: it needs all three 300k coins (600k < 700k + fee).
+        Assert.Equal(3, built.Transaction.Inputs.Count);
+        Assert.True(built.Signed);
+        Assert.Contains(built.Transaction.Outputs, o => o.Value.Satoshi == 700_000);
+    }
+
+    [Fact]
+    public void Un_resto_sotto_la_soglia_dust_viene_assorbito_nella_fee()
+    {
+        var account = Account();
+        var (utxos, txs) = Fund(account, 100_000);
+
+        // Leaves ~200 sats after the fee: below the P2WPKH dust threshold,
+        // so no change output must be created and the remainder goes to the fee.
+        var built = new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(5), amountSats: 99_650,
+            feeRateSatPerVByte: 1, changeIndex: 0, tipHeight: 100);
+
+        var output = Assert.Single(built.Transaction.Outputs);
+        Assert.Equal(99_650, output.Value.Satoshi);
+        Assert.Equal(100_000 - 99_650, built.Fee.Satoshi);
+    }
+
+    [Fact]
+    public void La_firma_di_una_tx_fissa_produce_il_txid_golden()
+    {
+        // Golden vector for the signing path (derivation → sighash → witness):
+        // the factory shuffles outputs for privacy, so the vector is anchored one
+        // level below, on a transaction with fixed structure signed through PSBT
+        // (the same flow used air-gapped, §6.5). RFC 6979 makes it deterministic:
+        // any change in this txid is a blocking regression.
+        var account = Account();
+
+        var funding = Net.CreateTransaction();
+        funding.Inputs.Add(new TxIn(new OutPoint(uint256.One, 0)));
+        funding.Outputs.Add(Money.Satoshis(1_000_000), account.GetReceiveAddress(0));
+
+        var spend = Net.CreateTransaction();
+        spend.Version = 2;
+        spend.Inputs.Add(new TxIn(new OutPoint(funding, 0)) { Sequence = 0xfffffffd });
+        spend.Outputs.Add(Money.Satoshis(600_000), account.GetReceiveAddress(5));
+        spend.Outputs.Add(Money.Satoshis(390_000), account.GetChangeAddress(0));
+
+        var psbt = PSBT.FromTransaction(spend, Net);
+        psbt.AddCoins(new Coin(funding, 0));
+        psbt.SignWithKeys(account.GetExtPrivateKey(isChange: false, 0));
+        psbt.Finalize();
+        var signed = psbt.ExtractTransaction();
+
+        Assert.Equal(
+            "a943cf6bf606fa0050e490cb76ed9313959d228fb0ffa235b7e8b7f6834610b6",
+            signed.GetHash().ToString());
+    }
+
     [Fact]
     public void Una_config_corrotta_torna_ai_default()
     {
