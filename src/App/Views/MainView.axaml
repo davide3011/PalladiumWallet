@@ -1237,6 +1237,8 @@
                     <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsDesktop}">
                         <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
                                 Command="{Binding ConnectAndSyncCommand}"/>
+                        <Button Content="{Binding Loc[wallet.discover]}"
+                                Command="{Binding DiscoverServersCommand}"/>
                         <Button Content="{Binding Loc[wallet.resetcert]}"
                                 Command="{Binding ResetCertificatesCommand}"/>
                     </StackPanel>
@@ -1244,6 +1246,9 @@
                     <StackPanel Spacing="6" IsVisible="{Binding IsMobile}">
                         <Button Content="{Binding Loc[wallet.connect]}" Classes="accent"
                                 Command="{Binding ConnectAndSyncCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                        <Button Content="{Binding Loc[wallet.discover]}"
+                                Command="{Binding DiscoverServersCommand}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
                         <Button Content="{Binding Loc[wallet.resetcert]}"
                                 Command="{Binding ResetCertificatesCommand}"

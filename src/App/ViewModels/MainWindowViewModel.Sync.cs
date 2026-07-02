@@ -345,17 +345,57 @@ public partial class MainWindowViewModel
             _ = ConnectAndSync();
     }
 
+    /// <summary>
+    /// Peer discovery. Always clickable: if the wallet is already connected, it reuses
+    /// that connection; otherwise it opens a short-lived connection to a candidate server
+    /// just to query its peer list, without touching the wallet's connection state.
+    /// </summary>
     [RelayCommand]
     private async Task DiscoverServers()
     {
-        if (_client is null || !_client.IsConnected)
+        if (_client is { IsConnected: true } connected)
         {
-            StatusMessage = Loc.Tr("conn.none") + ".";
+            await DiscoverServersUsing(connected);
+            return;
+        }
+
+        var (host, port) = ParseServer();
+        ElectrumClient? temp = null;
+        Exception? lastError = null;
+        foreach (var (h, p) in BuildServerCandidates(host, port))
+        {
+            try
+            {
+                var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
+                temp = await ElectrumClient.ConnectAsync(h, p, UseSsl, pins);
+                lastError = null;
+                break;
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+        }
+        if (temp is null)
+        {
+            StatusMessage = $"Errore nella scoperta peer: {lastError?.Message ?? Loc.Tr("conn.none")}";
             return;
         }
         try
         {
-            var added = await Registry.DiscoverAsync(_client);
+            await DiscoverServersUsing(temp);
+        }
+        finally
+        {
+            await temp.DisposeAsync();
+        }
+    }
+
+    private async Task DiscoverServersUsing(ElectrumClient client)
+    {
+        try
+        {
+            var added = await Registry.DiscoverAsync(client);
             var selected = SelectedKnownServer;
             RefreshServers();
             SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == selected?.Host)
