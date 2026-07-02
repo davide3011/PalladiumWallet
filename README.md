@@ -147,6 +147,26 @@ The suite includes **property-based tests** ([CsCheck](https://github.com/Anthon
 
 ## Building
 
+### Reproducible builds (Docker) — recommended for release binaries
+
+All three distribution targets (Windows exe, Linux binary, Android apk) can be
+built with one command inside Docker, with **no SDK installed on the host**:
+
+```bash
+./docker/build.sh          # interactive menu, or: ./docker/build.sh all
+```
+
+Why build this way: the whole toolchain is pinned in the Dockerfiles, so every
+build uses exactly the same SDK versions regardless of the host machine — no
+toolchain drift between releases — and the build environment itself is
+reviewable in the repo. For a wallet this is a trust property, not a
+convenience: anyone can rebuild the published binaries from source and check
+they were produced by the process the repository declares.
+
+See [docker/README.md](docker/README.md) for prerequisites, usage, how to run
+each produced artifact, and troubleshooting. The sections below cover manual
+builds with a locally installed SDK (the normal path during development).
+
 ### Development build
 
 ```bash
@@ -162,7 +182,10 @@ dotnet build src/App.Desktop              # desktop head only
 
 ```bash
 # Windows — single self-contained .exe (output: src/App.Desktop/bin/Release/net10.0/win-x64/publish/PalladiumWallet.exe)
-dotnet publish src/App.Desktop -c Release -r win-x64 -p:PublishSingleFile=true --self-contained
+# IncludeNativeLibrariesForSelfExtract embeds Avalonia's native libs (Skia, HarfBuzz, ANGLE):
+# without it they stay as separate DLLs and the .exe alone silently fails to start.
+dotnet publish src/App.Desktop -c Release -r win-x64 -p:PublishSingleFile=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true --self-contained
 
 # Linux — self-contained; AppImage then produced with PupNet Deploy
 # (output: src/App.Desktop/bin/Release/net10.0/linux-x64/publish/PalladiumWallet)

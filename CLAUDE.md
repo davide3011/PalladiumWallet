@@ -29,6 +29,7 @@ src/App/          shared Avalonia UI library (App, Views, ViewModels, Loc, Asset
 src/App.Desktop/  desktop head (WinExe): Program.cs, app.manifest, .ico → runnable
 src/App.Android/  Android head (net10.0-android): MainApplication/MainActivity → apk
 src/Cli/          CLI on the same Core            tests/   xUnit
+docker/           reproducible release builds (build.sh + pinned Dockerfiles) → dist/
 ```
 
 The Avalonia UI lives **once** in `src/App` (a library); the two heads only carry the
@@ -46,8 +47,9 @@ by `MainWindow` on desktop and as the single-view root on Android.
 - Tests (headless, the primary verification layer): `dotnet test` — single: `dotnet test --filter "FullyQualifiedName~TestName"`; property-based tests (CsCheck, `PropertyTests.cs`) run in the same command and take ~30 s
 - GUI hot reload: `dotnet watch --project src/App.Desktop` (on WSL2/WSLg the window shows on the Windows desktop, no graphics dependencies to install)
 - CLI: `dotnet run --project src/Cli -- <command>` (no args → usage)
-- Windows publish: `dotnet publish src/App.Desktop -r win-x64 -p:PublishSingleFile=true --self-contained`
-- Linux publish: `dotnet publish src/App.Desktop -r linux-x64 --self-contained` (then AppImage via PupNet Deploy)
+- **Release binaries (all 3 targets): `./docker/build.sh [windows|linux|android|all]`** — reproducible builds in Docker (toolchain pinned in `docker/Dockerfile.*`, no SDK needed on host), artifacts in `dist/`, version taken from the App csproj. See `docker/README.md`. Gotchas already encoded there: single-file desktop publishes need `-p:IncludeNativeLibrariesForSelfExtract=true` (without it Avalonia's native libs — Skia/HarfBuzz/ANGLE — stay outside the exe, which then silently fails to start); the android workload dictates the SDK API level (error XA5207 → bump `ANDROID_SDK_PLATFORM` in `Dockerfile.android`).
+- Manual Windows publish: `dotnet publish src/App.Desktop -r win-x64 -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true --self-contained`
+- Manual Linux publish: same with `-r linux-x64` (single-file binary; AppImage via PupNet Deploy is a future step, no pupnet.conf yet)
 
 **Android (apk).** Needs the `android` workload (`dotnet workload install android`), a JDK
 (`JAVA_HOME`), and the Android SDK. To provision the SDK once:
