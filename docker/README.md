@@ -46,6 +46,16 @@ automatically on first use — a few minutes for desktop, 10–20 minutes for
 Android (large downloads). Subsequent builds reuse the cached images and take
 well under a minute (desktop) / a few minutes (Android).
 
+**Android release signing:** before the first `android` build, generate the
+persistent signing keystore once — see [`keystore/README.md`](keystore/README.md):
+
+```bash
+./docker/keystore/generate-keystore.sh
+```
+
+Without it, `build_android` refuses to run — every APK must be signed with
+the same key so future releases can update a previous install in place.
+
 ---
 
 ## Quick start
@@ -64,7 +74,7 @@ Running without arguments shows an interactive menu — pick a single target or
 Targets:
   windows   Win x64 single-file executable (native libs embedded)
   linux     Linux x64 single-file binary (runs as-is, nothing to install)
-  android   Android APK (debug-signed)
+  android   Android APK (release-signed, prompts for keystore passwords)
   all       All three targets
 
 Options:
@@ -109,16 +119,16 @@ effectively all of them); no .NET or other packages to install. If you
 transfer it through a channel that strips permissions (e.g. a web download),
 restore the execute bit with `chmod +x`.
 
-**Android** — a debug-signed APK for sideloading: transfer it to the phone
+**Android** — a release-signed APK for sideloading: transfer it to the phone
 and open it (enable "install from unknown sources" if prompted), or install
 via `adb install dist/android/PalladiumWallet-*.apk`. Supports Android 6.0+
 (API 23), arm64 phones and x86_64 emulators.
 
-> **Signature caveat:** debug-signed APKs built on different machines carry
-> different keys. If a previous build is already installed, Android refuses
-> the update (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) — uninstall the old app
-> first. **Uninstalling deletes the app's data: back up the wallet seed
-> before doing this.** Release signing with a stable key is not set up yet.
+> **Signature:** every APK is signed with the persistent keystore in
+> `docker/keystore/` (see [Prerequisites](#prerequisites)), so installing a
+> newer build over an existing one updates it in place — no uninstall, no
+> data loss. This only holds as long as every release keeps using that same
+> keystore file; see `docker/keystore/README.md` for the backup story.
 
 ---
 
@@ -166,8 +176,14 @@ docker volume rm plm-nuget-cache
   android workload moved to a newer API level. Bump
   `ANDROID_SDK_PLATFORM` (and `ANDROID_SDK_BUILD_TOOLS`) in
   `Dockerfile.android` to the level the error names, then `--rebuild`.
-- **APK won't install over an existing app** — signature mismatch between
-  debug keys; see the signature caveat above.
+- **APK won't install over an existing app
+  (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`)** — the new build wasn't signed with
+  the same keystore as the installed one. Make sure `docker/keystore/release.keystore`
+  hasn't changed since the installed build; if it's genuinely a different key,
+  the user must uninstall the old app first (this deletes app data — back up
+  the wallet seed before doing this).
+- **`build_android` refuses to run, asks to generate a keystore** — run
+  `./docker/keystore/generate-keystore.sh` once (see `docker/keystore/README.md`).
 - **Everything is broken / start from scratch** —
   `docker system prune -a && docker volume rm plm-nuget-cache`, then rerun
   the script (images and packages are re-downloaded).

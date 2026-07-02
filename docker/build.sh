@@ -29,7 +29,7 @@ $(bold "Usage:") $(basename "$0") [TARGET] [OPTIONS]
 $(bold "Targets:")
   windows   Win x64 single-file executable  →  dist/windows/
   linux     Linux x64 single-file binary    →  dist/linux/
-  android   Android APK (debug-signed)      →  dist/android/
+  android   Android APK (release-signed)    →  dist/android/
   all       All three targets
 
 $(bold "Options:")
@@ -112,6 +112,10 @@ ensure_android_image() {
 # $1 = image name, $2 = inline bash commands to execute inside the container.
 # Source is copied to /tmp/build inside the container so bin/obj never pollute
 # the repo. Output is written to /output (→ host DIST_DIR sub-folder).
+# Optional extra `docker run` args (e.g. keystore mount, signing passwords via
+# -e) can be set by the caller in the EXTRA_DOCKER_ARGS array beforehand.
+EXTRA_DOCKER_ARGS=()
+
 run_build() {
     local image="$1"
     local commands="$2"
@@ -123,6 +127,7 @@ run_build() {
         --volume "${PROJECT_ROOT}:/src:ro" \
         --volume "${out_dir}:/output" \
         --volume "${NUGET_VOLUME}:/root/.nuget/packages" \
+        "${EXTRA_DOCKER_ARGS[@]}" \
         "$image" \
         bash -euo pipefail -c "
             cp -r /src/. /tmp/build
@@ -169,16 +174,45 @@ build_linux() {
 
 build_android() {
     ensure_android_image
+
+    local keystore="${SCRIPT_DIR}/keystore/release.keystore"
+    [[ -f "$keystore" ]] || die "No release keystore found at docker/keystore/release.keystore. Run ./docker/keystore/generate-keystore.sh once first (see docker/keystore/README.md)."
+
     info "Building Android APK …"
+    read -r -s -p "Keystore password: " ANDROID_KS_PASS
+    echo
+    read -r -s -p "Key password (press Enter to reuse the keystore password): " ANDROID_KEY_PASS
+    echo
+    ANDROID_KEY_PASS="${ANDROID_KEY_PASS:-$ANDROID_KS_PASS}"
+
+    # versionCode derived from <Version> (MAJOR.MINOR.PATCH, pre-release suffix
+    # stripped) so it always increases with releases — required for some
+    # installers to accept an in-place update even when the signature matches.
+    local semver="${VERSION%%-*}"
+    IFS='.' read -r VMAJOR VMINOR VPATCH <<< "$semver"
+    local VERSION_CODE=$(( ${VMAJOR:-0} * 10000 + ${VMINOR:-0} * 100 + ${VPATCH:-0} ))
+    info "versionCode: ${VERSION_CODE}"
+
+    EXTRA_DOCKER_ARGS=(
+        --volume "${keystore}:/keystore/release.keystore:ro"
+        --env "ANDROID_KS_PASS=${ANDROID_KS_PASS}"
+        --env "ANDROID_KEY_PASS=${ANDROID_KEY_PASS}"
+    )
     run_build "$IMAGE_ANDROID" \
         "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
          dotnet build src/App.Android \
             -c Release \
             -t:SignAndroidPackage \
-            -p:AndroidSdkDirectory=\${ANDROID_HOME}
+            -p:AndroidSdkDirectory=\${ANDROID_HOME} \
+            -p:ApplicationVersion=${VERSION_CODE} \
+            -p:AndroidSigningKeyStore=/keystore/release.keystore \
+            -p:AndroidSigningKeyAlias=palladiumwallet \
+            -p:AndroidSigningStorePass=\${ANDROID_KS_PASS} \
+            -p:AndroidSigningKeyPass=\${ANDROID_KEY_PASS}
          cp src/App.Android/bin/Release/net10.0-android/*-Signed.apk \
             \"/output/PalladiumWallet-${VERSION}.apk\"" \
         "${DIST_DIR}/android"
+    EXTRA_DOCKER_ARGS=()
     ok "Android → dist/android/PalladiumWallet-${VERSION}.apk"
 }
 
