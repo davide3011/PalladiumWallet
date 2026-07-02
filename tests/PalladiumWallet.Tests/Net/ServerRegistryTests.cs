@@ -80,6 +80,49 @@ public class ServerRegistryTests
     }
 
     [Fact]
+    public async Task La_discovery_aggiunge_i_peer_annunciati_e_li_persiste()
+    {
+        var path = TempPath();
+        try
+        {
+            await using var server = new FakeElectrumServer();
+            server.Handle("server.peers.subscribe", _ => new object[]
+            {
+                // Full announcement, port-less announcement (→ profile defaults),
+                // and a bootstrap duplicate that must not be re-added.
+                new object[] { "10.0.0.9", "nuovo.esempio.org", new[] { "v1.4.2", "t50001", "s50002" } },
+                new object[] { "10.0.0.8", "senza-porte.esempio.org", new[] { "v1.4", "t", "s" } },
+                new object[] { "173.212.224.67", "173.212.224.67", new[] { "v1.4", "t50001" } },
+            });
+            await using var client = await ElectrumClient.ConnectAsync(server.Host, server.Port, useSsl: false);
+
+            var registry = new ServerRegistry(ChainProfiles.Mainnet, path);
+            var bootstrapCount = registry.All.Count;
+
+            var added = await registry.DiscoverAsync(client);
+
+            Assert.Equal(2, added);
+            Assert.Equal(bootstrapCount + 2, registry.All.Count);
+            var defaulted = registry.All.Single(s => s.Host == "senza-porte.esempio.org");
+            Assert.Equal(ChainProfiles.Mainnet.DefaultTcpPort, defaulted.TcpPort);
+            Assert.Equal(ChainProfiles.Mainnet.DefaultSslPort, defaulted.SslPort);
+
+            // Persisted for the next session (bootstrap servers excluded from the file).
+            var reloaded = new ServerRegistry(ChainProfiles.Mainnet, path);
+            Assert.Equal(bootstrapCount + 2, reloaded.All.Count);
+            var savedJson = File.ReadAllText(path);
+            Assert.DoesNotContain("173.212.224.67", savedJson);
+
+            // A second discovery of the same peers adds nothing.
+            Assert.Equal(0, await registry.DiscoverAsync(client));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Un_file_server_corrotto_non_blocca_l_avvio()
     {
         var path = TempPath();
