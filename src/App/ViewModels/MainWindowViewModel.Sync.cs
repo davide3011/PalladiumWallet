@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -54,6 +55,8 @@ public partial class MainWindowViewModel
 
     [ObservableProperty]
     private bool isSyncing;
+
+    private CancellationTokenSource _syncCts = new();
 
     public ObservableCollection<KnownServer> KnownServers { get; } = [];
 
@@ -165,11 +168,23 @@ public partial class MainWindowViewModel
     {
         if (IsSyncing)
         {
-            _resyncRequested = true;
+            var (newHost, newPort) = ParseServer();
+            bool serverChanged = _client is null
+                || _client.Host != newHost
+                || _client.Port != newPort
+                || _client.UseSsl != UseSsl;
+            if (serverChanged)
+                _syncCts.Cancel();
+            else
+                _resyncRequested = true;
             return;
         }
+
+        _syncCts = new CancellationTokenSource();
+        var ct = _syncCts.Token;
         IsSyncing = true;
         StatusMessage = "";
+        bool cancelled = false;
         try
         {
             var (host, port) = ParseServer();
@@ -194,12 +209,13 @@ public partial class MainWindowViewModel
                 Exception? lastError = null;
                 foreach (var (h, p) in candidates)
                 {
+                    ct.ThrowIfCancellationRequested();
                     ConnectionStatus = $"{Loc.Tr("conn.connectingto")} {h}:{p}…";
                     ConnectionStatusShort = Loc.Tr("conn.connectingto") + "…";
                     try
                     {
                         var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(Net));
-                        _client = await ElectrumClient.ConnectAsync(h, p, UseSsl, pins);
+                        _client = await ElectrumClient.ConnectAsync(h, p, UseSsl, pins, ct);
                         _client.NotificationReceived += OnServerNotification;
                         _client.Disconnected += _ => Dispatcher.UIThread.Post(() =>
                         {
@@ -225,6 +241,10 @@ public partial class MainWindowViewModel
                         _config.Save();
                         lastError = null;
                         break;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
                     }
                     catch (Exception ex)
                     {
@@ -258,7 +278,7 @@ public partial class MainWindowViewModel
             do
             {
                 _resyncRequested = false;
-                var result = await _synchronizer.SyncOnceAsync();
+                var result = await _synchronizer.SyncOnceAsync(ct);
                 _lastTransactions = result.Transactions;
 
                 var (rawHex, verifiedAt, blockHeaders) = _synchronizer.ExportCaches(
@@ -282,7 +302,16 @@ public partial class MainWindowViewModel
                 _syncFailed = false;
                 StatusMessage = $"{Loc.Tr("msg.synced")}: {Loc.Tr("msg.height")} {result.TipHeight}, " +
                     $"{result.History.Count} {Loc.Tr("msg.synced.detail")}";
-            } while (_resyncRequested);
+            } while (_resyncRequested && !ct.IsCancellationRequested);
+        }
+        catch (OperationCanceledException)
+        {
+            // Intentional cancellation due to server change request — not an error.
+            cancelled = true;
+            IsConnected = false;
+            ConnectionStatus = Loc.Tr("conn.none");
+            ConnectionStatusShort = Loc.Tr("conn.none");
+            StatusMessage = "";
         }
         catch (CertificatePinMismatchException ex)
         {
@@ -309,6 +338,10 @@ public partial class MainWindowViewModel
         {
             IsSyncing = false;
         }
+
+        // If cancelled due to a server change, restart immediately with the new server.
+        if (cancelled)
+            _ = ConnectAndSync();
     }
 
     [RelayCommand]
