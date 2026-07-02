@@ -288,6 +288,7 @@ public partial class MainWindowViewModel
                     TipHeight = result.TipHeight,
                     ConfirmedSats = result.ConfirmedSats,
                     UnconfirmedSats = result.UnconfirmedSats,
+                    ImmatureSats = result.ImmatureSats,
                     NextReceiveIndex = result.NextReceiveIndex,
                     NextChangeIndex = result.NextChangeIndex,
                     History = [.. result.History],

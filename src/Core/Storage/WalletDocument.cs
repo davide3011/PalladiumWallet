@@ -95,6 +95,9 @@ public sealed class SyncCache
     public int TipHeight { get; set; }
     public long ConfirmedSats { get; set; }
     public long UnconfirmedSats { get; set; }
+
+    /// <summary>Confirmed but not yet spendable (coinbase immature or under min confirmations). Subset of ConfirmedSats.</summary>
+    public long ImmatureSats { get; set; }
     public int NextReceiveIndex { get; set; }
     public int NextChangeIndex { get; set; }
     public List<CachedTx> History { get; set; } = [];

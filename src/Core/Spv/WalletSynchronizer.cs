@@ -5,6 +5,7 @@ using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Crypto;
 using PalladiumWallet.Core.Net;
 using PalladiumWallet.Core.Storage;
+using PalladiumWallet.Core.Wallet;
 
 namespace PalladiumWallet.Core.Spv;
 
@@ -21,6 +22,13 @@ public sealed class SyncResult
     public required int TipHeight { get; init; }
     public required long ConfirmedSats { get; init; }
     public required long UnconfirmedSats { get; init; }
+
+    /// <summary>
+    /// Confirmed but not yet spendable: coinbase outputs below maturity or regular
+    /// outputs below <see cref="Chain.ChainProfile.MinConfirmations"/>. Subset of
+    /// <see cref="ConfirmedSats"/>.
+    /// </summary>
+    public required long ImmatureSats { get; init; }
     public required int NextReceiveIndex { get; init; }
     public required int NextChangeIndex { get; init; }
     public required IReadOnlyList<CachedTx> History { get; init; }
@@ -276,6 +284,9 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             TipHeight        = tip.Height,
             ConfirmedSats    = utxos.Where(u => u.Height > 0).Sum(u => u.ValueSats),
             UnconfirmedSats  = utxos.Where(u => u.Height <= 0).Sum(u => u.ValueSats),
+            ImmatureSats     = utxos.Where(u =>
+                u.Height > 0 && u.Confirmations(tip.Height) < u.RequiredConfirmations(account.Profile))
+                .Sum(u => u.ValueSats),
             NextReceiveIndex = nextReceive,
             NextChangeIndex  = nextChange,
             History          = history,

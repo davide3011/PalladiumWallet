@@ -26,6 +26,9 @@ public partial class MainWindowViewModel
     private string unconfirmedText = "";
 
     [ObservableProperty]
+    private string immatureText = "";
+
+    [ObservableProperty]
     private string networkInfo = "";
 
     // ---- receive address and QR ----
@@ -249,6 +252,7 @@ public partial class MainWindowViewModel
         {
             BalanceText = $"0.00000000 {Profile.CoinUnit}";
             UnconfirmedText = "";
+            ImmatureText = "";
             ReceiveAddress = _account.GetReceiveAddress(0).ToString();
             History.Clear();
             Addresses.Clear();
@@ -261,10 +265,13 @@ public partial class MainWindowViewModel
                     $"m/{_doc!.AccountPath}/0/{i}"));
             return;
         }
-        BalanceText = Fmt(cache.ConfirmedSats);
+        BalanceText = Fmt(cache.ConfirmedSats - cache.ImmatureSats);
         var pending = cache.History.Where(t => t.Height <= 0).Sum(t => t.DeltaSats);
         UnconfirmedText = pending != 0
             ? $"{Loc.Tr("msg.pending")}: {(pending > 0 ? "+" : "")}{Fmt(pending)} — {Loc.Tr("msg.notspendable")}"
+            : "";
+        ImmatureText = cache.ImmatureSats != 0
+            ? $"{Loc.Tr("msg.immature")}: {Fmt(cache.ImmatureSats)} — {Loc.Tr("msg.notspendable")}"
             : "";
         ReceiveAddress = _account.GetReceiveAddress(cache.NextReceiveIndex).ToString();
         History.Clear();

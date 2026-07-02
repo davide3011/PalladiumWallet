@@ -52,20 +52,8 @@ public sealed class TransactionFactory(IWalletAccount account)
         int tipHeight,
         bool sendAll = false)
     {
-        var coinbaseMaturity = account.Profile.CoinbaseMaturity;
-        var minConf = account.Profile.MinConfirmations;
-
-        // A UTXO is spendable when it has enough confirmations:
-        //   - coinbase: COINBASE_MATURITY + 1 confirmations (matches the Qt wallet: the consensus
-        //     rule is nSpendHeight - nHeight >= 120, so at the current tip a TX can be mined in
-        //     the next block when tipHeight - height + 1 >= 121)
-        //   - regular: MinConfirmations (wallet policy, no consensus rule)
-        int coinbaseThreshold = coinbaseMaturity + 1;
-        var spendable = utxos.Where(u =>
-            !u.Frozen &&
-            u.Height > 0 &&
-            (tipHeight - u.Height + 1) >= (u.IsCoinbase ? coinbaseThreshold : minConf)
-        ).ToList();
+        var profile = account.Profile;
+        var spendable = utxos.Where(u => u.IsSpendable(profile, tipHeight)).ToList();
 
         if (spendable.Count == 0)
         {
@@ -77,20 +65,21 @@ public sealed class TransactionFactory(IWalletAccount account)
 
             var immature = utxos.Where(u =>
                 !u.Frozen && u.Height > 0 && u.IsCoinbase &&
-                (tipHeight - u.Height + 1) < coinbaseThreshold).ToList();
+                u.Confirmations(tipHeight) < u.RequiredConfirmations(profile)).ToList();
             if (immature.Count > 0)
             {
-                var best = immature.Max(u => tipHeight - u.Height + 1);
-                reasons.Append($"{immature.Count} coinbase output(s) not yet mature ({best}/{coinbaseThreshold} confirmations). ");
+                var best = immature.Max(u => u.Confirmations(tipHeight));
+                var threshold = profile.CoinbaseMaturity + 1;
+                reasons.Append($"{immature.Count} coinbase output(s) not yet mature ({best}/{threshold} confirmations). ");
             }
 
             var underConf = utxos.Where(u =>
                 !u.Frozen && u.Height > 0 && !u.IsCoinbase &&
-                (tipHeight - u.Height + 1) < minConf).ToList();
+                u.Confirmations(tipHeight) < u.RequiredConfirmations(profile)).ToList();
             if (underConf.Count > 0)
             {
-                var best = underConf.Max(u => tipHeight - u.Height + 1);
-                reasons.Append($"{underConf.Count} output(s) need {minConf} confirmations ({best} so far). ");
+                var best = underConf.Max(u => u.Confirmations(tipHeight));
+                reasons.Append($"{underConf.Count} output(s) need {profile.MinConfirmations} confirmations ({best} so far). ");
             }
 
             throw new WalletSpendException(reasons.Length > 0

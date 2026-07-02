@@ -314,6 +314,9 @@
                     <TextBlock Text="{Binding UnconfirmedText}" Foreground="#FCD34D"
                                TextWrapping="Wrap"
                                IsVisible="{Binding UnconfirmedText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <TextBlock Text="{Binding ImmatureText}" Foreground="#FCD34D"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding ImmatureText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                     <TextBlock Text="{Binding NetworkInfo}" Classes="on-hero" FontSize="12"
                                Margin="0,2,0,0"/>
                 </StackPanel>

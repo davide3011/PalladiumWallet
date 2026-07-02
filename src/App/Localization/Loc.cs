@@ -389,6 +389,7 @@ public sealed class Loc
         ["msg.height"]            = ["altezza",                                                           "height",                       "altura",                               "hauteur",                                  "altura",                                   "Höhe"],
         ["msg.pending"]           = ["in attesa di conferma",                                             "pending confirmation",         "pendiente de confirmación",            "en attente de confirmation",               "aguardando confirmação",                   "ausstehende Bestätigung"],
         ["msg.notspendable"]      = ["non ancora spendibile",                                             "not yet spendable",            "aún no gastable",                      "pas encore dépensable",                    "ainda não gastável",                       "noch nicht verwendbar"],
+        ["msg.immature"]          = ["in maturazione",                                                    "maturing",                      "en maduración",                        "en maturation",                            "em maturação",                             "in Reifung"],
         ["msg.settings.saved"]    = ["Impostazioni salvate.",                                             "Settings saved.",              "Configuración guardada.",              "Paramètres enregistrés.",                  "Configurações salvas.",                    "Einstellungen gespeichert."],
         ["msg.certreset"]         = [
             "Certificati SSL azzerati: riprova la connessione.",

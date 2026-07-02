@@ -104,8 +104,9 @@ static int Info(string[] o)
     Console.WriteLine($"xpub:     {doc.AccountXpub}");
     if (doc.Cache is { } cache)
     {
-        Console.WriteLine($"saldo:    {CoinAmount.Format(cache.ConfirmedSats, account.Profile.CoinUnit)} confermato"
-            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} in attesa (non spendibile)." : ""));
+        Console.WriteLine($"saldo:    {CoinAmount.Format(cache.ConfirmedSats - cache.ImmatureSats, account.Profile.CoinUnit)} spendibile"
+            + (cache.ImmatureSats != 0 ? $" + {CoinAmount.Format(cache.ImmatureSats)} in maturazione (non spendibile)" : "")
+            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} in attesa di conferma (non spendibile)." : ""));
         Console.WriteLine($"sync:     altezza {cache.TipHeight}, {cache.History.Count} transazioni");
         Console.WriteLine($"ricezione: {account.GetReceiveAddress(cache.NextReceiveIndex)}");
     }
@@ -147,6 +148,7 @@ static async Task<int> Sync(string[] o)
         TipHeight = result.TipHeight,
         ConfirmedSats = result.ConfirmedSats,
         UnconfirmedSats = result.UnconfirmedSats,
+        ImmatureSats = result.ImmatureSats,
         NextReceiveIndex = result.NextReceiveIndex,
         NextChangeIndex = result.NextChangeIndex,
         History = [.. result.History],
@@ -158,7 +160,8 @@ static async Task<int> Sync(string[] o)
     };
     WalletStore.Save(doc, path, Opt(o, "--password"));
 
-    Console.WriteLine($"Saldo: {CoinAmount.Format(result.ConfirmedSats, account.Profile.CoinUnit)} confermato"
+    Console.WriteLine($"Saldo: {CoinAmount.Format(result.ConfirmedSats - result.ImmatureSats, account.Profile.CoinUnit)} spendibile"
+        + (result.ImmatureSats != 0 ? $" + {CoinAmount.Format(result.ImmatureSats)} in maturazione (non spendibile)" : "")
         + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} in attesa di conferma (non spendibile)" : ""));
     Console.WriteLine($"Storico ({result.History.Count}):");
     foreach (var tx in result.History)
