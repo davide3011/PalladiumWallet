@@ -26,11 +26,19 @@ public static class EncryptedFile
         try
         {
             using var doc = JsonDocument.Parse(fileContent);
-            return doc.RootElement.TryGetProperty("Format", out var f)
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("Format", out var f)
+                && f.ValueKind == JsonValueKind.String
                 && f.GetString() == Format;
         }
         catch (JsonException)
         {
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            // Invalid UTF-16 (lone surrogates) cannot be transcoded for parsing:
+            // certainly not an encrypted container.
             return false;
         }
     }

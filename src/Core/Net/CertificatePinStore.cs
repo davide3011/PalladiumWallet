@@ -58,10 +58,21 @@ public sealed class CertificatePinStore(string filePath)
         }
     }
 
-    private Dictionary<string, string> Load() =>
-        File.Exists(filePath)
-            ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(filePath)) ?? []
-            : [];
+    private Dictionary<string, string> Load()
+    {
+        if (!File.Exists(filePath))
+            return [];
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(filePath)) ?? [];
+        }
+        catch (JsonException)
+        {
+            // A corrupt pin file must not make every SSL connection fail forever:
+            // fall back to first-contact TOFU (same trust level as the bootstrap).
+            return [];
+        }
+    }
 
     private void Save(Dictionary<string, string> pins)
     {
