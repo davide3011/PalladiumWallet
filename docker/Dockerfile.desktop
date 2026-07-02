@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+# clang and zlib are required by the .NET SDK for native compilation steps
+# that occur even during managed cross-publish (win-x64 / linux-x64).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
+        zlib1g-dev \
+        libkrb5-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /tmp/build
