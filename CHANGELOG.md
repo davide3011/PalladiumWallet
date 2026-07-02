@@ -5,6 +5,54 @@ Technical changelog for PalladiumWallet. Format loosely follows
 by subsystem rather than strictly by date, since `0.9.0` is the first
 release and covers the full history from the initial commit.
 
+## [0.9.1] — 2026-07-02
+
+### Testing
+
+- Test suite expanded from 239 to 307 tests; `Core` line coverage raised
+  from ~50% to ~92% (branch coverage from ~41% to ~79%).
+- In-process fake ElectrumX server (`tests/.../Net/FakeElectrumServer.cs`):
+  a real loopback TCP socket speaking newline-delimited JSON-RPC 2.0,
+  optionally TLS with a self-signed certificate, with per-method handlers
+  and call counters — exercises the network stack against real socket code
+  instead of mocks.
+- New end-to-end coverage for previously untested network/SPV code:
+  `ElectrumClient` (request pipelining, error mapping, notifications,
+  disconnection, cancellation, TLS/TOFU handshake), `WalletSynchronizer`
+  (gap-limit scanning, UTXO/history reconstruction, unconfirmed/immature
+  balances, busy-retry, disk-cache reuse, and the security-critical path
+  where a lying server fails Merkle verification and the sync aborts),
+  `TransactionInspector` (fee calculation, mine/theirs attribution, RBF,
+  coinbase handling), `CertificatePinStore` (TOFU pin/match/mismatch/reset),
+  `ServerRegistry` peer discovery, and `UpdateChecker` tag parsing.
+- `TransactionFactory`: added coverage for legacy/P2SH/segwit destinations,
+  multi-UTXO selection, dust change absorbed into the fee, and a golden
+  txid anchoring the PSBT signing path (deterministic via RFC 6979).
+- Property-based tests extended: SLIP-132 roundtrip for every script kind
+  and network, `WalletDocument` JSON roundtrip with arbitrary
+  labels/contacts, `Scripthash` cross-checked against an independent
+  SHA-256 computation.
+- `update-version.sh`: single script to bump the version across the project
+  ahead of a release tag.
+
+### Fixed
+
+- `CertificatePinStore.Load`: a corrupted pin file threw and blocked every
+  SSL connection until the user manually deleted it; now falls back to
+  first-contact TOFU, same as `ServerRegistry` already did for its own file.
+- `EncryptedFile.IsEncrypted`: threw on valid JSON with a non-object root
+  (e.g. a bare number or array) or on invalid UTF-16 input, instead of
+  returning `false`. Both bugs were found by the expanded property tests.
+
+### Documentation
+
+- `README.md`: "Running tests" section rewritten with a per-area coverage
+  table, the coverage-measurement command, and a description of the fake
+  ElectrumX server.
+- `CLAUDE.md`/`AGENTS.md` kept in sync, pointing future work at extending
+  the fake ElectrumX server instead of mocking `ElectrumClient` (not an
+  interface, by design).
+
 ## [0.9.0] — 2026-07-02
 
 First release. SPV wallet (Sparrow-style) for the Palladium (PLM) network —
