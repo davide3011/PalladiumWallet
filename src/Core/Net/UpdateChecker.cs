@@ -55,7 +55,7 @@ public static class UpdateChecker
     }
 
     /// <summary>Parses "v1.2.3" / "1.2.3-beta" style tags into a comparable <see cref="Version"/>.</summary>
-    private static bool TryParse(string raw, out Version version)
+    internal static bool TryParse(string raw, out Version version)
     {
         var s = raw.Trim();
         if (s.StartsWith('v') || s.StartsWith('V')) s = s[1..];
