@@ -73,6 +73,18 @@ The wallet file is the only thing that needs to be backed up. For encrypted wall
 
 ---
 
+## AI-assisted testing and vulnerability discovery
+
+Part of the test suite and security review for this project is produced with **Claude Fable 5** (Anthropic), used as a targeted tool rather than a blanket "AI-reviewed" stamp. Concretely:
+
+- **Adversarial network simulation**: the SPV/network layer (`ElectrumClient`, `WalletSynchronizer`, `CertificatePinStore`) is tested against an in-process fake ElectrumX server that can be programmed to lie — serve a transaction with a Merkle proof that doesn't match its claimed block header, drop connections mid-request, return malformed or throttling responses. These are exactly the behaviors a malicious or compromised indexing server would exhibit; the suite asserts the wallet detects and rejects them (see `SpvVerificationException`) instead of trusting unverified server data.
+- **Property-based fuzzing** (CsCheck): parsers and cryptographic roundtrips (amount parsing, SLIP-132 key encoding, Merkle proof verification, AES-GCM encrypt/decrypt) are exercised against hundreds of generated inputs per run, checking invariants — no crash on arbitrary input, correct rejection of a wrong password, no false-negative Merkle verification — rather than a handful of hand-picked cases. This methodology has already found and fixed two real defects: a corrupted TLS pin file that permanently blocked reconnection, and a wallet-detection routine that threw on unexpected but valid JSON instead of failing safe.
+- **Targeted security-focused code review** over the areas where a bug has direct financial impact: key derivation, transaction signing, coin selection/spendability rules, and encryption at rest — cross-checked against the invariants stated in this document (e.g. "the server cannot fabricate a confirmed transaction with a valid Merkle proof").
+
+This is a complement to, not a substitute for, independent human or third-party security review — which is still recommended before relying on this wallet for significant mainnet funds, particularly ahead of a 1.0 release.
+
+---
+
 ## Known limitations and out-of-scope for v1
 
 - No Tor/proxy support (network traffic reveals which addresses are being queried)
