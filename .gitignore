@@ -74,6 +74,8 @@ temp/
 *.key
 *.pfx
 *.p12
+*.keystore
+*.jks
 secrets/
 
 # Wallet data and local runtime state
