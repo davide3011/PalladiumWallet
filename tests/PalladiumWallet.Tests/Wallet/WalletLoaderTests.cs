@@ -186,4 +186,67 @@ public class WalletLoaderTests
             AccountPath = "84'/0'/0'", AccountXpub = "xpub" };
         Assert.Equal(expected, WalletLoader.ProfileOf(doc).Kind);
     }
+
+    // ---- corrupted/incomplete documents (defensive branches of ToAccount) ----
+
+    private static WalletDocument EmptyDoc() => new()
+    {
+        Network = "mainnet",
+        ScriptKind = "NativeSegwit",
+    };
+
+    [Fact]
+    public void ToAccount_mnemonica_corrotta_nel_file_lancia_eccezione()
+    {
+        var doc = EmptyDoc();
+        doc.Mnemonic = "not a valid mnemonic at all";
+        var ex = Assert.Throws<InvalidDataException>(() => WalletLoader.ToAccount(doc));
+        Assert.Contains("mnemonic", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ToAccount_xprv_corrotta_nel_file_lancia_eccezione()
+    {
+        var doc = EmptyDoc();
+        doc.AccountXprv = "zprvGarbageGarbageGarbage";
+        var ex = Assert.Throws<InvalidDataException>(() => WalletLoader.ToAccount(doc));
+        Assert.Contains("Xprv", ex.Message);
+    }
+
+    [Fact]
+    public void ToAccount_xpub_corrotta_nel_file_lancia_eccezione()
+    {
+        var doc = EmptyDoc();
+        doc.AccountXpub = "zpubGarbageGarbageGarbage";
+        var ex = Assert.Throws<InvalidDataException>(() => WalletLoader.ToAccount(doc));
+        Assert.Contains("Xpub", ex.Message);
+    }
+
+    [Fact]
+    public void ToAccount_documento_senza_alcuna_chiave_lancia_eccezione()
+    {
+        var ex = Assert.Throws<InvalidDataException>(() => WalletLoader.ToAccount(EmptyDoc()));
+        Assert.Contains("no xpub and no seed", ex.Message);
+    }
+
+    [Fact]
+    public void NewFromXpub_chiave_invalida_lancia_eccezione()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromXpub("zpubGarbage", ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void NewFromXprv_chiave_invalida_lancia_eccezione()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromXprv("zprvGarbage", ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void NewFromWif_senza_chiavi_lancia_eccezione()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromWif([], ScriptKind.NativeSegwit, ChainProfiles.Mainnet));
+    }
 }
