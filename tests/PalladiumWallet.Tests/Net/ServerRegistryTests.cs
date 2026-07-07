@@ -27,6 +27,35 @@ public class PeerParsingTests
         Assert.Equal(new PeerInfo("nodo.esempio.org", 0, null, "1.4"), peers[1]);
         Assert.Equal(new PeerInfo("solo-ssl.esempio.org", null, 50002, "1.4"), peers[2]);
     }
+
+    [Theory]
+    [InlineData("""{"not":"an array"}""")]
+    [InlineData(""" "just a string" """)]
+    [InlineData("42")]
+    [InlineData("""[[1,2,3]]""")]                       // numeric ip/hostname
+    [InlineData("""[["h","n",42]]""")]                  // features not an array
+    [InlineData("""[["h","n",[42,{"x":1},null]]]""")]   // non-string features
+    public void Una_risposta_peers_di_forma_inattesa_produce_una_lista_vuota(string json)
+    {
+        // The response is untrusted server data: any shape must degrade to an
+        // empty list, never throw (found by fuzzing).
+        Assert.Empty(ElectrumApi.ParsePeers(JsonDocument.Parse(json).RootElement));
+    }
+
+    [Fact]
+    public void Una_stringa_json_con_utf8_invalido_viene_ignorata_senza_eccezioni()
+    {
+        // Raw 0x87 inside a JSON string: JsonDocument.Parse accepts the bytes but
+        // GetString() cannot transcode them to UTF-16 (found by fuzzing). The
+        // whole entry degrades to "no usable host/feature", not an exception.
+        var bytes = "[[\"1.2.3.4\",\"#\",[\"v1\",\"t#\"]]]"u8.ToArray();
+        var hostIdx = Array.IndexOf(bytes, (byte)'#');
+        bytes[hostIdx] = 0x87;
+        bytes[Array.LastIndexOf(bytes, (byte)'#')] = 0x87;
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.Empty(ElectrumApi.ParsePeers(doc.RootElement));
+    }
 }
 
 public class ServerRegistryTests

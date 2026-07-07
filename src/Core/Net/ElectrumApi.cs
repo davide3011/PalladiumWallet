@@ -124,17 +124,22 @@ public static class ElectrumApi
     /// Parses the server.peers.subscribe response: a list of
     /// [ip, hostname, ["v1.4.2", "pN", "tPORT", "sPORT", ...]];
     /// "t"/"s" without a number = network default port (resolved by the caller).
+    /// The response is untrusted server data: any unexpected shape (non-array,
+    /// wrong element types) is skipped, never thrown on.
     /// </summary>
     public static IReadOnlyList<PeerInfo> ParsePeers(JsonElement response)
     {
         var peers = new List<PeerInfo>();
+        if (response.ValueKind != JsonValueKind.Array)
+            return peers;
         foreach (var entry in response.EnumerateArray())
         {
-            if (entry.ValueKind != JsonValueKind.Array || entry.GetArrayLength() < 3)
+            if (entry.ValueKind != JsonValueKind.Array || entry.GetArrayLength() < 3
+                || entry[2].ValueKind != JsonValueKind.Array)
                 continue;
-            var host = entry[1].GetString();
+            var host = AsString(entry[1]);
             if (string.IsNullOrWhiteSpace(host))
-                host = entry[0].GetString();
+                host = AsString(entry[0]);
             if (string.IsNullOrWhiteSpace(host))
                 continue;
 
@@ -142,7 +147,7 @@ public static class ElectrumApi
             string? version = null;
             foreach (var feature in entry[2].EnumerateArray())
             {
-                var f = feature.GetString();
+                var f = AsString(feature);
                 if (string.IsNullOrEmpty(f))
                     continue;
                 switch (f[0])
@@ -156,5 +161,22 @@ public static class ElectrumApi
                 peers.Add(new PeerInfo(host!, tcp, ssl, version));
         }
         return peers;
+    }
+
+    private static string? AsString(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.String)
+            return null;
+        try
+        {
+            return element.GetString();
+        }
+        catch (InvalidOperationException)
+        {
+            // Syntactically valid JSON string that cannot be transcoded to UTF-16
+            // (invalid UTF-8 bytes / lone surrogates) — untrusted server data,
+            // treat as absent (found by fuzzing).
+            return null;
+        }
     }
 }
