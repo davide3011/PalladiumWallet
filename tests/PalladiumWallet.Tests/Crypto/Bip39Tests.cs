@@ -126,4 +126,15 @@ public class Bip39Tests
         Assert.Throws<ArgumentOutOfRangeException>(
             () => Bip39.Generate(MnemonicLength.Twelve, (MnemonicLanguage)99));
     }
+
+    [Fact]
+    public void Testo_che_non_somiglia_a_nessuna_wordlist_viene_rifiutato_senza_eccezioni()
+    {
+        // NBitcoin's Wordlist.AutoDetect throws NotSupportedException("Unknown")
+        // for text resembling no wordlist instead of failing gracefully (found by
+        // fuzzing): TryParse must swallow it and return false — this string reaches
+        // TryParse straight from the user's restore input.
+        Assert.False(Bip39.TryParse("ábÊco ábaco0ábaco ábÊ", out var mnemonic));
+        Assert.Null(mnemonic);
+    }
 }

@@ -58,26 +58,43 @@ public static class Bip39
         // ideographic spaces — the text must not be altered further (§4.1).
         text = text.Trim();
 
-        IEnumerable<Wordlist> candidates = language is not null
-            ? [ToWordlist(language.Value)]
-            : [Wordlist.AutoDetect(text)];
-
-        foreach (var wordlist in candidates)
+        Wordlist wordlist;
+        if (language is not null)
+        {
+            wordlist = ToWordlist(language.Value);
+        }
+        else
         {
             try
             {
-                var parsed = new Mnemonic(text, wordlist);
-                // The constructor does NOT verify the checksum — explicit check is mandatory.
-                if (parsed.IsValidChecksum && parsed.Words.Length is 12 or 15 or 18 or 21 or 24)
-                {
-                    mnemonic = parsed;
-                    return true;
-                }
+                wordlist = Wordlist.AutoDetect(text);
             }
-            catch (FormatException)
+            catch (NotSupportedException)
             {
-                // Words outside the wordlist or invalid count — try the next candidate.
+                // AutoDetect lands on NBitcoin's internal "Unknown" language for
+                // text resembling no wordlist and throws instead of returning a
+                // default (found by fuzzing) — not a valid mnemonic, plain and simple.
+                return false;
             }
+        }
+
+        try
+        {
+            var parsed = new Mnemonic(text, wordlist);
+            // The constructor does NOT verify the checksum — explicit check is mandatory.
+            if (parsed.IsValidChecksum && parsed.Words.Length is 12 or 15 or 18 or 21 or 24)
+            {
+                mnemonic = parsed;
+                return true;
+            }
+        }
+        catch (FormatException)
+        {
+            // Words outside the wordlist or invalid count.
+        }
+        catch (NotSupportedException)
+        {
+            // Defensive: same NBitcoin failure mode surfacing from the constructor.
         }
 
         return false;
