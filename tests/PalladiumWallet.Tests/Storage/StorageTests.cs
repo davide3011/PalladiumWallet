@@ -57,6 +57,22 @@ public class StorageTests
         Assert.NotEqual(c1, c2);
     }
 
+    [Theory]
+    [InlineData("not json at all")]                                     // broken JSON
+    [InlineData("null")]                                                // JSON null
+    [InlineData("""{"Format":"plm-wallet-aesgcm-v1"}""")]               // missing fields → null strings
+    [InlineData("""{"Format":"plm-wallet-aesgcm-v1","Iterations":600000,"Salt":"$$$","Nonce":"AAAAAAAAAAAAAAAA","Tag":"AAAAAAAAAAAAAAAAAAAAAA==","Data":""}""")] // bad base64
+    [InlineData("""{"Format":"plm-wallet-aesgcm-v1","Iterations":600000,"Salt":"AA==","Nonce":"AA==","Tag":"AAAAAAAAAAAAAAAAAAAAAA==","Data":""}""")] // wrong nonce size
+    [InlineData("""{"Format":"plm-wallet-aesgcm-v1","Iterations":0,"Salt":"AA==","Nonce":"AAAAAAAAAAAAAAAA","Tag":"AAAAAAAAAAAAAAAAAAAAAA==","Data":""}""")] // iterations 0
+    [InlineData("""{"Format":"plm-wallet-aesgcm-v1","Iterations":2147483647,"Salt":"AA==","Nonce":"AAAAAAAAAAAAAAAA","Tag":"AAAAAAAAAAAAAAAAAAAAAA==","Data":""}""")] // PBKDF2 DoS
+    public void Un_contenitore_malformato_produce_sempre_InvalidDataException(string container)
+    {
+        // A tampered/corrupted file must map to the two typed exceptions, never to a
+        // raw JsonException/FormatException/ArgumentNullException (found by fuzzing);
+        // the absurd iteration count would otherwise hang the wallet at open.
+        Assert.Throws<InvalidDataException>(() => EncryptedFile.Decrypt(container, "pass"));
+    }
+
     [Fact]
     public void Ogni_encrypt_produce_salt_diverso()
     {

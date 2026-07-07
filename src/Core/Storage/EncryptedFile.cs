@@ -13,6 +13,10 @@ public static class EncryptedFile
 {
     private const string Format = "plm-wallet-aesgcm-v1";
     private const int DefaultIterations = 600_000;
+    // Upper bound on the iteration count read from the container: the value is
+    // attacker-controlled in a tampered file, and an absurd count would hang the
+    // wallet at open (PBKDF2 DoS). Leaves ample room for future increases.
+    private const int MaxIterations = 10_000_000;
     private const int SaltSize = 16;
     private const int NonceSize = 12;
     private const int TagSize = 16;
@@ -62,23 +66,51 @@ public static class EncryptedFile
             Convert.ToBase64String(tag), Convert.ToBase64String(cipher)));
     }
 
-    /// <summary>Throws <see cref="WrongPasswordException"/> if the password is wrong or the file is tampered with.</summary>
+    /// <summary>
+    /// Throws <see cref="WrongPasswordException"/> if the password is wrong or the
+    /// ciphertext is tampered with, <see cref="InvalidDataException"/> for any
+    /// malformed container (broken JSON, missing fields, bad base64, wrong
+    /// nonce/tag size, out-of-range iteration count) — never a raw parsing exception.
+    /// </summary>
     public static string Decrypt(string fileContent, string password)
     {
-        var container = JsonSerializer.Deserialize<Container>(fileContent)
-            ?? throw new InvalidDataException("Contenitore cifrato non valido.");
+        Container? container;
+        try
+        {
+            container = JsonSerializer.Deserialize<Container>(fileContent);
+        }
+        catch (JsonException)
+        {
+            throw new InvalidDataException("Invalid encrypted container.");
+        }
+        if (container is null)
+            throw new InvalidDataException("Invalid encrypted container.");
         if (container.Format != Format)
-            throw new InvalidDataException($"Formato sconosciuto: {container.Format}");
+            throw new InvalidDataException($"Unknown container format: {container.Format}");
+        if (container.Iterations is <= 0 or > MaxIterations)
+            throw new InvalidDataException($"Iteration count out of range: {container.Iterations}");
 
-        var key = DeriveKey(password, Convert.FromBase64String(container.Salt), container.Iterations);
-        var cipher = Convert.FromBase64String(container.Data);
+        byte[] salt, nonce, tag, cipher;
+        try
+        {
+            salt   = Convert.FromBase64String(container.Salt);
+            nonce  = Convert.FromBase64String(container.Nonce);
+            tag    = Convert.FromBase64String(container.Tag);
+            cipher = Convert.FromBase64String(container.Data);
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentNullException)
+        {
+            throw new InvalidDataException("Invalid encrypted container.");
+        }
+        if (nonce.Length != NonceSize || tag.Length != TagSize)
+            throw new InvalidDataException("Invalid encrypted container.");
+
+        var key = DeriveKey(password, salt, container.Iterations);
         var plain = new byte[cipher.Length];
         try
         {
             using var aes = new AesGcm(key, TagSize);
-            aes.Decrypt(
-                Convert.FromBase64String(container.Nonce), cipher,
-                Convert.FromBase64String(container.Tag), plain);
+            aes.Decrypt(nonce, cipher, tag, plain);
         }
         catch (AuthenticationTagMismatchException)
         {
