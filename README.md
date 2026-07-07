@@ -152,12 +152,12 @@ The tests mirror the `Core` layout (`tests/PalladiumWallet.Tests/<area>/`):
 
 | Area | What is verified |
 |---|---|
-| `Chain/` | Network profiles (prefixes, ports, coin type 746, SLIP-132 headers), NBitcoin network registration |
-| `Crypto/` | BIP39 (official Trezor vectors, NFKD normalisation), BIP32/44/49/84/86 derivation against public golden vectors, SLIP-132 encode/decode, HD and imported-key accounts, watch-only isolation |
-| `Spv/` | Scripthash (vectors computed independently in Python), Merkle proofs (Bitcoin block 100000 + random trees), header parsing, and the full **`WalletSynchronizer`**: gap-limit scanning, UTXO/history reconstruction, unconfirmed/immature balances, busy-retry, disk-cache reuse — including the path where a lying server fails Merkle verification and the sync must abort |
-| `Net/` | JSON-RPC transport (pipelining, error mapping, notifications, disconnection, cancellation), typed protocol wrappers, peer discovery/persistence, TLS trust-on-first-use pinning end-to-end (pin, match, mismatch, reset), release-tag parsing |
-| `Storage/` | AES-GCM encryption (roundtrip, tampering, fresh salt/nonce), wallet document schema/versioning, atomic saves, single-instance lock, data paths |
-| `Wallet/` | Transaction building and signing (spendability rules, coinbase maturity, dust change, multi-UTXO selection, all standard destination types, watch-only PSBT flow, a golden txid for the PSBT signing path), transaction detail assembly (fees, mine/theirs attribution, RBF, coinbase), amount parsing/formatting |
+| `Chain/` | Network profiles (prefixes, ports, coin type 746, SLIP-132 headers), NBitcoin network registration and the `INetworkSet` plumbing |
+| `Crypto/` | BIP39 (official Trezor vectors, NFKD normalisation, all 8 supported wordlist languages), BIP32/44/49/84/86 derivation against public golden vectors, SLIP-132 encode/decode including corrupted-payload rejection, HD and imported-key accounts (fund-safety fallbacks for out-of-range indices), watch-only isolation |
+| `Spv/` | Scripthash (vectors computed independently in Python), Merkle proofs (Bitcoin block 100000 + random trees), header parsing and PoW target validation, and the full **`WalletSynchronizer`**: gap-limit scanning, UTXO/history reconstruction, unconfirmed/immature balances, busy-retry, disk-cache reuse — including the paths where a lying server fails Merkle verification or serves a header chain that does not anchor to a hardcoded checkpoint, and the sync must abort |
+| `Net/` | JSON-RPC transport (pipelining, error mapping, notifications, disconnection, cancellation, oversized responses), typed protocol wrappers, peer discovery/persistence, TLS trust-on-first-use pinning end-to-end (pin, match, mismatch, reset), the update check end-to-end via a stubbed HTTP transport (newer/equal/older tags, HTTP errors, malformed JSON, offline — all best-effort to null) |
+| `Storage/` | AES-GCM encryption (roundtrip, tampering, fresh salt/nonce), wallet document schema/versioning, atomic saves, single-instance lock, data-path resolution with its full precedence chain (override → portable → pointer file → default) |
+| `Wallet/` | Transaction building and signing (spendability rules, coinbase maturity, dust change, multi-UTXO selection, all standard destination types, watch-only PSBT flow, a golden txid for the PSBT signing path, standardness-policy rejection of absurd fees), transaction detail assembly (fees, mine/theirs attribution, RBF, coinbase), amount parsing/formatting, corrupted-wallet-file rejection |
 
 Network-facing code is tested against an **in-process fake ElectrumX server**
 (`tests/PalladiumWallet.Tests/Net/FakeElectrumServer.cs`): a real loopback TCP
