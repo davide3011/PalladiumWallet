@@ -279,17 +279,18 @@ public class WalletSynchronizerTests
     /// <summary>
     /// Builds a chain of single-tx headers from <paramref name="fromHeight"/> to
     /// <paramref name="toHeight"/> (inclusive), each linked to the previous via
-    /// HashPrevBlock, and registers them on the scenario. The last height carries
-    /// <paramref name="txid"/> as its Merkle root (single-tx block).
+    /// HashPrevBlock. The last height carries <paramref name="txid"/> as its Merkle
+    /// root; <paramref name="roots"/> overrides the root at specific heights.
     /// </summary>
-    private static Dictionary<int, string> ChainedHeaders(int fromHeight, int toHeight, uint256 txid)
+    private static Dictionary<int, string> ChainedHeaders(int fromHeight, int toHeight, uint256 txid,
+        Dictionary<int, uint256>? roots = null)
     {
         var headers = new Dictionary<int, string>();
         uint256? prevHash = null;
         for (var h = fromHeight; h <= toHeight; h++)
         {
-            var hex = Scenario.SingleTxHeaderHex(h == toHeight ? txid : uint256.One, h,
-                merkleRoot: h == toHeight ? txid : null, prevHash: prevHash);
+            var root = roots?.GetValueOrDefault(h) ?? (h == toHeight ? txid : uint256.One);
+            var hex = Scenario.SingleTxHeaderHex(root, h, merkleRoot: root, prevHash: prevHash);
             headers[h] = hex;
             prevHash = BlockHeaderInfo.Parse(hex).Hash;
         }
@@ -318,6 +319,44 @@ public class WalletSynchronizerTests
 
         Assert.Equal(1_000_000, result.ConfirmedSats);
         // 100..105 inclusive = 6 headers fetched to walk the chain back to the checkpoint.
+        Assert.Equal(6, server.CallCount("blockchain.block.header"));
+    }
+
+    [Fact]
+    public async Task Un_range_gia_ancorato_non_viene_ricamminato_al_sync_successivo()
+    {
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 105);
+
+        // Second tx (at height 103) known upfront so the chain can commit to it,
+        // but announced by the server only after the first sync.
+        var tx2 = Net.CreateTransaction();
+        tx2.Inputs.Add(new TxIn(new OutPoint(uint256.One, 1)));
+        tx2.Outputs.Add(Money.Satoshis(500_000), account.GetReceiveAddress(1));
+
+        var chain = ChainedHeaders(100, 105, funding.GetHash(),
+            roots: new() { [103] = tx2.GetHash() });
+        foreach (var (h, hex) in chain) scenario.Headers[h] = hex;
+
+        var checkpointProfile = Profile with
+        {
+            Checkpoints = [new Checkpoint(100, BlockHeaderInfo.Parse(chain[100]).Hash.ToString(), 0x1d00ffff)],
+        };
+        var checkpointAccount = Account(checkpointProfile);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var sync = new WalletSynchronizer(checkpointAccount, client);
+        await sync.SyncOnceAsync(); // walks and memoizes the anchor up to 105
+
+        // 103 <= the memoized 105: anchoring must early-return without re-walking,
+        // so the header call count stays at the 6 of the first walk (103 is cached).
+        scenario.Register(tx2, 103, checkpointAccount.GetReceiveAddress(1));
+        var result = await sync.SyncOnceAsync();
+
+        Assert.Equal(1_500_000, result.ConfirmedSats);
         Assert.Equal(6, server.CallCount("blockchain.block.header"));
     }
 
@@ -414,6 +453,34 @@ public class WalletSynchronizerTests
 
         var result = await new WalletSynchronizer(account, client).SyncOnceAsync();
         Assert.Equal(1_000_000, result.ConfirmedSats);
+    }
+
+    [Fact]
+    public async Task I_download_di_transazioni_su_server_busy_vengono_ritentati()
+    {
+        // Same throttling scenario but on transaction.get, which runs inside the
+        // download tasks (the non-generic retry overload, unlike get_history).
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 100);
+
+        var server = new FakeElectrumServer();
+        scenario.WireTo(server);
+        var failures = 2;
+        var txs = scenario.Txs;
+        server.Handle("blockchain.transaction.get", p =>
+        {
+            if (Interlocked.Decrement(ref failures) >= 0)
+                throw new FakeElectrumError(-101, "server busy");
+            return txs[p[0].GetString()!].ToHex();
+        });
+
+        await using var _ = server;
+        await using var client = await ElectrumClient.ConnectAsync(server.Host, server.Port, useSsl: false);
+
+        var result = await new WalletSynchronizer(account, client).SyncOnceAsync();
+        Assert.Equal(1_000_000, result.ConfirmedSats);
+        Assert.Equal(funding.GetHash().ToString(), Assert.Single(result.History).Txid);
     }
 
     // ---- cache su disco ----
