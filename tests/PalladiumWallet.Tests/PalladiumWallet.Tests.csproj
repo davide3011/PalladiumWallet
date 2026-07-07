@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Core\PalladiumWallet.Core.csproj" />
+    <ProjectReference Include="..\PalladiumWallet.Fuzz\PalladiumWallet.Fuzz.csproj" />
   </ItemGroup>
 
 </Project>

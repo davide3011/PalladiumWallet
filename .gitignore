@@ -93,3 +93,7 @@ settings.local.json
 # Local agent/tooling metadata
 .agents/
 .codex/
+
+# Fuzzing artifacts (tests/PalladiumWallet.Fuzz)
+findings/
+crash-*.bin

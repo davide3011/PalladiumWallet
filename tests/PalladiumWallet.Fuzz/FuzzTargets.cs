@@ -1,0 +1,141 @@
+using System.Text;
+using System.Text.Json;
+using NBitcoin;
+using PalladiumWallet.Core.Chain;
+using PalladiumWallet.Core.Crypto;
+using PalladiumWallet.Core.Net;
+using PalladiumWallet.Core.Spv;
+using PalladiumWallet.Core.Storage;
+using PalladiumWallet.Core.Wallet;
+
+namespace PalladiumWallet.Fuzz;
+
+/// <summary>
+/// Fuzz targets over the parsers that consume untrusted input (server responses,
+/// wallet files, user-pasted keys/addresses/amounts). Each target enforces the
+/// parser's error contract: the exception types documented as its failure mode
+/// are swallowed, anything else escapes and is reported as a crash by the fuzzer.
+/// </summary>
+public static class FuzzTargets
+{
+    public static readonly IReadOnlyDictionary<string, Action<byte[]>> All =
+        new Dictionary<string, Action<byte[]>>
+        {
+            ["header"] = Header,
+            ["merkle"] = Merkle,
+            ["slip132"] = Slip132Keys,
+            ["bip39"] = Bip39Mnemonic,
+            ["address"] = Address,
+            ["coinamount"] = CoinAmountParse,
+            ["walletdoc"] = WalletDoc,
+            ["encfile"] = EncFile,
+            ["peers"] = Peers,
+        };
+
+    /// <summary>Runs one input through a named target (used by replay and the regression test).</summary>
+    public static void Run(string target, byte[] data) => All[target](data);
+
+    private static string Utf8(byte[] data) => Encoding.UTF8.GetString(data);
+
+    // 80-byte block headers arrive from the server both as raw bytes and as hex.
+    // Contract: exactly 80 bytes never throws; any other length is ArgumentException;
+    // the hex overload may also reject non-hex text with FormatException.
+    private static void Header(byte[] data)
+    {
+        try { BlockHeaderInfo.Parse(data); }
+        catch (ArgumentException) when (data.Length != BlockHeaderInfo.Size) { }
+
+        try { BlockHeaderInfo.Parse(Utf8(data)); }
+        catch (FormatException) { }
+        catch (ArgumentException) { }
+    }
+
+    // Merkle proof verification runs on server-supplied txid/pos/branch.
+    // Contract: never throws, for any position (including negative) and branch.
+    private static void Merkle(byte[] data)
+    {
+        if (data.Length < 68)
+            return;
+        var txid = new uint256(data.AsSpan(0, 32));
+        var position = BitConverter.ToInt32(data, 32);
+        var root = new uint256(data.AsSpan(36, 32));
+        var branch = new List<uint256>();
+        for (var offset = 68; offset + 32 <= data.Length; offset += 32)
+            branch.Add(new uint256(data.AsSpan(offset, 32)));
+
+        MerkleProof.Verify(txid, position, branch, root);
+    }
+
+    // SLIP-132 extended keys are pasted by the user on import.
+    // Contract: the Try* pair never throws, on any profile.
+    private static void Slip132Keys(byte[] data)
+    {
+        var text = Utf8(data);
+        foreach (var profile in new[] { ChainProfiles.Mainnet, ChainProfiles.Testnet, ChainProfiles.Regtest })
+        {
+            Slip132.TryDecodePublic(text, profile, out _, out _);
+            Slip132.TryDecodePrivate(text, profile, out _, out _);
+        }
+    }
+
+    // Mnemonics are pasted by the user on restore. Contract: TryParse never throws,
+    // with auto-detected and explicit wordlist language alike.
+    private static void Bip39Mnemonic(byte[] data)
+    {
+        var text = Utf8(data);
+        Bip39.TryParse(text, out _);
+        if (data.Length > 0)
+            Bip39.TryParse(text, out _, (MnemonicLanguage)(data[0] % 8));
+    }
+
+    // Recipient addresses are pasted by the user (or scanned from a QR).
+    // Contract: NBitcoin rejects anything invalid with FormatException.
+    private static void Address(byte[] data)
+    {
+        try { BitcoinAddress.Create(Utf8(data), PalladiumNetworks.Mainnet); }
+        catch (FormatException) { }
+    }
+
+    // Amounts are typed by the user in the currently selected unit.
+    // Contract: TryParse* never throws for any of the official units.
+    private static void CoinAmountParse(byte[] data)
+    {
+        var text = Utf8(data);
+        foreach (var unit in CoinAmount.Units)
+            CoinAmount.TryParseIn(text, unit, out _);
+        CoinAmount.TryParseCoins(text, out _);
+    }
+
+    // The plaintext wallet document is read from disk at every open.
+    // Contract: malformed JSON or schema is JsonException/InvalidDataException.
+    private static void WalletDoc(byte[] data)
+    {
+        try { WalletDocument.FromJson(Utf8(data)); }
+        catch (JsonException) { }
+        catch (InvalidDataException) { }
+    }
+
+    // The encrypted container wraps the document on disk; a tampered file must
+    // fail with the two typed exceptions, never a raw parser error, and
+    // IsEncrypted (the format sniffer) must never throw at all.
+    private static void EncFile(byte[] data)
+    {
+        var text = Utf8(data);
+        EncryptedFile.IsEncrypted(text);
+        try { EncryptedFile.Decrypt(text, "fuzz-password"); }
+        catch (WrongPasswordException) { }
+        catch (InvalidDataException) { }
+    }
+
+    // server.peers.subscribe responses are attacker-controlled JSON.
+    // Contract: any well-formed JSON of any shape parses to a (possibly empty)
+    // peer list without throwing.
+    private static void Peers(byte[] data)
+    {
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(data); }
+        catch (JsonException) { return; }
+        using (doc)
+            ElectrumApi.ParsePeers(doc.RootElement);
+    }
+}
