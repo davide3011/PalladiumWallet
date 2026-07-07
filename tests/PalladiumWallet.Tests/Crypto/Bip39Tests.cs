@@ -90,4 +90,40 @@ public class Bip39Tests
         Assert.NotEqual(Convert.ToHexString(noPass), Convert.ToHexString(withPass));
         Assert.NotEqual(Convert.ToHexString(withPass), Convert.ToHexString(otherPass));
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Testo_vuoto_o_solo_spazi_viene_rifiutato(string? text)
+    {
+        Assert.False(Bip39.TryParse(text!, out var mnemonic));
+        Assert.Null(mnemonic);
+    }
+
+    [Theory]
+    [InlineData(MnemonicLanguage.English)]
+    [InlineData(MnemonicLanguage.Spanish)]
+    [InlineData(MnemonicLanguage.French)]
+    [InlineData(MnemonicLanguage.Japanese)]
+    [InlineData(MnemonicLanguage.PortugueseBrazil)]
+    [InlineData(MnemonicLanguage.ChineseSimplified)]
+    [InlineData(MnemonicLanguage.ChineseTraditional)]
+    [InlineData(MnemonicLanguage.Czech)]
+    public void Ogni_lingua_supportata_genera_e_riparsa_la_propria_mnemonica(MnemonicLanguage language)
+    {
+        var mnemonic = Bip39.Generate(MnemonicLength.Twelve, language);
+
+        // Explicit-language parse must always succeed; it also covers the full
+        // language→wordlist map (USERGUIDE §2.1 promises these languages on restore).
+        Assert.True(Bip39.TryParse(mnemonic.ToString(), out var parsed, language));
+        Assert.Equal(mnemonic.ToString(), parsed!.ToString());
+    }
+
+    [Fact]
+    public void Una_lingua_fuori_enum_viene_rifiutata()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => Bip39.Generate(MnemonicLength.Twelve, (MnemonicLanguage)99));
+    }
 }
