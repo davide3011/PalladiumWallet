@@ -239,4 +239,29 @@ public class BlockHeaderInfoTests
     {
         Assert.ThrowsAny<Exception>(() => BlockHeaderInfo.Parse("ZZZ"));
     }
+
+    [Fact]
+    public void Senza_skip_pow_un_hash_sotto_il_target_passa()
+    {
+        // Bitcoin's genesis satisfies its own 0x1d00ffff target by construction.
+        var header = BlockHeaderInfo.Parse(GenesisHeaderHex);
+        var powProfile = ChainProfiles.Mainnet with { SkipPowValidation = false };
+
+        Assert.True(header.IsValidChild(uint256.Zero, powProfile));
+    }
+
+    [Fact]
+    public void Senza_skip_pow_un_hash_sopra_il_target_viene_rifiutato()
+    {
+        // Rewrite the genesis bits to an almost-impossible target (0x03000001 →
+        // tiny) without re-mining: the untouched hash can no longer satisfy it.
+        var raw = Convert.FromHexString(GenesisHeaderHex);
+        raw[72] = 0x01; raw[73] = 0x00; raw[74] = 0x00; raw[75] = 0x03;
+        var header = BlockHeaderInfo.Parse(raw);
+        var powProfile = ChainProfiles.Mainnet with { SkipPowValidation = false };
+
+        Assert.False(header.IsValidChild(uint256.Zero, powProfile));
+        // Same header with skip enabled: the target is ignored.
+        Assert.True(header.IsValidChild(uint256.Zero, ChainProfiles.Mainnet));
+    }
 }
