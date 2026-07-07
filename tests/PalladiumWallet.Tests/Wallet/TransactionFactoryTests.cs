@@ -105,6 +105,21 @@ public class TransactionFactoryTests
     }
 
     [Fact]
+    public void Una_fee_oltre_la_policy_standard_viene_rifiutata_prima_del_broadcast()
+    {
+        // An absurd fee rate produces a fee far above NBitcoin's standard policy
+        // cap: the builder.Verify safety net must refuse the transaction instead
+        // of letting a fat-finger fee reach the network.
+        var account = Account();
+        var (utxos, txs) = Fund(account, 100_000_000); // 1 PLM
+
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(1), amountSats: 1_000_000,
+            feeRateSatPerVByte: 500_000, changeIndex: 0, tipHeight: 100));
+        Assert.Contains("Invalid transaction", ex.Message);
+    }
+
+    [Fact]
     public void Gli_utxo_congelati_sono_esclusi_dalla_spesa()
     {
         var account = Account();
