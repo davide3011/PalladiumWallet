@@ -144,6 +144,14 @@ public partial class MainView : UserControl
             await launcher.LaunchUriAsync(new Uri(issueUrl));
     }
 
+    private async void OnOpenUserGuideClick(object? sender, RoutedEventArgs e)
+    {
+        const string userGuideUrl = "https://github.com/davide3011/PalladiumWallet/blob/main/USERGUIDE.md";
+        var launcher = TopLevel.GetTopLevel(this)?.Launcher;
+        if (launcher is not null)
+            await launcher.LaunchUriAsync(new Uri(userGuideUrl));
+    }
+
     private async void OnOpenReleasePageClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm || string.IsNullOrEmpty(vm.UpdateReleaseUrl)) return;
