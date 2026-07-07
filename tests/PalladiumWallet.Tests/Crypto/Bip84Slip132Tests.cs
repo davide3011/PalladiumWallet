@@ -1,4 +1,5 @@
 using NBitcoin;
+using NBitcoin.DataEncoders;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Crypto;
 
@@ -72,6 +73,39 @@ public class Bip84Slip132Tests
         Assert.Equal(ScriptKind.Legacy, kind); // xpub header → recognized as Legacy
         Assert.False(Slip132.TryDecodePublic("non-base58!!!", ChainProfiles.Mainnet, out _, out _));
         Assert.False(Slip132.TryDecodePrivate(asXpub, ChainProfiles.Mainnet, out _, out _)); // pub ≠ priv
+    }
+
+    [Fact]
+    public void Una_xkey_base58_valida_ma_di_lunghezza_sbagliata_viene_rifiutata()
+    {
+        // Well-formed Base58Check, but the decoded payload is not 78 bytes.
+        var tooShort = Encoders.Base58Check.EncodeData([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        Assert.False(Slip132.TryDecodePublic(tooShort, ChainProfiles.Mainnet, out _, out _));
+        Assert.False(Slip132.TryDecodePrivate(tooShort, ChainProfiles.Mainnet, out _, out _));
+    }
+
+    [Fact]
+    public void Una_zpub_con_payload_corrotto_viene_rifiutata_senza_eccezioni()
+    {
+        // Correct zpub header, but the 33-byte pubkey has an invalid point prefix:
+        // the ExtPubKey constructor must fail and TryDecodePublic must return false.
+        var data = Encoders.Base58Check.DecodeData(Account().ToSlip132());
+        data[45] = 0xFF; // pubkey prefix (offset 4 header + 41) — not 0x02/0x03
+        var corrupted = Encoders.Base58Check.EncodeData(data);
+
+        Assert.False(Slip132.TryDecodePublic(corrupted, ChainProfiles.Mainnet, out _, out _));
+    }
+
+    [Fact]
+    public void Una_zprv_con_payload_corrotto_viene_rifiutata_senza_eccezioni()
+    {
+        // Correct zprv header, but the byte before the 32-byte key must be 0x00:
+        // ExtKey.CreateFromBytes must fail and TryDecodePrivate must return false.
+        var data = Encoders.Base58Check.DecodeData(Account().ToSlip132Private());
+        data[45] = 0xFF;
+        var corrupted = Encoders.Base58Check.EncodeData(data);
+
+        Assert.False(Slip132.TryDecodePrivate(corrupted, ChainProfiles.Mainnet, out _, out _));
     }
 
     [Theory]
