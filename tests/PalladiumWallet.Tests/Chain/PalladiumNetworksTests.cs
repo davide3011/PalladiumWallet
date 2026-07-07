@@ -75,4 +75,25 @@ public class PalladiumNetworksTests
         Assert.NotSame(PalladiumNetworks.Testnet, PalladiumNetworks.Regtest);
         Assert.Same(PalladiumNetworks.Mainnet, PalladiumNetworks.For(NetKind.Mainnet));
     }
+
+    [Fact]
+    public void For_con_un_kind_fuori_enum_lancia_eccezione()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => PalladiumNetworks.For((NetKind)99));
+    }
+
+    [Fact]
+    public void Il_network_set_espone_le_tre_reti_sotto_il_codice_plm()
+    {
+        var set = PalladiumNetworkSet.Instance;
+
+        Assert.Equal("PLM", set.CryptoCode);
+        Assert.Same(PalladiumNetworks.Mainnet, set.Mainnet);
+        Assert.Same(PalladiumNetworks.Testnet, set.Testnet);
+        Assert.Same(PalladiumNetworks.Regtest, set.Regtest);
+        Assert.Same(PalladiumNetworks.Mainnet, set.GetNetwork(ChainName.Mainnet));
+        Assert.Same(PalladiumNetworks.Testnet, set.GetNetwork(ChainName.Testnet));
+        Assert.Same(PalladiumNetworks.Regtest, set.GetNetwork(ChainName.Regtest));
+        Assert.Throws<ArgumentOutOfRangeException>(() => set.GetNetwork(new ChainName("signet")));
+    }
 }
