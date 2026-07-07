@@ -6,8 +6,8 @@ using PalladiumWallet.Core.Spv;
 using PalladiumWallet.Core.Storage;
 using PalladiumWallet.Core.Wallet;
 
-// CLI del wallet (blueprint §13): i casi d'uso del Core esposti da riga di
-// comando, per scripting, test e confronto col wallet di riferimento.
+// Wallet CLI (blueprint §13): Core use cases exposed via command line,
+// for scripting, testing and comparison against the reference wallet.
 
 try
 {
@@ -29,7 +29,7 @@ try
 catch (Exception ex) when (ex is WalletSpendException or WrongPasswordException
     or CertificatePinMismatchException or ElectrumServerException or SpvVerificationException)
 {
-    Console.Error.WriteLine($"Errore: {ex.Message}");
+    Console.Error.WriteLine($"Error: {ex.Message}");
     return 1;
 }
 
@@ -46,7 +46,7 @@ static int Addresses(string words, string[] o)
     if (account is null)
         return 1;
     var count = int.TryParse(Opt(o, "--count"), out var n) ? n : 5;
-    Console.WriteLine($"rete:    {account.Profile.NetName}   tipo: {account.Kind}   path: m/{account.AccountPath}");
+    Console.WriteLine($"network: {account.Profile.NetName}   kind: {account.Kind}   path: m/{account.AccountPath}");
     Console.WriteLine($"account: {account.ToSlip132()}");
     for (var i = 0; i < count; i++)
         Console.WriteLine($"  receiving/{i}: {account.GetReceiveAddress(i)}");
@@ -58,7 +58,7 @@ static int Addresses(string words, string[] o)
 static int Create(string[] o)
 {
     var mnemonic = Bip39.Generate(Opt(o, "--words") == "24" ? MnemonicLength.TwentyFour : MnemonicLength.Twelve);
-    Console.WriteLine("Nuova mnemonica (scrivila su carta, NON viene rimostrata):");
+    Console.WriteLine("New mnemonic (write it on paper, it is NOT shown again):");
     Console.WriteLine($"  {mnemonic}");
     return SaveWallet(mnemonic.ToString(), o);
 }
@@ -67,7 +67,7 @@ static int Restore(string words, string[] o)
 {
     if (!Bip39.TryParse(words, out _))
     {
-        Console.Error.WriteLine("Mnemonica non valida (parole o checksum errati).");
+        Console.Error.WriteLine("Invalid mnemonic (wrong words or checksum).");
         return 1;
     }
     return SaveWallet(words.Trim(), o);
@@ -78,7 +78,7 @@ static int RestoreXpub(string xpubText, string[] o)
     var profile = Profile(o);
     if (!Slip132.TryDecodePublic(xpubText, profile, out var xpub, out var kind))
     {
-        Console.Error.WriteLine("Chiave estesa non riconosciuta per questa rete.");
+        Console.Error.WriteLine("Extended key not recognised for this network.");
         return 1;
     }
     var account = HdAccount.FromAccountXpub(xpub!, kind, profile);
@@ -91,7 +91,7 @@ static int RestoreXpub(string xpubText, string[] o)
     };
     var path = WalletPath(o, profile);
     WalletStore.Save(doc, path, Opt(o, "--password"));
-    Console.WriteLine($"Wallet watch-only salvato in {path}");
+    Console.WriteLine($"Watch-only wallet saved to {path}");
     return 0;
 }
 
@@ -99,27 +99,27 @@ static int Info(string[] o)
 {
     var (doc, account, path) = OpenWallet(o);
     Console.WriteLine($"file:     {path}");
-    Console.WriteLine($"rete:     {doc.Network}   tipo: {doc.ScriptKind}   watch-only: {doc.IsWatchOnly}");
+    Console.WriteLine($"network:  {doc.Network}   kind: {doc.ScriptKind}   watch-only: {doc.IsWatchOnly}");
     Console.WriteLine($"path:     m/{doc.AccountPath}");
     Console.WriteLine($"xpub:     {doc.AccountXpub}");
     if (doc.Cache is { } cache)
     {
-        Console.WriteLine($"saldo:    {CoinAmount.Format(cache.ConfirmedSats - cache.ImmatureSats, account.Profile.CoinUnit)} spendibile"
-            + (cache.ImmatureSats != 0 ? $" + {CoinAmount.Format(cache.ImmatureSats)} in maturazione (non spendibile)" : "")
-            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} in attesa di conferma (non spendibile)." : ""));
-        Console.WriteLine($"sync:     altezza {cache.TipHeight}, {cache.History.Count} transazioni");
-        Console.WriteLine($"ricezione: {account.GetReceiveAddress(cache.NextReceiveIndex)}");
+        Console.WriteLine($"balance:  {CoinAmount.Format(cache.ConfirmedSats - cache.ImmatureSats, account.Profile.CoinUnit)} spendable"
+            + (cache.ImmatureSats != 0 ? $" + {CoinAmount.Format(cache.ImmatureSats)} maturing (not spendable)" : "")
+            + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} pending confirmation (not spendable)." : ""));
+        Console.WriteLine($"sync:     height {cache.TipHeight}, {cache.History.Count} transactions");
+        Console.WriteLine($"receive:  {account.GetReceiveAddress(cache.NextReceiveIndex)}");
     }
     else
     {
-        Console.WriteLine($"ricezione: {account.GetReceiveAddress(0)}   (mai sincronizzato)");
+        Console.WriteLine($"receive:  {account.GetReceiveAddress(0)}   (never synchronized)");
     }
 
     if (o.Contains("--addresses") && doc.Cache is { } c)
     {
-        Console.WriteLine("indirizzi:");
+        Console.WriteLine("addresses:");
         foreach (var a in c.Addresses)
-            Console.WriteLine($"  {(a.IsChange ? "change " : "ricev. ")}{a.Index,3}  {a.Address}  " +
+            Console.WriteLine($"  {(a.IsChange ? "change " : "receive")}{a.Index,3}  {a.Address}  " +
                 $"{CoinAmount.Format(a.BalanceSats),18}  ({a.TxCount} tx)");
     }
     return 0;
@@ -160,14 +160,14 @@ static async Task<int> Sync(string[] o)
     };
     WalletStore.Save(doc, path, Opt(o, "--password"));
 
-    Console.WriteLine($"Saldo: {CoinAmount.Format(result.ConfirmedSats - result.ImmatureSats, account.Profile.CoinUnit)} spendibile"
-        + (result.ImmatureSats != 0 ? $" + {CoinAmount.Format(result.ImmatureSats)} in maturazione (non spendibile)" : "")
-        + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} in attesa di conferma (non spendibile)" : ""));
-    Console.WriteLine($"Storico ({result.History.Count}):");
+    Console.WriteLine($"Balance: {CoinAmount.Format(result.ConfirmedSats - result.ImmatureSats, account.Profile.CoinUnit)} spendable"
+        + (result.ImmatureSats != 0 ? $" + {CoinAmount.Format(result.ImmatureSats)} maturing (not spendable)" : "")
+        + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} pending confirmation (not spendable)" : ""));
+    Console.WriteLine($"History ({result.History.Count}):");
     foreach (var tx in result.History)
         Console.WriteLine($"  {(tx.Height > 0 ? tx.Height.ToString() : "mempool"),7}  " +
             $"{(tx.DeltaSats >= 0 ? "+" : "")}{CoinAmount.Format(tx.DeltaSats)}  {tx.Txid}" +
-            (tx.Verified ? "" : "  (non verificata)"));
+            (tx.Verified ? "" : "  (unverified)"));
     return 0;
 }
 
@@ -176,18 +176,18 @@ static async Task<int> Send(string[] o)
     var (doc, account, path) = OpenWallet(o);
     if (doc.Cache is null)
     {
-        Console.Error.WriteLine("Wallet mai sincronizzato: esegui prima 'sync'.");
+        Console.Error.WriteLine("Wallet never synchronized: run 'sync' first.");
         return 1;
     }
-    var to = Opt(o, "--to") ?? throw new WalletSpendException("--to mancante.");
+    var to = Opt(o, "--to") ?? throw new WalletSpendException("--to missing.");
     var destination = BitcoinAddress.Create(to, PalladiumNetworks.For(account.Profile.Kind));
     var sendAll = o.Contains("--all");
     long amount = 0;
     if (!sendAll && !CoinAmount.TryParseCoins(Opt(o, "--amount") ?? "", out amount))
-        throw new WalletSpendException("--amount mancante o non valido (oppure usa --all).");
+        throw new WalletSpendException("--amount missing or invalid (or use --all).");
     var feeRate = decimal.TryParse(Opt(o, "--feerate"), out var fr) ? fr : 1m;
 
-    // Tx di provenienza degli UTXO: servono per importi e firma.
+    // Source transactions of the UTXOs: needed for amounts and signing.
     await using var client = await Connect(o, account.Profile);
     var network = PalladiumNetworks.For(account.Profile.Kind);
     var transactions = new Dictionary<string, Transaction>();
@@ -204,20 +204,20 @@ static async Task<int> Send(string[] o)
 
     if (!built.Signed)
     {
-        Console.WriteLine("Wallet watch-only: PSBT da firmare offline (§6.5):");
+        Console.WriteLine("Watch-only wallet: PSBT to sign offline (§6.5):");
         Console.WriteLine(built.Psbt.ToBase64());
         return 0;
     }
 
     if (!o.Contains("--broadcast"))
     {
-        Console.WriteLine("Transazione firmata (NON trasmessa, aggiungi --broadcast):");
+        Console.WriteLine("Signed transaction (NOT broadcast, add --broadcast):");
         Console.WriteLine(built.ToHex());
         return 0;
     }
 
     var txid2 = await client.BroadcastAsync(built.ToHex());
-    Console.WriteLine($"Trasmessa: {txid2}");
+    Console.WriteLine($"Broadcast: {txid2}");
     return 0;
 }
 
@@ -225,7 +225,7 @@ static int ResetCerts(string[] o)
 {
     var profile = Profile(o);
     new CertificatePinStore(AppPaths.CertificatePinsPath(profile.Kind)).ResetAll();
-    Console.WriteLine($"Certificati SSL salvati per {profile.NetName} azzerati.");
+    Console.WriteLine($"Saved SSL certificates for {profile.NetName} cleared.");
     return 0;
 }
 
@@ -238,16 +238,16 @@ static async Task<int> Servers(string[] o)
     {
         await using var client = await Connect(o, profile);
         var added = await registry.DiscoverAsync(client);
-        Console.WriteLine($"Scoperti {added} nuovi server dai peer.");
+        Console.WriteLine($"Discovered {added} new servers from peers.");
     }
 
-    Console.WriteLine($"Server noti ({profile.NetName}):");
+    Console.WriteLine($"Known servers ({profile.NetName}):");
     foreach (var server in registry.All)
         Console.WriteLine($"  {server}");
     return 0;
 }
 
-// ----- helper comuni -----
+// ----- shared helpers -----
 
 static ChainProfile Profile(string[] o) => Opt(o, "--net") switch
 {
@@ -270,7 +270,7 @@ static HdAccount? AccountFromWords(string words, string[] o)
 {
     if (!Bip39.TryParse(words, out var mnemonic))
     {
-        Console.Error.WriteLine("Mnemonica non valida (parole o checksum errati).");
+        Console.Error.WriteLine("Invalid mnemonic (wrong words or checksum).");
         return null;
     }
     var profile = Profile(o);
@@ -289,11 +289,11 @@ static int SaveWallet(string words, string[] o)
         Opt(o, "--path") is { } p ? KeyPath.Parse(p) : null);
     var password = Opt(o, "--password");
     if (string.IsNullOrEmpty(password))
-        Console.WriteLine("ATTENZIONE: nessuna --password, il seed sarà in chiaro su disco (§17).");
+        Console.WriteLine("WARNING: no --password, the seed will be stored in plaintext on disk (§17).");
     var path = WalletPath(o, profile);
     WalletStore.Save(doc, path, password);
-    Console.WriteLine($"Wallet salvato in {path}");
-    Console.WriteLine($"Primo indirizzo: {account.GetReceiveAddress(0)}");
+    Console.WriteLine($"Wallet saved to {path}");
+    Console.WriteLine($"First address: {account.GetReceiveAddress(0)}");
     return 0;
 }
 
@@ -301,7 +301,7 @@ static (WalletDocument, IWalletAccount, string) OpenWallet(string[] o)
 {
     var path = WalletPath(o, Profile(o));
     if (!WalletStore.Exists(path))
-        throw new WalletSpendException($"Nessun wallet in {path}: usa 'create' o 'restore'.");
+        throw new WalletSpendException($"No wallet at {path}: use 'create' or 'restore'.");
     var doc = WalletStore.Load(path, Opt(o, "--password"));
     return (doc, WalletLoader.ToAccount(doc), path);
 }
@@ -320,15 +320,15 @@ static async Task<ElectrumClient> Connect(string[] o, ChainProfile profile)
     }
     else
     {
-        // Senza --server si usa il primo server noto (bootstrap §3 o scoperto §9).
+        // Without --server, use the first known server (bootstrap §3 or discovered §9).
         var known = new ServerRegistry(profile, AppPaths.ServersPath(profile.Kind)).Default
-            ?? throw new WalletSpendException("Nessun server noto per questa rete: usa --server host:porta.");
+            ?? throw new WalletSpendException("No known server for this network: use --server host:port.");
         host = known.Host;
         port = known.PortFor(useSsl);
     }
 
     var pins = new CertificatePinStore(AppPaths.CertificatePinsPath(profile.Kind));
-    Console.WriteLine($"Connessione a {host}:{port}{(useSsl ? " (TLS)" : "")}…");
+    Console.WriteLine($"Connecting to {host}:{port}{(useSsl ? " (TLS)" : "")}…");
     return await ElectrumClient.ConnectAsync(host, port, useSsl, pins);
 }
 
@@ -346,20 +346,20 @@ static int Usage()
         Wallet:
           create        [--words 12|24] [--kind segwit|wrapped|legacy] [--net mainnet|testnet|regtest]
                         [--passphrase W] [--password P] [--file PATH]
-          restore       "<mnemonica>" [stesse opzioni di create] [--path m/...]
-          restore-xpub  <xpub slip132> [--net ...] [--password P] [--file PATH]   (watch-only)
+          restore       "<mnemonic>" [same options as create] [--path m/...]
+          restore-xpub  <slip132 xpub> [--net ...] [--password P] [--file PATH]   (watch-only)
           info          [--net ...] [--password P] [--file PATH]
 
-        Rete (server di indicizzazione; senza --server usa il primo server noto):
-          sync          [--server host[:porta]] [--ssl] [--net ...] [--password P] [--file PATH]
-          send          --to INDIRIZZO (--amount X | --all) [--feerate sat/vB]
-                        [--server host[:porta]] [--ssl] [--broadcast] [...]
-          servers       [--discover] [--server host[:porta]] [--ssl] [--net ...]
+        Network (indexing server; without --server the first known server is used):
+          sync          [--server host[:port]] [--ssl] [--net ...] [--password P] [--file PATH]
+          send          --to ADDRESS (--amount X | --all) [--feerate sat/vB]
+                        [--server host[:port]] [--ssl] [--broadcast] [...]
+          servers       [--discover] [--server host[:port]] [--ssl] [--net ...]
           reset-certs   [--net ...]
 
-        Strumenti:
+        Tools:
           newseed       [--words 12|24]
-          addresses     "<mnemonica>" [--kind ...] [--net ...] [--count N] [--passphrase W] [--path m/...]
+          addresses     "<mnemonic>" [--kind ...] [--net ...] [--count N] [--passphrase W] [--path m/...]
         """);
     return 1;
 }

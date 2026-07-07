@@ -705,7 +705,7 @@ no hardware wallets, no Tor, GUI mainnet-only, and PSBT export only via the CLI.
 ## 17. Command-line interface (CLI)
 
 The CLI (`src/Cli`) runs on the same core as the GUI: same wallet files, same validation,
-same security. It is desktop-only and its console output is currently in Italian. Run it
+same security. It is desktop-only and its console output is in English. Run it
 as `dotnet run --project src/Cli -- <command>` from the repository (or the published `Cli`
 binary); with no arguments it prints usage.
 
