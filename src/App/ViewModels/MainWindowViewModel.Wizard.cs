@@ -416,7 +416,7 @@ public partial class MainWindowViewModel
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Errore: {ex.Message}";
+            StatusMessage = $"{Loc.Tr("msg.error")}: {ex.Message}";
         }
     }
 
@@ -473,7 +473,7 @@ public partial class MainWindowViewModel
         catch (Exception ex)
         {
             newLock.Dispose();
-            StatusMessage = $"Errore: {ex.Message}";
+            StatusMessage = $"{Loc.Tr("msg.error")}: {ex.Message}";
         }
     }
 

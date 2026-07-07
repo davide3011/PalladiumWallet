@@ -319,14 +319,14 @@ public partial class MainWindowViewModel
             IsConnected = false;
             ConnectionStatus = Loc.Tr("conn.none");
             ConnectionStatusShort = Loc.Tr("conn.none");
-            StatusMessage = ex.Message;
+            StatusMessage = DescribeError(ex);
         }
         catch (Exception ex)
         {
             IsConnected = _client?.IsConnected == true;
             ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
             ConnectionStatusShort = IsConnected ? Loc.Tr("conn.connectedto") : Loc.Tr("conn.none");
-            StatusMessage = $"Errore: {ex.Message}";
+            StatusMessage = $"{Loc.Tr("msg.error")}: {DescribeError(ex)}";
             if (_account is not null)
             {
                 _syncFailed = true;
@@ -378,7 +378,8 @@ public partial class MainWindowViewModel
         }
         if (temp is null)
         {
-            StatusMessage = $"Errore nella scoperta peer: {lastError?.Message ?? Loc.Tr("conn.none")}";
+            StatusMessage = $"{Loc.Tr("msg.peer.discovery.error")}: " +
+                (lastError is null ? Loc.Tr("conn.none") : DescribeError(lastError));
             return;
         }
         try
@@ -401,14 +402,25 @@ public partial class MainWindowViewModel
             SelectedKnownServer = KnownServers.FirstOrDefault(s => s.Host == selected?.Host)
                 ?? KnownServers.FirstOrDefault();
             StatusMessage = added > 0
-                ? $"Trovati {added} nuovi server dai peer (totale {KnownServers.Count})."
-                : $"Nessun nuovo server annunciato (totale {KnownServers.Count}).";
+                ? string.Format(Loc.Tr("msg.peer.discovery.found"), added, KnownServers.Count)
+                : string.Format(Loc.Tr("msg.peer.discovery.none"), KnownServers.Count);
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Errore nella scoperta peer: {ex.Message}";
+            StatusMessage = $"{Loc.Tr("msg.peer.discovery.error")}: {DescribeError(ex)}";
         }
     }
+
+    /// <summary>
+    /// Translates known Core exception types to the current UI language; falls back to the
+    /// exception's own message (Core has no localization, so it is English by default).
+    /// </summary>
+    private static string DescribeError(Exception ex) => ex switch
+    {
+        CertificatePinMismatchException cert =>
+            string.Format(Loc.Tr("msg.cert.mismatch"), $"{cert.Host}:{cert.Port}"),
+        _ => ex.Message,
+    };
 
     private void OnServerNotification(string method, System.Text.Json.JsonElement payload)
     {

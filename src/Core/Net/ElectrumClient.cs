@@ -284,5 +284,9 @@ public sealed class ElectrumServerException(string error) : Exception(error);
 /// It is unlocked with an explicit reset of the certificates.
 /// </summary>
 public sealed class CertificatePinMismatchException(string host, int port) : Exception(
-    $"Il certificato TLS di {host}:{port} è cambiato rispetto a quello salvato. " +
-    "Se il server ha rinnovato il certificato, esegui il reset dei certificati SSL.");
+    $"The TLS certificate of {host}:{port} has changed from the one saved. " +
+    "If the server renewed its certificate, reset the SSL certificates.")
+{
+    public string Host { get; } = host;
+    public int Port { get; } = port;
+}

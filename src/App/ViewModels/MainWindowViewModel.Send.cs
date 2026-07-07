@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NBitcoin;
+using PalladiumWallet.App.Localization;
 using PalladiumWallet.App.Services;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Net;
@@ -47,14 +48,14 @@ public partial class MainWindowViewModel
     {
         if (_account is null || _doc?.Cache is null)
         {
-            SendPreview = "Sincronizza prima di inviare.";
+            SendPreview = Loc.Tr("msg.send.sync.first");
             return;
         }
         try
         {
             if (_lastTransactions is null)
             {
-                SendPreview = "Connettiti al server e sincronizza prima di inviare.";
+                SendPreview = Loc.Tr("msg.send.connect.first");
                 return;
             }
 
@@ -62,12 +63,12 @@ public partial class MainWindowViewModel
             long amount = 0;
             if (!SendAll && !CoinAmount.TryParseIn(SendAmount, _config.Unit, out amount))
             {
-                SendPreview = "Importo non valido.";
+                SendPreview = Loc.Tr("msg.amount.invalid");
                 return;
             }
             if (!decimal.TryParse(SendFeeRate, out var feeRate) || feeRate <= 0)
             {
-                SendPreview = "Fee rate non valido.";
+                SendPreview = Loc.Tr("msg.feerate.invalid");
                 return;
             }
 
@@ -78,14 +79,14 @@ public partial class MainWindowViewModel
             SendPreview = $"txid {_pendingSend.Txid[..16]}… · " +
                 $"fee {Fmt(_pendingSend.Fee.Satoshi)} " +
                 $"({_pendingSend.Transaction.GetVirtualSize()} vB)" +
-                (_pendingSend.Signed ? "" : " · NON firmata (watch-only)");
+                (_pendingSend.Signed ? "" : Loc.Tr("msg.unsigned.watchonly"));
             HasPendingSend = _pendingSend.Signed;
         }
         catch (Exception ex)
         {
             _pendingSend = null;
             HasPendingSend = false;
-            SendPreview = $"Errore: {ex.Message}";
+            SendPreview = $"{Loc.Tr("msg.error")}: {DescribeError(ex)}";
         }
         await Task.CompletedTask;
     }
@@ -98,7 +99,7 @@ public partial class MainWindowViewModel
         try
         {
             var txid = await _client.BroadcastAsync(_pendingSend.ToHex());
-            SendPreview = $"Trasmessa: {txid}";
+            SendPreview = $"{Loc.Tr("msg.broadcasted")}: {txid}";
             SendTo = SendAmount = "";
             _pendingSend = null;
             HasPendingSend = false;
@@ -106,7 +107,7 @@ public partial class MainWindowViewModel
         }
         catch (Exception ex)
         {
-            SendPreview = $"Errore broadcast: {ex.Message}";
+            SendPreview = $"{Loc.Tr("msg.broadcast.error")}: {DescribeError(ex)}";
         }
     }
 }

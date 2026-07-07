@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using NBitcoin;
+using PalladiumWallet.App.Localization;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Net;
 using PalladiumWallet.Core.Wallet;
@@ -32,7 +33,7 @@ public partial class MainWindowViewModel
 
         if (_account is null || _doc?.Cache is null || _lastTransactions is null)
         {
-            DonatePreview = "Sincronizza prima di inviare.";
+            DonatePreview = Loc.Tr("msg.send.sync.first");
             return;
         }
         try
@@ -40,7 +41,7 @@ public partial class MainWindowViewModel
             var destination = BitcoinAddress.Create(DevAddress, PalladiumNetworks.For(Net));
             if (!CoinAmount.TryParseIn(DonateAmount.Trim(), _config.Unit, out var amount) || amount <= 0)
             {
-                DonatePreview = "Importo non valido.";
+                DonatePreview = Loc.Tr("msg.amount.invalid");
                 return;
             }
             if (!decimal.TryParse(SendFeeRate, System.Globalization.NumberStyles.Any,
@@ -61,7 +62,7 @@ public partial class MainWindowViewModel
         {
             _pendingDonate = null;
             HasPendingDonate = false;
-            DonatePreview = $"Errore: {ex.Message}";
+            DonatePreview = $"{Loc.Tr("msg.error")}: {ex.Message}";
         }
         await Task.CompletedTask;
     }
@@ -74,7 +75,7 @@ public partial class MainWindowViewModel
         try
         {
             var txid = await _client.BroadcastAsync(_pendingDonate.ToHex());
-            DonatePreview = $"Grazie! txid: {txid}";
+            DonatePreview = $"{Loc.Tr("msg.donate.thanks")}: {txid}";
             DonateAmount = "";
             _pendingDonate = null;
             HasPendingDonate = false;
@@ -82,7 +83,7 @@ public partial class MainWindowViewModel
         }
         catch (Exception ex)
         {
-            DonatePreview = $"Errore broadcast: {ex.Message}";
+            DonatePreview = $"{Loc.Tr("msg.broadcast.error")}: {ex.Message}";
         }
     }
 

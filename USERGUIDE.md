@@ -583,8 +583,7 @@ The Settings overlay (gear icon / menu *Settings*) contains exactly two preferen
 the door to the server settings:
 
 - **Language** — Italiano, English, Español, Français, Português, Deutsch. Applies
-  immediately. Default: English. (A few low-level error messages are currently shown in
-  Italian regardless of language.)
+  immediately. Default: English.
 - **Amount unit** — how amounts are displayed *and interpreted when you type them*:
 
   | Unit | In satoshi | Decimals shown |
