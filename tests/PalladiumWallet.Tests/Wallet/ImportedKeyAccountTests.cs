@@ -83,6 +83,55 @@ public class ImportedKeyAccountTests
     }
 
     [Fact]
+    public void Lista_vuota_viene_rifiutata()
+    {
+        Assert.Throws<ArgumentException>(
+            () => new ImportedKeyAccount([], ScriptKind.NativeSegwit, Profile));
+    }
+
+    [Fact]
+    public void GetAddress_fuori_range_o_change_ricade_sul_primo_indirizzo()
+    {
+        var keys = Enumerable.Range(0, 2).Select(_ => GenerateKey()).ToList();
+        var entries = keys
+            .Select(k => (k.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network), (Key?)k))
+            .ToList();
+        var account = new ImportedKeyAccount(entries, ScriptKind.NativeSegwit, Profile);
+        var first = entries[0].Item1.ToString();
+
+        // Fund safety: change and any out-of-range index must map to the first
+        // address, never to an address the wallet does not control.
+        Assert.Equal(first, account.GetAddress(isChange: true, 1).ToString());
+        Assert.Equal(first, account.GetAddress(isChange: false, -1).ToString());
+        Assert.Equal(first, account.GetAddress(isChange: false, 99).ToString());
+        Assert.Equal(first, account.GetChangeAddress(5).ToString());
+        Assert.Equal(entries[1].Item1.ToString(), account.GetAddress(isChange: false, 1).ToString());
+    }
+
+    [Fact]
+    public void GetPublicKey_segue_gli_stessi_confini_di_GetPrivateKey()
+    {
+        var key = GenerateKey();
+        var addr = key.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network);
+        var account = new ImportedKeyAccount([(addr, key)], ScriptKind.NativeSegwit, Profile);
+
+        Assert.Equal(key.PubKey, account.GetPublicKey(false, 0));
+        Assert.Null(account.GetPublicKey(true, 0));
+        Assert.Null(account.GetPublicKey(false, -1));
+        Assert.Null(account.GetPublicKey(false, 99));
+    }
+
+    [Fact]
+    public void GetPublicKey_e_null_per_una_entry_watch_only()
+    {
+        var key = GenerateKey();
+        var addr = key.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network);
+        var account = new ImportedKeyAccount([(addr, (Key?)null)], ScriptKind.NativeSegwit, Profile);
+
+        Assert.Null(account.GetPublicKey(false, 0));
+    }
+
+    [Fact]
     public void FixedAddresses_copre_tutti_gli_indirizzi()
     {
         var keys = Enumerable.Range(0, 3).Select(_ => GenerateKey()).ToList();
