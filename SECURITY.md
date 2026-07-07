@@ -21,7 +21,7 @@ It does **not** protect against:
 
 This wallet is an SPV client, not a full node. It validates:
 
-- Block headers (proof of work checked up to the last checkpoint; `SkipPowValidation` is enabled because LWMA difficulty cannot be recomputed client-side — trust is anchored to hardcoded checkpoints in `Core/Chain/ChainProfiles.cs`)
+- Block headers: `SkipPowValidation` is enabled because LWMA difficulty cannot be recomputed client-side, so proof of work is never checked. Instead, every header used for a Merkle proof is hash-chain-linked (prev-hash) back to the nearest hardcoded checkpoint at or below its height, and that checkpoint's hash must match exactly (`Core/Chain/ChainProfiles.cs`, enforced in `Core/Spv/WalletSynchronizer.AnchorToCheckpointAsync`). Currently populated for mainnet only (every 20,000 blocks); testnet/regtest have no checkpoints yet, so headers there are trusted at face value
 - Transaction inclusion in a confirmed block (Merkle branch proof, mandatory for every confirmed transaction — see `Core/Spv/MerkleProof.cs`)
 
 It does **not** validate:

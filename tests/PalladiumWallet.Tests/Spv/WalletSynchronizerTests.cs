@@ -21,12 +21,12 @@ public class WalletSynchronizerTests
     private static readonly ChainProfile Profile = ChainProfiles.Regtest;
     private static readonly Network Net = PalladiumNetworks.Regtest;
 
-    private static HdAccount Account()
+    private static HdAccount Account(ChainProfile? profile = null)
     {
         Assert.True(Bip39.TryParse(
             "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
             out var mnemonic));
-        return HdAccount.FromMnemonic(mnemonic!, null, ScriptKind.NativeSegwit, Profile);
+        return HdAccount.FromMnemonic(mnemonic!, null, ScriptKind.NativeSegwit, profile ?? Profile);
     }
 
     /// <summary>
@@ -71,10 +71,11 @@ public class WalletSynchronizerTests
         }
 
         /// <summary>80-byte header of a block whose only transaction is <paramref name="txid"/>.</summary>
-        public static string SingleTxHeaderHex(uint256 txid, int height, uint256? merkleRoot = null)
+        public static string SingleTxHeaderHex(uint256 txid, int height, uint256? merkleRoot = null,
+            uint256? prevHash = null)
         {
             var header = Net.Consensus.ConsensusFactory.CreateBlockHeader();
-            header.HashPrevBlock = uint256.Zero;
+            header.HashPrevBlock = prevHash ?? uint256.Zero;
             header.HashMerkleRoot = merkleRoot ?? txid;
             header.BlockTime = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000 + height);
             header.Bits = new Target(0x1d00ffffu);
@@ -271,6 +272,119 @@ public class WalletSynchronizerTests
         var ex = await Assert.ThrowsAsync<SpvVerificationException>(
             () => new WalletSynchronizer(account, client).SyncOnceAsync());
         Assert.Contains(funding.GetHash().ToString(), ex.Message);
+    }
+
+    // ---- checkpoint anchoring ----
+
+    /// <summary>
+    /// Builds a chain of single-tx headers from <paramref name="fromHeight"/> to
+    /// <paramref name="toHeight"/> (inclusive), each linked to the previous via
+    /// HashPrevBlock, and registers them on the scenario. The last height carries
+    /// <paramref name="txid"/> as its Merkle root (single-tx block).
+    /// </summary>
+    private static Dictionary<int, string> ChainedHeaders(int fromHeight, int toHeight, uint256 txid)
+    {
+        var headers = new Dictionary<int, string>();
+        uint256? prevHash = null;
+        for (var h = fromHeight; h <= toHeight; h++)
+        {
+            var hex = Scenario.SingleTxHeaderHex(h == toHeight ? txid : uint256.One, h,
+                merkleRoot: h == toHeight ? txid : null, prevHash: prevHash);
+            headers[h] = hex;
+            prevHash = BlockHeaderInfo.Parse(hex).Hash;
+        }
+        return headers;
+    }
+
+    [Fact]
+    public async Task Una_tx_anchorata_a_un_checkpoint_valido_verifica_la_catena_di_header()
+    {
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 105);
+        var chain = ChainedHeaders(100, 105, funding.GetHash());
+        foreach (var (h, hex) in chain) scenario.Headers[h] = hex;
+
+        var checkpointProfile = Profile with
+        {
+            Checkpoints = [new Checkpoint(100, BlockHeaderInfo.Parse(chain[100]).Hash.ToString(), 0x1d00ffff)],
+        };
+        var checkpointAccount = Account(checkpointProfile);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var result = await new WalletSynchronizer(checkpointAccount, client).SyncOnceAsync();
+
+        Assert.Equal(1_000_000, result.ConfirmedSats);
+        // 100..105 inclusive = 6 headers fetched to walk the chain back to the checkpoint.
+        Assert.Equal(6, server.CallCount("blockchain.block.header"));
+    }
+
+    [Fact]
+    public async Task Un_checkpoint_con_hash_sbagliato_fa_fallire_la_sync()
+    {
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 105);
+        var chain = ChainedHeaders(100, 105, funding.GetHash());
+        foreach (var (h, hex) in chain) scenario.Headers[h] = hex;
+
+        var checkpointProfile = Profile with
+        {
+            // Wrong hash at the checkpoint height: the real chain does not match it.
+            Checkpoints = [new Checkpoint(100, uint256.One.ToString(), 0x1d00ffff)],
+        };
+        var checkpointAccount = Account(checkpointProfile);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var ex = await Assert.ThrowsAsync<SpvVerificationException>(
+            () => new WalletSynchronizer(checkpointAccount, client).SyncOnceAsync());
+        Assert.Contains("checkpoint height 100", ex.Message);
+    }
+
+    [Fact]
+    public async Task Una_catena_di_header_spezzata_fa_fallire_la_sync()
+    {
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 105);
+        var chain = ChainedHeaders(100, 105, funding.GetHash());
+        // Tamper with block 103: it no longer points at block 102's real hash.
+        chain[103] = Scenario.SingleTxHeaderHex(uint256.One, 103, prevHash: uint256.One);
+        foreach (var (h, hex) in chain) scenario.Headers[h] = hex;
+
+        var checkpointProfile = Profile with
+        {
+            Checkpoints = [new Checkpoint(100, BlockHeaderInfo.Parse(chain[100]).Hash.ToString(), 0x1d00ffff)],
+        };
+        var checkpointAccount = Account(checkpointProfile);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var ex = await Assert.ThrowsAsync<SpvVerificationException>(
+            () => new WalletSynchronizer(checkpointAccount, client).SyncOnceAsync());
+        Assert.Contains("Broken header chain at height 103", ex.Message);
+    }
+
+    [Fact]
+    public async Task Senza_checkpoint_a_copertura_dell_altezza_l_anchoring_e_un_no_op()
+    {
+        // Regtest profile (Profile) has no checkpoints at all: same behaviour as before
+        // this feature existed — only the Merkle proof is checked.
+        var account = Account();
+        var scenario = new Scenario();
+        scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 100);
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var result = await new WalletSynchronizer(account, client).SyncOnceAsync();
+
+        Assert.Equal(1_000_000, result.ConfirmedSats);
+        Assert.Equal(1, server.CallCount("blockchain.block.header"));
     }
 
     // ---- resilienza ----

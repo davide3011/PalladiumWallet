@@ -50,6 +50,10 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     private readonly Dictionary<string, int> _verifiedAtHeight = [];
     private readonly ConcurrentDictionary<int, Task<string>> _headerFetches = new();
 
+    // checkpoint height -> highest height already proven to hash-chain back to it
+    // (in-memory only: cheap to recompute from _headerFetches, no need to persist).
+    private readonly ConcurrentDictionary<int, int> _anchoredUpTo = new();
+
     // Indices known from the previous sync: used by ScanChainAsync for incremental
     // discovery — already-used addresses are fetched in a single burst instead of
     // sequential batches, reducing round-trips from O(used/gapLimit) to O(1).
@@ -189,6 +193,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                     h => client.GetBlockHeaderAsync(h, ct));
                 var proof  = await proofTask;
                 var header = BlockHeaderInfo.Parse(await headerTask);
+                await AnchorToCheckpointAsync(height, ct);
                 if (!MerkleProof.Verify(
                         uint256.Parse(txid), proof.Pos,
                         proof.Merkle.Select(uint256.Parse), header.MerkleRoot))
@@ -295,6 +300,45 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             AddressRows      = addressRows,
             Transactions     = transactions,
         };
+    }
+
+    /// <summary>
+    /// Anchors a header at <paramref name="height"/> to the nearest hardcoded checkpoint at
+    /// or below it (§7.3): downloads every intervening header and verifies an unbroken
+    /// prev-hash chain from the checkpoint's known-good hash up to this height. Without this,
+    /// the Merkle proof above only proves a transaction belongs to *some* header the server
+    /// handed over — on this LWMA chain the wallet cannot recompute PoW to catch a forged one,
+    /// so the checkpoint is the only fixed point of truth. A no-op when the network profile has
+    /// no checkpoint at or below <paramref name="height"/> (e.g. testnet/regtest today, or
+    /// mainnet heights below the first checkpoint).
+    /// </summary>
+    private async Task AnchorToCheckpointAsync(int height, CancellationToken ct)
+    {
+        var profile = account.Profile;
+        Checkpoint? checkpoint = null;
+        foreach (var c in profile.Checkpoints)
+            if (c.Height <= height && (checkpoint is not { } best || c.Height > best.Height))
+                checkpoint = c;
+        if (checkpoint is not { } cp)
+            return;
+
+        if (_anchoredUpTo.TryGetValue(cp.Height, out var anchoredTo) && anchoredTo >= height)
+            return;
+
+        var headers = await Task.WhenAll(Enumerable.Range(cp.Height, height - cp.Height + 1)
+            .Select(async h => BlockHeaderInfo.Parse(
+                await _headerFetches.GetOrAdd(h, hh => client.GetBlockHeaderAsync(hh, ct)))));
+
+        if (!headers[0].MatchesCheckpoint(cp))
+            throw new SpvVerificationException(
+                $"Header at checkpoint height {cp.Height} does not match the hardcoded hash: server is not trustworthy.");
+
+        for (var i = 1; i < headers.Length; i++)
+            if (!headers[i].IsValidChild(headers[i - 1].Hash, profile))
+                throw new SpvVerificationException(
+                    $"Broken header chain at height {cp.Height + i}: server is not trustworthy.");
+
+        _anchoredUpTo.AddOrUpdate(cp.Height, height, (_, existing) => Math.Max(existing, height));
     }
 
     /// <summary>

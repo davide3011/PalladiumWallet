@@ -567,9 +567,12 @@ or servers instead of resetting.
 Each sync: gets the chain tip → scans your receive and change address chains (gap limit
 20) → downloads your transactions → **verifies a Merkle proof for every confirmed
 transaction** against its block header → rebuilds your UTXO set and balances locally.
-Verified data is cached in the wallet file, so later syncs only fetch what is new — even
-after a restart. If a proof does not check out, the sync **aborts** with an explicit
-"server is not trustworthy" error rather than showing you unverified data; switch servers.
+On mainnet, each block header used for a proof is also chained back (via its previous-block
+hash) to the nearest built-in checkpoint, so a server cannot substitute a fabricated header
+for a real one. Verified data is cached in the wallet file, so later syncs only fetch what
+is new — even after a restart. If a proof or the checkpoint chain does not check out, the
+sync **aborts** with an explicit "server is not trustworthy" error rather than showing you
+unverified data; switch servers.
 
 If the server is overloaded (busy responses), the wallet retries automatically up to 8
 times with increasing back-off — a large wallet's first sync may take a little while, but it
@@ -806,7 +809,7 @@ Reset SSL certificates* — see
 | *Wrong password.* | The password does not decrypt the file (or the file was tampered with — the two are indistinguishable by design). | Retry; check keyboard layout/caps lock. If truly lost, restore from seed ([15.2](#152-restoring-step-by-step)). |
 | *Wallet already open in another instance of the application.* | Another running process holds this wallet's lock. | Close the other instance (GUI or CLI). |
 | *The TLS certificate of host:port has changed…* | Certificate pin mismatch — renewal or interception. | Read [12.2](#122-tls-certificate-pinning-tofu--read-before-fixing-a-certificate-error) **before** resetting certificates. |
-| Sync aborts, "server is not trustworthy" | A Merkle proof failed: the server served data it cannot prove. | Switch to another server. Your local data is intact; the wallet refused the bad data. |
+| Sync aborts, "server is not trustworthy" | A Merkle proof failed, or (mainnet) a block header did not chain back to a known checkpoint. | Switch to another server. Your local data is intact; the wallet refused the bad data. |
 | *Insufficient funds* with a non-zero balance | Funds are unconfirmed, under 6 confirmations, or immature coinbase; or the fee doesn't fit. | See [8.4](#84-why-insufficient-funds-can-appear-despite-a-visible-balance). Wait, or use Send all. |
 | Restored wallet shows zero balance | Wrong passphrase, wrong script type, or funds beyond the gap limit. | See [15.2](#152-restoring-step-by-step) — the coins are not lost. |
 | *Invalid mnemonic (wrong words or checksum)* | A word is misspelled, not on the BIP39 list, or the checksum fails. | Compare against your paper backup, word by word. |
