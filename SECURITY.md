@@ -55,7 +55,7 @@ It cannot (given correct Merkle verification):
 ## Encryption at rest
 
 - Algorithm: AES-256-GCM
-- Key derivation: PBKDF2-HMAC-SHA512, 100 000 iterations, 32-byte random salt
+- Key derivation: PBKDF2-HMAC-SHA512, 600 000 iterations, 16-byte random salt (fresh salt and nonce on every save; the iteration count is stored in the file container, so future increases remain backward-compatible)
 - Authentication: GCM tag (16 bytes) — any tampering is detected before decryption
 - The user can explicitly opt out of encryption (UI shows a warning); the `WalletStore.Save` API accepts `null` password only when the caller has confirmed user intent
 
