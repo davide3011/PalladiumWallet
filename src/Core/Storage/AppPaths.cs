@@ -21,6 +21,13 @@ public static class AppPaths
     /// <summary>Explicit override of the data root (e.g. CLI --data-dir). Takes priority over everything.</summary>
     public static string? OverrideDataRoot { get; set; }
 
+    // Test seams: redirect the machine-global bootstrap locations (APPDATA pointer
+    // dir, executable dir, per-user default root) to a sandbox so the resolution
+    // precedence can be exercised without touching real user data.
+    internal static string? BootstrapDirOverride { get; set; }
+    internal static string? PortableBaseOverride { get; set; }
+    internal static string? DefaultRootOverride { get; set; }
+
     /// <summary>
     /// Default data root, following each platform's convention:
     /// Windows → %APPDATA%\PalladiumWallet (PascalCase, like Electrum/Bitcoin);
@@ -29,6 +36,8 @@ public static class AppPaths
     /// </summary>
     public static string DefaultDataRoot()
     {
+        if (DefaultRootOverride is { } o)
+            return o;
         if (OperatingSystem.IsWindows())
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -41,11 +50,12 @@ public static class AppPaths
     /// bootstrap location that is always writable and independent of the data root.</summary>
     private static string LocationPointerPath() =>
         Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            AppDirName, "data-location");
+            BootstrapDirOverride ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), AppDirName),
+            "data-location");
 
     private static string PortableRoot() =>
-        Path.Combine(AppContext.BaseDirectory, PortableDirName);
+        Path.Combine(PortableBaseOverride ?? AppContext.BaseDirectory, PortableDirName);
 
     private static bool HasData(string root) =>
         Directory.Exists(root) && Directory.EnumerateFileSystemEntries(root).Any();

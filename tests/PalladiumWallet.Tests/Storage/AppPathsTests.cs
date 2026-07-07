@@ -7,9 +7,11 @@ namespace PalladiumWallet.Tests.Storage;
 /// Tests for the data-path resolution (§8), pinned to a temporary root via
 /// <see cref="AppPaths.OverrideDataRoot"/> — the same seam the Android head and
 /// the CLI --data-dir use — so nothing outside the temp folder is touched.
-/// The pointer-file and portable-mode branches read machine-global locations
-/// and are deliberately not exercised here.
+/// The pointer/portable/default precedence has its own sandboxed tests in
+/// <see cref="AppPathsResolutionTests"/>; both classes share a collection
+/// because AppPaths state is static.
 /// </summary>
+[Collection("AppPaths")]
 public class AppPathsTests : IDisposable
 {
     private readonly string _root;
@@ -80,5 +82,100 @@ public class AppPathsTests : IDisposable
     {
         Assert.NotEqual(AppPaths.WalletsDir(NetKind.Mainnet), AppPaths.WalletsDir(NetKind.Testnet));
         Assert.NotEqual(AppPaths.WalletsDir(NetKind.Testnet), AppPaths.WalletsDir(NetKind.Regtest));
+    }
+}
+
+/// <summary>
+/// Precedence tests for <see cref="AppPaths.DataRoot"/> — override → portable →
+/// pointer → default — using the internal bootstrap seams to sandbox the
+/// machine-global locations (APPDATA pointer dir, executable dir, default root).
+/// </summary>
+[Collection("AppPaths")]
+public sealed class AppPathsResolutionTests : IDisposable
+{
+    private readonly string _sandbox;
+    private readonly string? _savedOverride;
+
+    public AppPathsResolutionTests()
+    {
+        _sandbox = Path.Combine(Path.GetTempPath(), $"plm-paths-{Guid.NewGuid()}");
+        Directory.CreateDirectory(_sandbox);
+        _savedOverride = AppPaths.OverrideDataRoot;
+        AppPaths.OverrideDataRoot = null;
+        AppPaths.BootstrapDirOverride = Path.Combine(_sandbox, "bootstrap");
+        AppPaths.PortableBaseOverride = Path.Combine(_sandbox, "exe");
+        AppPaths.DefaultRootOverride = Path.Combine(_sandbox, "default-root");
+        Directory.CreateDirectory(AppPaths.PortableBaseOverride);
+    }
+
+    public void Dispose()
+    {
+        AppPaths.OverrideDataRoot = _savedOverride;
+        AppPaths.BootstrapDirOverride = null;
+        AppPaths.PortableBaseOverride = null;
+        AppPaths.DefaultRootOverride = null;
+        if (Directory.Exists(_sandbox))
+            Directory.Delete(_sandbox, recursive: true);
+    }
+
+    private string PortableDir => Path.Combine(_sandbox, "exe", AppPaths.PortableDirName);
+
+    [Fact]
+    public void Senza_alcuna_configurazione_vince_il_default_e_la_posizione_non_e_configurata()
+    {
+        Assert.Equal(Path.Combine(_sandbox, "default-root"), AppPaths.DataRoot());
+        Assert.False(AppPaths.IsDataLocationConfigured());
+    }
+
+    [Fact]
+    public void La_cartella_portable_accanto_all_eseguibile_vince_sul_pointer_e_sul_default()
+    {
+        AppPaths.ConfigureDataLocation(Path.Combine(_sandbox, "custom"));
+        Directory.CreateDirectory(PortableDir);
+
+        Assert.Equal(PortableDir, AppPaths.DataRoot());
+        Assert.True(AppPaths.IsDataLocationConfigured());
+    }
+
+    [Fact]
+    public void Il_pointer_scritto_da_ConfigureDataLocation_vince_sul_default()
+    {
+        var custom = Path.Combine(_sandbox, "custom");
+        AppPaths.ConfigureDataLocation($"  {custom}  "); // trims and creates
+
+        Assert.True(Directory.Exists(custom));
+        Assert.Equal(custom, AppPaths.DataRoot());
+        Assert.True(AppPaths.IsDataLocationConfigured());
+    }
+
+    [Fact]
+    public void Un_pointer_vuoto_viene_ignorato_e_si_ricade_sul_default()
+    {
+        Directory.CreateDirectory(AppPaths.BootstrapDirOverride!);
+        File.WriteAllText(Path.Combine(AppPaths.BootstrapDirOverride!, "data-location"), "   ");
+
+        Assert.Equal(Path.Combine(_sandbox, "default-root"), AppPaths.DataRoot());
+        Assert.False(AppPaths.IsDataLocationConfigured());
+    }
+
+    [Fact]
+    public void Dati_gia_presenti_nel_default_contano_come_posizione_configurata()
+    {
+        var defaultRoot = Path.Combine(_sandbox, "default-root");
+        Directory.CreateDirectory(defaultRoot);
+        Assert.False(AppPaths.IsDataLocationConfigured()); // exists but empty
+
+        File.WriteAllText(Path.Combine(defaultRoot, "config.json"), "{}");
+        Assert.True(AppPaths.IsDataLocationConfigured());
+    }
+
+    [Fact]
+    public void L_override_esplicito_vince_anche_su_portable_e_pointer()
+    {
+        Directory.CreateDirectory(PortableDir);
+        AppPaths.ConfigureDataLocation(Path.Combine(_sandbox, "custom"));
+        AppPaths.OverrideDataRoot = Path.Combine(_sandbox, "override");
+
+        Assert.Equal(Path.Combine(_sandbox, "override"), AppPaths.DataRoot());
     }
 }
