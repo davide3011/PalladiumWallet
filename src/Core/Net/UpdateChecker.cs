@@ -28,11 +28,19 @@ public static class UpdateChecker
         public string? HtmlUrl { get; set; }
     }
 
-    public static async Task<LatestRelease?> CheckAsync(string currentVersion, CancellationToken ct = default)
+    public static Task<LatestRelease?> CheckAsync(string currentVersion, CancellationToken ct = default) =>
+        CheckAsync(currentVersion, handler: null, ct);
+
+    /// <summary>Test seam: <paramref name="handler"/> replaces the real HTTP transport.</summary>
+    internal static async Task<LatestRelease?> CheckAsync(string currentVersion,
+        HttpMessageHandler? handler, CancellationToken ct = default)
     {
         try
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            using var http = handler is null
+                ? new HttpClient()
+                : new HttpClient(handler, disposeHandler: false);
+            http.Timeout = TimeSpan.FromSeconds(10);
             http.DefaultRequestHeaders.UserAgent.ParseAdd("PalladiumWallet");
             using var response = await http.GetAsync(ReleasesApiUrl, ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode) return null;

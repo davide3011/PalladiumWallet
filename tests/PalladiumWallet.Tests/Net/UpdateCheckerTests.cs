@@ -1,14 +1,86 @@
+using System.Net;
+using System.Text;
 using PalladiumWallet.Core.Net;
 
 namespace PalladiumWallet.Tests.Net;
 
 /// <summary>
-/// Tests for the release-tag parsing used by the update check. The network
-/// call itself is best-effort by design (any failure → null) and is not
-/// exercised here: only the version-comparison logic is deterministic.
+/// Tests for the update check: tag parsing plus the full CheckAsync flow via
+/// a stub HttpMessageHandler (the same seam the production overload wraps),
+/// so no real GitHub call is ever made.
 /// </summary>
 public class UpdateCheckerTests
 {
+    /// <summary>Handler stub: replies with a fixed status/body, or throws.</summary>
+    private sealed class StubHandler(HttpStatusCode status, string? body = null,
+        Exception? throws = null) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken ct) =>
+            throws is not null
+                ? Task.FromException<HttpResponseMessage>(throws)
+                : Task.FromResult(new HttpResponseMessage(status)
+                {
+                    Content = new StringContent(body ?? "", Encoding.UTF8, "application/json"),
+                });
+    }
+
+    private static Task<LatestRelease?> Check(string current, HttpStatusCode status,
+        string? body = null, Exception? throws = null) =>
+        UpdateChecker.CheckAsync(current, new StubHandler(status, body, throws));
+
+    [Fact]
+    public async Task Una_release_piu_nuova_viene_segnalata_con_tag_e_url()
+    {
+        var release = await Check("0.9.1", HttpStatusCode.OK,
+            """{"tag_name":"v1.0.0","html_url":"https://example.test/rel/v1.0.0"}""");
+
+        Assert.NotNull(release);
+        Assert.Equal("v1.0.0", release!.Tag);
+        Assert.Equal("https://example.test/rel/v1.0.0", release.HtmlUrl);
+    }
+
+    [Fact]
+    public async Task Senza_html_url_viene_costruito_il_link_alla_pagina_della_release()
+    {
+        var release = await Check("0.9.1", HttpStatusCode.OK, """{"tag_name":"v1.0.0"}""");
+
+        Assert.NotNull(release);
+        Assert.Contains("/releases/tag/v1.0.0", release!.HtmlUrl);
+    }
+
+    [Theory]
+    [InlineData("""{"tag_name":"v0.9.1"}""")] // same version
+    [InlineData("""{"tag_name":"v0.9.0"}""")] // older
+    [InlineData("""{"tag_name":"main"}""")]   // unparseable tag
+    [InlineData("""{"tag_name":""}""")]       // empty tag
+    [InlineData("""{}""")]                    // missing tag
+    public async Task Nessun_aggiornamento_quando_il_tag_non_e_piu_nuovo(string body)
+    {
+        Assert.Null(await Check("0.9.1", HttpStatusCode.OK, body));
+    }
+
+    [Fact]
+    public async Task Una_risposta_http_di_errore_risolve_a_null()
+    {
+        Assert.Null(await Check("0.9.1", HttpStatusCode.NotFound));
+        Assert.Null(await Check("0.9.1", HttpStatusCode.InternalServerError));
+    }
+
+    [Fact]
+    public async Task Json_malformato_o_errore_di_rete_risolvono_a_null()
+    {
+        Assert.Null(await Check("0.9.1", HttpStatusCode.OK, "not json at all"));
+        Assert.Null(await Check("0.9.1", HttpStatusCode.OK,
+            """{"tag_name":"v9.9.9"}""", throws: new HttpRequestException("offline")));
+    }
+
+    [Fact]
+    public async Task Una_versione_locale_non_parsabile_risolve_a_null()
+    {
+        Assert.Null(await Check("dev-build", HttpStatusCode.OK, """{"tag_name":"v9.9.9"}"""));
+    }
+
     [Theory]
     [InlineData("v1.2.3", "1.2.3")]
     [InlineData("V0.9.1", "0.9.1")]
