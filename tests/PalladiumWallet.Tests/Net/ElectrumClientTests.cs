@@ -99,6 +99,21 @@ public class ElectrumClientTests
     }
 
     [Fact]
+    public async Task Una_risposta_molto_grande_arriva_integra()
+    {
+        // A payload far beyond the PipeReader's segment size forces the
+        // multi-segment dispatch path (ArrayPool copy) instead of the fast span.
+        var big = new string('x', 256 * 1024);
+        await using var server = new FakeElectrumServer();
+        server.Handle("blockchain.transaction.get", _ => big);
+
+        await using var client = await ElectrumClient.ConnectAsync(server.Host, server.Port, useSsl: false);
+
+        var result = await client.GetTransactionAsync("00").WaitAsync(Timeout);
+        Assert.Equal(big, result);
+    }
+
+    [Fact]
     public async Task La_cancellazione_del_token_annulla_la_richiesta_pendente()
     {
         await using var server = new FakeElectrumServer();
