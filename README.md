@@ -168,6 +168,18 @@ framing, retries, TLS pinning included — without any external dependency.
 
 The suite also includes **property-based tests** ([CsCheck](https://github.com/AnthonyLloyd/CsCheck)) in `tests/PalladiumWallet.Tests/PropertyTests.cs`. These generate hundreds of random inputs per test and verify invariants that must hold universally — no crash on arbitrary strings, encrypt/decrypt roundtrip for any plaintext and password, SLIP-132 key roundtrip for every script kind and network, every leaf in a randomly-built Merkle tree verifies against its root. They run automatically with `dotnet test` and take ~30 s.
 
+### Fuzzing
+
+`tests/PalladiumWallet.Fuzz` fuzzes every parser that consumes untrusted input
+(server-supplied headers/proofs/peer lists, wallet files, user-pasted
+keys/mnemonics/addresses/amounts) via [SharpFuzz](https://github.com/Metalnem/sharpfuzz):
+each target enforces the parser's documented error contract, so any other
+exception escaping is a finding. The seed corpus — including a regression input
+for every crash found so far — replays automatically inside `dotnet test`;
+coverage-guided campaigns run separately with afl++ (`tests/PalladiumWallet.Fuzz/fuzz.sh`),
+and a built-in random-mutation mode (`dotnet run -- <target> --random N`) needs
+no external tooling. See `tests/PalladiumWallet.Fuzz/README.md`.
+
 ---
 
 ## Building

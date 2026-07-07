@@ -55,8 +55,9 @@ It cannot (given correct Merkle verification):
 ## Encryption at rest
 
 - Algorithm: AES-256-GCM
-- Key derivation: PBKDF2-HMAC-SHA512, 600 000 iterations, 16-byte random salt (fresh salt and nonce on every save; the iteration count is stored in the file container, so future increases remain backward-compatible)
+- Key derivation: PBKDF2-HMAC-SHA512, 600 000 iterations, 16-byte random salt (fresh salt and nonce on every save; the iteration count is stored in the file container, so future increases remain backward-compatible — bounded at 10 000 000 on read, since the count is attacker-controlled in a tampered file and an absurd value would hang the wallet at open)
 - Authentication: GCM tag (16 bytes) — any tampering is detected before decryption
+- A malformed container (broken JSON, missing fields, bad base64, wrong nonce/tag size) always fails with a typed `InvalidDataException`, never a raw parser exception — the decrypt path is fuzz-tested (`tests/PalladiumWallet.Fuzz`)
 - The user can explicitly opt out of encryption (UI shows a warning); the `WalletStore.Save` API accepts `null` password only when the caller has confirmed user intent
 
 ---
