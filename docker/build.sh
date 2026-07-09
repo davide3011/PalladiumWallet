@@ -205,6 +205,7 @@ build_android() {
             -t:SignAndroidPackage \
             -p:AndroidSdkDirectory=\${ANDROID_HOME} \
             -p:ApplicationVersion=${VERSION_CODE} \
+            -p:AndroidKeyStore=true \
             -p:AndroidSigningKeyStore=/keystore/release.keystore \
             -p:AndroidSigningKeyAlias=palladiumwallet \
             -p:AndroidSigningStorePass=\${ANDROID_KS_PASS} \
