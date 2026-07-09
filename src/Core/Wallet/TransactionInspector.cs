@@ -5,12 +5,18 @@ using PalladiumWallet.Core.Spv;
 namespace PalladiumWallet.Core.Wallet;
 
 /// <summary>An input of a transaction, with the spent output resolved from the server.</summary>
+/// <param name="CoinbaseTag">
+/// Printable ASCII runs (e.g. pool tags like "/slush/") extracted from the coinbase
+/// scriptSig; null for non-coinbase inputs or if no printable text was found.
+/// </param>
 public sealed record TxInputInfo(
-    string PrevTxid, uint PrevIndex, long? AmountSats, string? Address, bool IsMine, bool IsCoinbase);
+    string PrevTxid, uint PrevIndex, long? AmountSats, string? Address, bool IsMine, bool IsCoinbase,
+    string? CoinbaseTag = null);
 
 /// <summary>An output of a transaction.</summary>
+/// <param name="OpReturnText">Decoded OP_RETURN payload (UTF-8, or hex if not valid text); null otherwise.</param>
 public sealed record TxOutputInfo(
-    uint Index, long AmountSats, string? Address, string ScriptType, bool IsMine);
+    uint Index, long AmountSats, string? Address, string ScriptType, string? OpReturnText, bool IsMine);
 
 /// <summary>
 /// Complete transaction data assembled by querying the server: the raw transaction
@@ -105,8 +111,9 @@ public static class TransactionInspector
         {
             var o = tx.Outputs[i];
             var addr = AddrOf(o.ScriptPubKey);
+            var opReturn = addr is null ? OpReturnTextOf(o.ScriptPubKey) : null;
             outputs.Add(new TxOutputInfo(
-                (uint)i, o.Value.Satoshi, addr, ScriptType(o.ScriptPubKey),
+                (uint)i, o.Value.Satoshi, addr, ScriptType(o.ScriptPubKey), opReturn,
                 addr is not null && ownedAddresses.Contains(addr)));
         }
 
@@ -134,7 +141,7 @@ public static class TransactionInspector
         {
             if (tx.IsCoinBase)
             {
-                inputs.Add(new TxInputInfo("", inp.PrevOut.N, null, null, false, true));
+                inputs.Add(new TxInputInfo("", inp.PrevOut.N, null, null, false, true, CoinbaseTagOf(inp.ScriptSig.ToBytes())));
                 continue;
             }
 
@@ -188,5 +195,49 @@ public static class TransactionInspector
                 : t.GetType().Name.Replace("PayTo", "").Replace("Template", "");
         }
         catch { return "—"; }
+    }
+
+    /// <summary>Decodes an OP_RETURN output's pushed data as UTF-8 text, falling back to hex if it isn't valid text.</summary>
+    private static string? OpReturnTextOf(Script script)
+    {
+        if (!script.IsUnspendable) return null;
+        try
+        {
+            var data = script.ToOps().Skip(1)
+                .Where(op => op.PushData is { Length: > 0 })
+                .SelectMany(op => op.PushData)
+                .ToArray();
+            return data.Length == 0 ? null : DecodeUtf8OrHex(data);
+        }
+        catch { return null; }
+    }
+
+    private static string DecodeUtf8OrHex(byte[] data)
+    {
+        var text = System.Text.Encoding.UTF8.GetString(data);
+        var looksLikeText = !text.Contains('�') && text.All(c => !char.IsControl(c) || c is '\n' or '\r' or '\t');
+        return looksLikeText ? text : "0x" + Convert.ToHexString(data);
+    }
+
+    /// <summary>
+    /// Extracts printable-ASCII runs (≥4 chars) from a coinbase scriptSig, e.g. pool
+    /// tags like "/slush/" embedded among the binary BIP34 height and extranonce.
+    /// </summary>
+    private static string? CoinbaseTagOf(byte[] scriptSig)
+    {
+        var runs = new List<string>();
+        var run = new System.Text.StringBuilder();
+        void Flush()
+        {
+            if (run.Length >= 4) runs.Add(run.ToString());
+            run.Clear();
+        }
+        foreach (var b in scriptSig)
+        {
+            if (b is >= 0x20 and <= 0x7E) run.Append((char)b);
+            else Flush();
+        }
+        Flush();
+        return runs.Count == 0 ? null : string.Join(" ", runs);
     }
 }

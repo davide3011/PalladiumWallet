@@ -64,13 +64,17 @@ public sealed class TransactionDetailsViewModel
         RbfText = loc[d.RbfSignaled ? "tx.yes" : "tx.no"];
         Inputs = new ObservableCollection<TxIoRow>(d.Inputs.Select((i, n) => new TxIoRow(
             i.IsCoinbase ? loc["tx.coinbase"] : $"{i.PrevTxid}:{i.PrevIndex}",
-            i.IsCoinbase ? loc["tx.coinbase.newcoins"] : i.Address ?? "—",
+            i.IsCoinbase
+                ? i.CoinbaseTag is { Length: > 0 } tag
+                    ? $"{loc["tx.coinbase.newcoins"]} — {tag}"
+                    : loc["tx.coinbase.newcoins"]
+                : i.Address ?? "—",
             i.AmountSats is { } a ? CoinAmount.FormatIn(a, unit) : "—",
             i.IsMine)));
 
         Outputs = new ObservableCollection<TxIoRow>(d.Outputs.Select(o => new TxIoRow(
             $"#{o.Index}",
-            o.Address ?? $"({o.ScriptType})",
+            o.Address ?? (o.OpReturnText is { Length: > 0 } msg ? $"OP_RETURN: {msg}" : $"({o.ScriptType})"),
             CoinAmount.FormatIn(o.AmountSats, unit),
             o.IsMine)));
     }

@@ -196,6 +196,139 @@ public class TransactionInspectorTests
     }
 
     [Fact]
+    public async Task Un_output_OP_RETURN_con_testo_UTF8_viene_decodificato()
+    {
+        var account = Account();
+        var tx = Net.CreateTransaction();
+        tx.Inputs.Add(new TxIn(new OutPoint(uint256.One, 0)));
+        tx.Outputs.Add(Money.Satoshis(1_000_000), account.GetReceiveAddress(0));
+        tx.Outputs.Add(Money.Zero, TxNullDataTemplate.Instance.GenerateScriptPubKey("hello palladium"u8.ToArray()));
+
+        var (server, client) = await StartAsync(tx);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, tx.GetHash().ToString(), tipHeight: 200, height: 101,
+            Owned(account), netSats: 1_000_000, verified: true);
+
+        var opReturn = Assert.Single(details.Outputs, o => o.Index == 1);
+        Assert.Null(opReturn.Address);
+        Assert.Equal("hello palladium", opReturn.OpReturnText);
+    }
+
+    [Fact]
+    public async Task Un_output_OP_RETURN_con_dati_binari_ricade_su_hex()
+    {
+        var account = Account();
+        byte[] data = [0x00, 0x01, 0xFF, 0xFE, 0x02];
+        var tx = Net.CreateTransaction();
+        tx.Inputs.Add(new TxIn(new OutPoint(uint256.One, 0)));
+        tx.Outputs.Add(Money.Satoshis(1_000_000), account.GetReceiveAddress(0));
+        tx.Outputs.Add(Money.Zero, TxNullDataTemplate.Instance.GenerateScriptPubKey(data));
+
+        var (server, client) = await StartAsync(tx);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, tx.GetHash().ToString(), tipHeight: 200, height: 101,
+            Owned(account), netSats: 1_000_000, verified: true);
+
+        var opReturn = Assert.Single(details.Outputs, o => o.Index == 1);
+        Assert.Equal("0x" + Convert.ToHexString(data), opReturn.OpReturnText);
+    }
+
+    [Fact]
+    public async Task Piu_output_OP_RETURN_nella_stessa_tx_sono_decodificati_singolarmente()
+    {
+        var account = Account();
+        var tx = Net.CreateTransaction();
+        tx.Inputs.Add(new TxIn(new OutPoint(uint256.One, 0)));
+        tx.Outputs.Add(Money.Satoshis(1_000_000), account.GetReceiveAddress(0));
+        tx.Outputs.Add(Money.Zero, TxNullDataTemplate.Instance.GenerateScriptPubKey("first"u8.ToArray()));
+        tx.Outputs.Add(Money.Zero, TxNullDataTemplate.Instance.GenerateScriptPubKey("second"u8.ToArray()));
+
+        var (server, client) = await StartAsync(tx);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, tx.GetHash().ToString(), tipHeight: 200, height: 101,
+            Owned(account), netSats: 1_000_000, verified: true);
+
+        Assert.Equal("first", details.Outputs.Single(o => o.Index == 1).OpReturnText);
+        Assert.Equal("second", details.Outputs.Single(o => o.Index == 2).OpReturnText);
+    }
+
+    [Fact]
+    public async Task Un_output_normale_non_ha_testo_OP_RETURN()
+    {
+        var (funding, spend, _, account) = SpendPair();
+        var (server, client) = await StartAsync(funding, spend);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, spend.GetHash().ToString(), tipHeight: 200, height: 101,
+            Owned(account), netSats: -610_000, verified: true);
+
+        Assert.All(details.Outputs, o => Assert.Null(o.OpReturnText));
+    }
+
+    [Fact]
+    public async Task Il_tag_pool_nello_scriptSig_della_coinbase_viene_estratto()
+    {
+        var account = Account();
+        var coinbase = Net.CreateTransaction();
+        // BIP34 height push (binary) followed by a pool tag (printable ASCII).
+        var scriptSig = new Script(Op.GetPushOp(190), Op.GetPushOp("/slush/"u8.ToArray()));
+        coinbase.Inputs.Add(new TxIn(new OutPoint(uint256.Zero, 0xffffffff), scriptSig));
+        coinbase.Outputs.Add(Money.Satoshis(5_000_000_000), account.GetReceiveAddress(0));
+
+        var (server, client) = await StartAsync(coinbase);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, coinbase.GetHash().ToString(), tipHeight: 200, height: 190,
+            Owned(account), netSats: 5_000_000_000, verified: true);
+
+        var input = Assert.Single(details.Inputs);
+        Assert.True(input.IsCoinbase);
+        Assert.Contains("/slush/", input.CoinbaseTag);
+    }
+
+    [Fact]
+    public async Task Uno_scriptSig_coinbase_senza_testo_stampabile_non_produce_tag()
+    {
+        var account = Account();
+        var coinbase = Net.CreateTransaction();
+        var scriptSig = new Script(Op.GetPushOp([0x00, 0x01, 0x02]));
+        coinbase.Inputs.Add(new TxIn(new OutPoint(uint256.Zero, 0xffffffff), scriptSig));
+        coinbase.Outputs.Add(Money.Satoshis(5_000_000_000), account.GetReceiveAddress(0));
+
+        var (server, client) = await StartAsync(coinbase);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, coinbase.GetHash().ToString(), tipHeight: 200, height: 190,
+            Owned(account), netSats: 5_000_000_000, verified: true);
+
+        var input = Assert.Single(details.Inputs);
+        Assert.Null(input.CoinbaseTag);
+    }
+
+    [Fact]
+    public async Task Un_input_normale_non_ha_tag_coinbase()
+    {
+        var (funding, spend, _, account) = SpendPair();
+        var (server, client) = await StartAsync(funding, spend);
+        await using var _ = server; await using var __ = client;
+
+        var details = await TransactionInspector.FetchAsync(
+            client, Net, spend.GetHash().ToString(), tipHeight: 200, height: 101,
+            Owned(account), netSats: -610_000, verified: true);
+
+        Assert.All(details.Inputs, i => Assert.Null(i.CoinbaseTag));
+    }
+
+    [Fact]
     public async Task La_cache_delle_tx_evita_le_richieste_al_server()
     {
         var (funding, spend, _, account) = SpendPair();
