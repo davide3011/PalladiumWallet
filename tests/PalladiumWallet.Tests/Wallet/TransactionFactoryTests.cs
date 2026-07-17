@@ -39,6 +39,31 @@ public class TransactionFactoryTests
         return (utxos, new Dictionary<string, Transaction> { [txid] = funding });
     }
 
+    private static void AddFund(
+        HdAccount account,
+        List<CachedUtxo> utxos,
+        Dictionary<string, Transaction> transactions,
+        int index,
+        long sats)
+    {
+        var funding = Net.CreateTransaction();
+        funding.Inputs.Add(new TxIn(new OutPoint(uint256.One, (uint)index)));
+        funding.Outputs.Add(Money.Satoshis(sats), account.GetReceiveAddress(index));
+        var txid = funding.GetHash().ToString();
+        transactions[txid] = funding;
+        utxos.Add(new CachedUtxo
+        {
+            Txid = txid,
+            Vout = 0,
+            ValueSats = sats,
+            Address = account.GetReceiveAddress(index).ToString(),
+            IsChange = false,
+            AddressIndex = index,
+            Height = 100,
+            Verified = true,
+        });
+    }
+
     [Fact]
     public void Un_utxo_confermato_ma_non_ancora_verificato_non_e_spendibile()
     {
@@ -323,6 +348,42 @@ public class TransactionFactoryTests
         Assert.Equal(3, built.Transaction.Inputs.Count);
         Assert.True(built.Signed);
         Assert.Contains(built.Transaction.Outputs, o => o.Value.Satoshi == 700_000);
+    }
+
+    [Fact]
+    public void Automatic_coin_selection_uses_large_utxos_before_dust()
+    {
+        var account = Account();
+        var allUtxos = new List<CachedUtxo>();
+        var allTxs = new Dictionary<string, Transaction>();
+        AddFund(account, allUtxos, allTxs, index: 0, sats: 2_000_000);
+        for (var i = 1; i <= 1_200; i++)
+            AddFund(account, allUtxos, allTxs, i, sats: 10_000);
+
+        var built = new TransactionFactory(account).Build(
+            allUtxos, allTxs, account.GetReceiveAddress(1_250), amountSats: 500_000,
+            feeRateSatPerVByte: 1, changeIndex: 0, tipHeight: 100);
+
+        Assert.Single(built.Transaction.Inputs);
+        Assert.True(built.Transaction.GetVirtualSize() < 100_000);
+        Assert.Contains(built.Transaction.Outputs, o => o.Value.Satoshi == 500_000);
+    }
+
+    [Fact]
+    public void Spending_more_than_the_standard_input_limit_reports_a_clear_error()
+    {
+        var account = Account();
+        var allUtxos = new List<CachedUtxo>();
+        var allTxs = new Dictionary<string, Transaction>();
+        for (var i = 0; i < 1_600; i++)
+            AddFund(account, allUtxos, allTxs, i, sats: 10_000);
+
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
+            allUtxos, allTxs, account.GetReceiveAddress(1_650), amountSats: 15_300_000,
+            feeRateSatPerVByte: 1, changeIndex: 0, tipHeight: 100));
+
+        Assert.Contains("standard relay limit", ex.Message);
+        Assert.Contains("multiple smaller transactions", ex.Message);
     }
 
     [Fact]

@@ -29,6 +29,8 @@ public sealed class BuiltTransaction
 /// </summary>
 public sealed class TransactionFactory(IWalletAccount account)
 {
+    private const int MaxStandardTransactionVirtualSize = 100_000;
+
     private Network Network => PalladiumNetworks.For(account.Profile.Kind);
 
     /// <summary>
@@ -68,9 +70,9 @@ public sealed class TransactionFactory(IWalletAccount account)
                 u.Confirmations(tipHeight) < u.RequiredConfirmations(profile)).ToList();
             if (immature.Count > 0)
             {
-                var best = immature.Max(u => u.Confirmations(tipHeight));
+                var bestImmatureConf = immature.Max(u => u.Confirmations(tipHeight));
                 var threshold = profile.CoinbaseMaturity + 1;
-                reasons.Append($"{immature.Count} coinbase output(s) not yet mature ({best}/{threshold} confirmations). ");
+                reasons.Append($"{immature.Count} coinbase output(s) not yet mature ({bestImmatureConf}/{threshold} confirmations). ");
             }
 
             var underConf = utxos.Where(u =>
@@ -78,8 +80,8 @@ public sealed class TransactionFactory(IWalletAccount account)
                 u.Confirmations(tipHeight) < u.RequiredConfirmations(profile)).ToList();
             if (underConf.Count > 0)
             {
-                var best = underConf.Max(u => u.Confirmations(tipHeight));
-                reasons.Append($"{underConf.Count} output(s) need {profile.MinConfirmations} confirmations ({best} so far). ");
+                var bestUnderConf = underConf.Max(u => u.Confirmations(tipHeight));
+                reasons.Append($"{underConf.Count} output(s) need {profile.MinConfirmations} confirmations ({bestUnderConf} so far). ");
             }
 
             var unverified = utxos.Where(u =>
@@ -94,11 +96,80 @@ public sealed class TransactionFactory(IWalletAccount account)
                 : "No spendable UTXOs selected.");
         }
 
-        var coins = spendable.Select(u => new Coin(
+        var ordered = spendable
+            .OrderByDescending(u => u.ValueSats)
+            .ThenBy(u => u.Height)
+            .ThenBy(u => u.Txid, StringComparer.Ordinal)
+            .ThenBy(u => u.Vout)
+            .ToList();
+
+        var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000m), 1000);
+
+        if (sendAll)
+        {
+            try
+            {
+                return BuildWithSelectedUtxos(
+                    ordered, transactions, destination, amountSats, feeRate, changeIndex, sendAll: true, totalSpendableCount: ordered.Count);
+            }
+            catch (TransactionTooLargeException ex)
+            {
+                throw new WalletSpendException(ex.Message);
+            }
+        }
+
+        NotEnoughFundsException? lastInsufficientFunds = null;
+        TransactionTooLargeException? tooLarge = null;
+        BuiltTransaction? best = null;
+        var low = 1;
+        var high = ordered.Count;
+        while (low <= high)
+        {
+            var count = low + ((high - low) / 2);
+            try
+            {
+                best = BuildWithSelectedUtxos(
+                    ordered.Take(count).ToList(), transactions, destination, amountSats, feeRate, changeIndex,
+                    sendAll: false, totalSpendableCount: ordered.Count);
+                high = count - 1;
+            }
+            catch (NotEnoughFundsException ex)
+            {
+                lastInsufficientFunds = ex;
+                low = count + 1;
+            }
+            catch (TransactionTooLargeException ex)
+            {
+                tooLarge = ex;
+                high = count - 1;
+            }
+        }
+
+        if (best is not null)
+            return best;
+
+        if (tooLarge is not null)
+            throw new WalletSpendException(tooLarge.Message);
+
+        throw new WalletSpendException(lastInsufficientFunds is null
+            ? "Insufficient funds."
+            : $"Insufficient funds: {lastInsufficientFunds.Message}");
+    }
+
+    private BuiltTransaction BuildWithSelectedUtxos(
+        IReadOnlyList<CachedUtxo> selectedUtxos,
+        IReadOnlyDictionary<string, Transaction> transactions,
+        BitcoinAddress destination,
+        long amountSats,
+        FeeRate feeRate,
+        int changeIndex,
+        bool sendAll,
+        int totalSpendableCount)
+    {
+        var coins = selectedUtxos.Select(u => new Coin(
             new OutPoint(uint256.Parse(u.Txid), (uint)u.Vout),
             transactions[u.Txid].Outputs[u.Vout])).ToList();
 
-        var feeRate = new FeeRate(Money.Satoshis(feeRateSatPerVByte * 1000m), 1000);
         var builder = Network.CreateTransactionBuilder();
         builder.SetVersion(2);
         // RBF sequence to allow fee bumping (§6.6).
@@ -114,7 +185,7 @@ public sealed class TransactionFactory(IWalletAccount account)
 
         if (!account.IsWatchOnly)
         {
-            builder.AddKeys(spendable
+            builder.AddKeys(selectedUtxos
                 .Select(u => account.GetPrivateKey(u.IsChange, u.AddressIndex))
                 .OfType<Key>()
                 .ToArray());
@@ -125,10 +196,26 @@ public sealed class TransactionFactory(IWalletAccount account)
         {
             tx = builder.BuildTransaction(sign: !account.IsWatchOnly);
         }
+        catch (NotEnoughFundsException ex) when (ex.Message.Contains("size would be too high", StringComparison.OrdinalIgnoreCase))
+        {
+            // NBitcoin's coin selector refuses to assemble a combination over the standard size
+            // cap itself and reports it through NotEnoughFundsException rather than ever handing
+            // back an oversized transaction — the GetVirtualSize() check below is unreachable for
+            // this case and exists only as a defense-in-depth net for other NBitcoin versions.
+            throw new TransactionTooLargeException(
+                BuildTooLargeMessage(selectedUtxos.Count, totalSpendableCount, sendAll));
+        }
+        catch (NotEnoughFundsException) when (!sendAll)
+        {
+            throw;
+        }
         catch (NotEnoughFundsException ex)
         {
             throw new WalletSpendException($"Insufficient funds: {ex.Message}");
         }
+
+        if (tx.GetVirtualSize() > MaxStandardTransactionVirtualSize)
+            throw new TransactionTooLargeException(BuildTooLargeMessage(selectedUtxos.Count, totalSpendableCount, sendAll, tx.GetVirtualSize()));
 
         if (!account.IsWatchOnly)
         {
@@ -147,6 +234,21 @@ public sealed class TransactionFactory(IWalletAccount account)
         };
     }
 
+    private static string BuildTooLargeMessage(
+        int selectedInputCount,
+        int totalSpendableCount,
+        bool sendAll,
+        int? actualVirtualSize = null)
+    {
+        var prefix = sendAll
+            ? "Send-all cannot fit in one standard transaction"
+            : "Transaction cannot fit in one standard transaction";
+        var size = actualVirtualSize is { } vsize ? $"{vsize} vB exceeds" : "Estimated size exceeds";
+
+        return $"{prefix}: {size} the {MaxStandardTransactionVirtualSize} vB standard relay limit " +
+            $"with {selectedInputCount}/{totalSpendableCount} spendable input(s). Send a smaller amount or consolidate in multiple smaller transactions.";
+    }
+
     private static Money GetFee(Transaction tx, IReadOnlyList<Coin> coins)
     {
         var spentOutpoints = tx.Inputs.Select(i => i.PrevOut).ToHashSet();
@@ -154,6 +256,8 @@ public sealed class TransactionFactory(IWalletAccount account)
             .Sum(c => (Money)c.Amount);
         return inputSum - tx.Outputs.Sum(o => o.Value);
     }
+
+    private sealed class TransactionTooLargeException(string message) : Exception(message);
 }
 
 /// <summary>Error during transaction construction/signing (funds, policy, parameters).</summary>
