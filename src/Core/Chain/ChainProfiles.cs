@@ -48,8 +48,9 @@ public static class ChainProfiles
             new ServerEndpoint("89.117.149.130", 50001, 50002),
         ],
         // Real mainnet [height, hash, bits], pulled from a fully-synced palladiumd via
-        // RPC (getblockhash/getblockheader), spaced every 20,000 blocks (~660h) plus one
-        // recent block. Anchors WalletSynchronizer's header-chain verification (§7.3):
+        // RPC (getblockhash/getblockheader) or verified against a trusted indexing server,
+        // spaced every 20,000 blocks (~660h) plus recent ones added at each release to keep
+        // the header-anchoring walk short. Anchors WalletSynchronizer's header-chain verification (§7.3):
         // bounds how far back a forged header chain must be walked to be caught, since
         // this LWMA chain cannot be PoW-validated locally (SkipPowValidation).
         Checkpoints =
@@ -78,6 +79,7 @@ public static class ChainProfiles
             new Checkpoint(440000, "00000000000001b09d7da81403a9b383a734305a8783cb3a0dbe009edea26a95", 0x1a0216c4),
             new Checkpoint(460000, "00000000000000ecc7413f638bfe7be80a36bacab858ce9a814f194d9df526d5", 0x1a07dd8f),
             new Checkpoint(468800, "000000000000052c61652eed72b441d8c1f1926710a8d691d101be4961dba105", 0x1a1838ee),
+            new Checkpoint(475124, "00000000000009e66da1e1a430fd1932aa75bf513053df088764545d941f13ca", 0x1a1a98cb),
         ],
     };
 
