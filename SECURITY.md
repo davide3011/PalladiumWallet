@@ -41,6 +41,20 @@ It cannot (given correct Merkle verification):
 - Fabricate a confirmed transaction with a valid Merkle proof
 - Forge a payment to a wrong address
 
+**Progressive verification (mobile-friendly sync).** On a wallet with many historical
+transactions, `WalletSynchronizer` no longer blocks the whole sync on every Merkle proof:
+balance and history are shown as soon as transaction downloads finish (`PartialResult`,
+`Core/Spv/WalletSynchronizer.cs`), while proofs continue to be checked in the background and
+each transaction's `Verified` flag catches up progressively. This means the UI can display a
+server-reported balance/history that includes not-yet-verified entries — clearly marked with a
+"verifying…" badge and a separate non-spendable total (`PendingVerificationSats`). The
+security-critical invariant this depends on: coin selection (`TransactionFactory`, gated by
+`Wallet/UtxoSpendability.IsSpendable`) refuses to spend a UTXO whose `Verified` flag isn't true,
+regardless of confirmations — so a server that fabricates a fake confirmed balance can get it
+*displayed* early, but never *spent*, before the forged Merkle proof is caught and the sync
+fails outright. The disk cache (`SyncCache`) only ever persists the fully-verified end state of
+a sync, never a partial one, so no unverified data survives a restart.
+
 ---
 
 ## Key and seed management

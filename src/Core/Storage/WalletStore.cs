@@ -37,4 +37,12 @@ public static class WalletStore
         File.WriteAllText(tmp, content);
         File.Move(tmp, path, overwrite: true);
     }
+
+    /// <summary>
+    /// Same as <see cref="Save"/> but with the JSON serialization and disk write off the
+    /// calling thread — for callers on a UI thread saving a large cache (thousands of cached
+    /// transactions/headers), where the synchronous version would block the UI.
+    /// </summary>
+    public static Task SaveAsync(WalletDocument doc, string path, string? password = null) =>
+        Task.Run(() => Save(doc, path, password));
 }

@@ -102,7 +102,8 @@ public sealed class TransactionDetailsViewModel
     {
         if (d.Confirmations <= 0)
             return loc["tx.status.mempool"];
-        return $"{d.Confirmations} {loc["tx.status.confirmations"]} ({loc["tx.status.block"]} {d.Height})";
+        var status = $"{d.Confirmations} {loc["tx.status.confirmations"]} ({loc["tx.status.block"]} {d.Height})";
+        return d.Verified ? status : $"{status} — {loc["history.unverified"]}";
     }
 
     private string Signed(long sats)

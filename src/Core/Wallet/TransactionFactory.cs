@@ -82,6 +82,13 @@ public sealed class TransactionFactory(IWalletAccount account)
                 reasons.Append($"{underConf.Count} output(s) need {profile.MinConfirmations} confirmations ({best} so far). ");
             }
 
+            var unverified = utxos.Where(u =>
+                !u.Frozen && u.Height > 0 && !u.Verified &&
+                u.Confirmations(tipHeight) >= u.RequiredConfirmations(profile)).ToList();
+            if (unverified.Count > 0)
+                reasons.Append($"{unverified.Count} output(s) confirmed but still awaiting Merkle-proof verification " +
+                    $"({CoinAmount.Format(unverified.Sum(u => u.ValueSats))}). ");
+
             throw new WalletSpendException(reasons.Length > 0
                 ? $"No spendable UTXOs: {reasons.ToString().TrimEnd()}"
                 : "No spendable UTXOs selected.");

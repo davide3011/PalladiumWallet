@@ -273,32 +273,34 @@ public partial class MainWindowViewModel
                     _doc.Cache?.NextChangeIndex ?? 0,
                     net);
                 _synchronizer.Progress += msg => Dispatcher.UIThread.Post(() => StatusMessage = msg);
+                // Progressive verification (§7.4): the wallet becomes usable as soon as
+                // transaction downloads finish, without waiting for every historical Merkle
+                // proof — critical on mobile, where verifying thousands of proofs can take far
+                // longer than the download itself. Never persisted to disk on its own (only the
+                // final, fully-verified snapshot below is saved); coin selection still refuses
+                // any UTXO whose proof isn't checked yet (CachedUtxo.Verified), so showing this
+                // early can't be exploited to spend a server-fabricated balance.
+                _synchronizer.PartialResult += r => Dispatcher.UIThread.Post(() => ApplyPartialResult(r));
             }
 
             do
             {
                 _resyncRequested = false;
-                var result = await _synchronizer.SyncOnceAsync(ct);
+                // Off the UI thread: sync does heavy CPU work (LINQ over thousands of
+                // cached txs/UTXOs) and blocking JSON/disk I/O between awaits, negligible
+                // on desktop but enough to freeze the UI (ANR) on slower mobile hardware.
+                var (result, rawHex, verifiedAt, blockHeaders) = await Task.Run(async () =>
+                {
+                    var r = await _synchronizer.SyncOnceAsync(ct);
+                    var caches = _synchronizer.ExportCaches(PalladiumNetworks.For(_account.Profile.Kind));
+                    return (r, caches.RawTxHex, caches.VerifiedAt, caches.BlockHeaders);
+                }, ct);
                 _lastTransactions = result.Transactions;
 
-                var (rawHex, verifiedAt, blockHeaders) = _synchronizer.ExportCaches(
-                    PalladiumNetworks.For(_account.Profile.Kind));
-                _doc.Cache = new SyncCache
-                {
-                    TipHeight = result.TipHeight,
-                    ConfirmedSats = result.ConfirmedSats,
-                    UnconfirmedSats = result.UnconfirmedSats,
-                    ImmatureSats = result.ImmatureSats,
-                    NextReceiveIndex = result.NextReceiveIndex,
-                    NextChangeIndex = result.NextChangeIndex,
-                    History = [.. result.History],
-                    Utxos = [.. result.Utxos],
-                    Addresses = [.. result.AddressRows],
-                    RawTxHex = rawHex,
-                    VerifiedAt = verifiedAt,
-                    BlockHeaders = blockHeaders,
-                };
-                WalletStore.Save(_doc, _walletPath!, _password);
+                var cache = new SyncCache { RawTxHex = rawHex, VerifiedAt = verifiedAt, BlockHeaders = blockHeaders };
+                FillDisplayFields(cache, result);
+                _doc.Cache = cache;
+                await WalletStore.SaveAsync(_doc, _walletPath!, _password);
                 ApplyCache(_doc.Cache);
                 _syncFailed = false;
                 StatusMessage = $"{Loc.Tr("msg.synced")}: {Loc.Tr("msg.height")} {result.TipHeight}, " +
@@ -343,6 +345,44 @@ public partial class MainWindowViewModel
         // If cancelled due to a server change, restart immediately with the new server.
         if (cancelled)
             _ = ConnectAndSync();
+    }
+
+    /// <summary>
+    /// Applies a provisional (not-yet-fully-verified) snapshot fired mid-sync: updates the
+    /// in-memory display cache only — never persisted to disk on its own, so an interrupted
+    /// sync can't leave behind a cache file whose VerifiedAt/RawTxHex/BlockHeaders (needed to
+    /// resume without re-downloading) were never written.
+    /// </summary>
+    private void ApplyPartialResult(SyncResult result)
+    {
+        if (_doc is null)
+            return;
+        var previous = _doc.Cache;
+        var cache = new SyncCache
+        {
+            RawTxHex = previous?.RawTxHex,
+            VerifiedAt = previous?.VerifiedAt,
+            BlockHeaders = previous?.BlockHeaders,
+        };
+        FillDisplayFields(cache, result);
+        _doc.Cache = cache;
+        _lastTransactions = result.Transactions;
+        ApplyCache(cache);
+    }
+
+    private static void FillDisplayFields(SyncCache cache, SyncResult result)
+    {
+        cache.TipHeight = result.TipHeight;
+        cache.ConfirmedSats = result.ConfirmedSats;
+        cache.UnconfirmedSats = result.UnconfirmedSats;
+        cache.ImmatureSats = result.ImmatureSats;
+        cache.PendingVerificationSats = result.PendingVerificationSats;
+        cache.SpendableSats = result.SpendableSats;
+        cache.NextReceiveIndex = result.NextReceiveIndex;
+        cache.NextChangeIndex = result.NextChangeIndex;
+        cache.History = [.. result.History];
+        cache.Utxos = [.. result.Utxos];
+        cache.Addresses = [.. result.AddressRows];
     }
 
     /// <summary>

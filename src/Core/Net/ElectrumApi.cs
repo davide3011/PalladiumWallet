@@ -11,6 +11,9 @@ public readonly record struct UnspentItem(string TxHash, int TxPos, long ValueSa
 /// <summary>Merkle proof (blockchain.transaction.get_merkle).</summary>
 public sealed record MerkleProofResponse(int BlockHeight, int Pos, IReadOnlyList<string> Merkle);
 
+/// <summary>Range of headers (blockchain.block.headers): Hex is Count concatenated 80-byte headers.</summary>
+public readonly record struct HeaderRangeResponse(int Count, string Hex);
+
 /// <summary>Chain tip notified by blockchain.headers.subscribe.</summary>
 public readonly record struct ChainTip(int Height, string HeaderHex);
 
@@ -80,6 +83,23 @@ public static class ElectrumApi
     {
         var r = await c.RequestAsync("blockchain.block.header", ct, height);
         return r.GetString()!;
+    }
+
+    /// <summary>
+    /// Range fetch (blockchain.block.headers): one RPC returns up to <paramref name="count"/>
+    /// concatenated 80-byte headers starting at <paramref name="startHeight"/>. Used to anchor
+    /// a tx height to a hardcoded checkpoint (§7.3) without one round-trip per header — critical
+    /// on high-latency links (mobile) where thousands of serial single-header calls stall sync.
+    /// The server may return fewer than requested (see <see cref="HeaderRangeResponse.Count"/>);
+    /// callers must loop until the full range is covered.
+    /// </summary>
+    public static async Task<HeaderRangeResponse> GetBlockHeadersAsync(this ElectrumClient c,
+        int startHeight, int count, CancellationToken ct = default)
+    {
+        var r = await c.RequestAsync("blockchain.block.headers", ct, startHeight, count);
+        return new HeaderRangeResponse(
+            r.GetProperty("count").GetInt32(),
+            r.GetProperty("hex").GetString()!);
     }
 
     public static async Task<string> BroadcastAsync(this ElectrumClient c, string rawTxHex,

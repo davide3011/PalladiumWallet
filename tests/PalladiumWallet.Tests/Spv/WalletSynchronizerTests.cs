@@ -101,6 +101,15 @@ public class WalletSynchronizerTests
                 Headers.TryGetValue(p[0].GetInt32(), out var hex)
                     ? hex
                     : throw new FakeElectrumError(-32600, "no such block"));
+            server.Handle("blockchain.block.headers", p =>
+            {
+                var start = p[0].GetInt32();
+                var count = p[1].GetInt32();
+                var hexes = new List<string>();
+                for (var h = start; hexes.Count < count && Headers.TryGetValue(h, out var hex); h++)
+                    hexes.Add(hex);
+                return new { count = hexes.Count, hex = string.Concat(hexes) };
+            });
         }
     }
 
@@ -232,7 +241,10 @@ public class WalletSynchronizerTests
         Assert.Equal(0, result.ConfirmedSats);
         Assert.Equal(250_000, result.UnconfirmedSats);
         var entry = Assert.Single(result.History);
-        Assert.False(entry.Verified);
+        // Verified means "its Merkle proof was checked" — a mempool tx has no proof to
+        // check yet, so it's vacuously true; "not confirmed" is signalled by Height <= 0,
+        // not by Verified (no merkle/header RPCs happen, asserted below).
+        Assert.True(entry.Verified);
         Assert.Equal(0, server.CallCount("blockchain.transaction.get_merkle"));
         Assert.Equal(0, server.CallCount("blockchain.block.header"));
     }
@@ -318,8 +330,11 @@ public class WalletSynchronizerTests
         var result = await new WalletSynchronizer(checkpointAccount, client).SyncOnceAsync();
 
         Assert.Equal(1_000_000, result.ConfirmedSats);
-        // 100..105 inclusive = 6 headers fetched to walk the chain back to the checkpoint.
-        Assert.Equal(6, server.CallCount("blockchain.block.header"));
+        // Anchoring runs before the header lookup, so the range call (blockchain.block.headers)
+        // covering 100..105 back to the checkpoint already includes the tx's own header —
+        // no separate single-header call needed.
+        Assert.Equal(0, server.CallCount("blockchain.block.header"));
+        Assert.Equal(1, server.CallCount("blockchain.block.headers"));
     }
 
     [Fact]
@@ -352,12 +367,13 @@ public class WalletSynchronizerTests
         await sync.SyncOnceAsync(); // walks and memoizes the anchor up to 105
 
         // 103 <= the memoized 105: anchoring must early-return without re-walking,
-        // so the header call count stays at the 6 of the first walk (103 is cached).
+        // so the header/range call counts stay at those of the first walk (103 is cached).
         scenario.Register(tx2, 103, checkpointAccount.GetReceiveAddress(1));
         var result = await sync.SyncOnceAsync();
 
         Assert.Equal(1_500_000, result.ConfirmedSats);
-        Assert.Equal(6, server.CallCount("blockchain.block.header"));
+        Assert.Equal(0, server.CallCount("blockchain.block.header"));
+        Assert.Equal(1, server.CallCount("blockchain.block.headers"));
     }
 
     [Fact]
@@ -424,6 +440,89 @@ public class WalletSynchronizerTests
 
         Assert.Equal(1_000_000, result.ConfirmedSats);
         Assert.Equal(1, server.CallCount("blockchain.block.header"));
+    }
+
+    // ---- verifica progressiva (§7.4) ----
+
+    [Fact]
+    public async Task PartialResult_arriva_prima_della_proof_poi_il_risultato_finale_e_completamente_verificato()
+    {
+        var account = Account();
+        var scenario = new Scenario();
+        scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 100);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        // Gate the Merkle-proof response so the download phase can complete (and fire
+        // PartialResult) well before verification does.
+        using var gate = new ManualResetEventSlim(false);
+        server.Handle("blockchain.transaction.get_merkle", p =>
+        {
+            gate.Wait();
+            return new { block_height = p[1].GetInt32(), pos = 0, merkle = Array.Empty<string>() };
+        });
+
+        var sync = new WalletSynchronizer(account, client);
+        SyncResult? partial = null;
+        var partialReceived = new TaskCompletionSource();
+        sync.PartialResult += r => { partial = r; partialReceived.TrySetResult(); };
+
+        var syncTask = sync.SyncOnceAsync();
+        await partialReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.NotNull(partial);
+        Assert.False(Assert.Single(partial!.History).Verified);
+        Assert.False(Assert.Single(partial.Utxos).Verified);
+        Assert.Equal(1_000_000, partial.PendingVerificationSats);
+        Assert.Equal(1_000_000, partial.ConfirmedSats); // reported confirmed, just not yet proof-checked
+
+        gate.Set();
+        var final = await syncTask;
+
+        Assert.True(Assert.Single(final.History).Verified);
+        Assert.True(Assert.Single(final.Utxos).Verified);
+        Assert.Equal(0, final.PendingVerificationSats);
+    }
+
+    [Fact]
+    public async Task Un_coinbase_immaturo_e_non_ancora_verificato_non_produce_un_saldo_spendibile_negativo()
+    {
+        // Regression: ImmatureSats and PendingVerificationSats can overlap (an immature
+        // coinbase can also be unverified) — "ConfirmedSats - ImmatureSats - PendingVerificationSats"
+        // double-subtracts that overlap and can go negative. SpendableSats must be computed
+        // directly from IsSpendable instead.
+        var account = Account();
+        var scenario = new Scenario { TipHeight = 200 };
+        // 11 confirmations at tip 200: far below CoinbaseMaturity+1 = 121 — immature.
+        scenario.Pay(account.GetReceiveAddress(0), 5_000_000_000, height: 190, coinbase: true);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        using var gate = new ManualResetEventSlim(false);
+        server.Handle("blockchain.transaction.get_merkle", p =>
+        {
+            gate.Wait();
+            return new { block_height = p[1].GetInt32(), pos = 0, merkle = Array.Empty<string>() };
+        });
+
+        var sync = new WalletSynchronizer(account, client);
+        var partialReceived = new TaskCompletionSource();
+        SyncResult? partial = null;
+        sync.PartialResult += r => { partial = r; partialReceived.TrySetResult(); };
+
+        var syncTask = sync.SyncOnceAsync();
+        await partialReceived.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // Immature AND unverified at the same time: both non-spendable subsets are the
+        // full 5 PLM, but the actual spendable balance must be exactly zero, not negative.
+        Assert.Equal(5_000_000_000, partial!.ImmatureSats);
+        Assert.Equal(5_000_000_000, partial.PendingVerificationSats);
+        Assert.Equal(0, partial.SpendableSats);
+
+        gate.Set();
+        await syncTask;
     }
 
     // ---- resilienza ----

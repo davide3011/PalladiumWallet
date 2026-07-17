@@ -33,10 +33,26 @@ public class TransactionFactoryTests
             {
                 Txid = txid, Vout = 0, ValueSats = sats,
                 Address = account.GetReceiveAddress(0).ToString(),
-                IsChange = false, AddressIndex = 0, Height = 100,
+                IsChange = false, AddressIndex = 0, Height = 100, Verified = true,
             },
         };
         return (utxos, new Dictionary<string, Transaction> { [txid] = funding });
+    }
+
+    [Fact]
+    public void Un_utxo_confermato_ma_non_ancora_verificato_non_e_spendibile()
+    {
+        // Confirmed by the server, but its Merkle proof hasn't been checked yet (progressive
+        // background verification, §7.4): must never be treated as spendable — otherwise a
+        // malicious server could get a fabricated balance spent before the forgery is caught.
+        var account = Account();
+        var (utxos, txs) = Fund(account, 1_000_000);
+        utxos[0].Verified = false;
+
+        var ex = Assert.Throws<WalletSpendException>(() => new TransactionFactory(account).Build(
+            utxos, txs, account.GetReceiveAddress(5), amountSats: 400_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100));
+        Assert.Contains("awaiting Merkle-proof verification", ex.Message);
     }
 
     [Fact]
@@ -169,7 +185,7 @@ public class TransactionFactoryTests
         {
             new() { Txid = txid, Vout = 0, ValueSats = 1_000_000,
                     Address = mainnetAccount.GetReceiveAddress(0).ToString(),
-                    IsChange = false, AddressIndex = 0, Height = 100, IsCoinbase = false },
+                    IsChange = false, AddressIndex = 0, Height = 100, IsCoinbase = false, Verified = true },
         };
         var txs = new Dictionary<string, Transaction> { [txid] = funding };
 
@@ -295,7 +311,7 @@ public class TransactionFactoryTests
             {
                 Txid = txid, Vout = 0, ValueSats = 300_000,
                 Address = account.GetReceiveAddress(i).ToString(),
-                IsChange = false, AddressIndex = i, Height = 100,
+                IsChange = false, AddressIndex = i, Height = 100, Verified = true,
             });
         }
 

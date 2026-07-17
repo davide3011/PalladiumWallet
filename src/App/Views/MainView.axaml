@@ -317,6 +317,9 @@
                     <TextBlock Text="{Binding ImmatureText}" Foreground="#FCD34D"
                                TextWrapping="Wrap"
                                IsVisible="{Binding ImmatureText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                    <TextBlock Text="{Binding VerifyingText}" Foreground="#FCD34D"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding VerifyingText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
                     <TextBlock Text="{Binding NetworkInfo}" Classes="on-hero" FontSize="12"
                                Margin="0,2,0,0"/>
                 </StackPanel>
@@ -373,13 +376,16 @@
                                 <DataTemplate x:DataType="vm:HistoryRow">
                                     <Panel Cursor="Hand">
                                         <!-- Desktop: 3 fixed columns -->
-                                        <Grid ColumnDefinitions="90,160,*"
+                                        <Grid ColumnDefinitions="90,160,*,Auto"
                                               IsVisible="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).IsDesktop}">
                                             <TextBlock Grid.Column="0" Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}"/>
                                             <TextBlock Grid.Column="1" Text="{Binding Importo}" FontFamily="monospace"/>
                                             <TextBlock Grid.Column="2" Text="{Binding Txid}"
                                                        FontFamily="monospace" FontSize="12"
                                                        TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Grid.Column="3" Text="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).Loc[history.unverified]}"
+                                                       Foreground="#FCD34D" FontSize="11" Margin="6,0,0,0"
+                                                       IsVisible="{Binding !Verified}"/>
                                         </Grid>
                                         <!-- Mobile: vertical card -->
                                         <StackPanel Spacing="2"
@@ -389,6 +395,9 @@
                                             <TextBlock Text="{Binding Conferma}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11"/>
                                             <TextBlock Text="{Binding Txid}" FontFamily="monospace" FontSize="11"
                                                        TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).Loc[history.unverified]}"
+                                                       Foreground="#FCD34D" FontSize="11"
+                                                       IsVisible="{Binding !Verified}"/>
                                         </StackPanel>
                                     </Panel>
                                 </DataTemplate>

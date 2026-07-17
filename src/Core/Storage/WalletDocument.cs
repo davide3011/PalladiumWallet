@@ -98,6 +98,16 @@ public sealed class SyncCache
 
     /// <summary>Confirmed but not yet spendable (coinbase immature or under min confirmations). Subset of ConfirmedSats.</summary>
     public long ImmatureSats { get; set; }
+
+    /// <summary>
+    /// Confirmed, past its threshold, but its Merkle proof isn't checked yet. Subset of
+    /// ConfirmedSats — NOT disjoint from ImmatureSats, so never subtract both from
+    /// ConfirmedSats to get a spendable total; use SpendableSats instead.
+    /// </summary>
+    public long PendingVerificationSats { get; set; }
+
+    /// <summary>The actual spendable balance: sum of UTXOs passing UtxoSpendability.IsSpendable.</summary>
+    public long SpendableSats { get; set; }
     public int NextReceiveIndex { get; set; }
     public int NextChangeIndex { get; set; }
     public List<CachedTx> History { get; set; } = [];
@@ -141,6 +151,13 @@ public sealed class CachedTx
     public required string Txid { get; set; }
     public int Height { get; set; }
     public long DeltaSats { get; set; }
+
+    /// <summary>
+    /// True once this tx's Merkle proof has actually been checked against a
+    /// checkpoint-anchored header (not merely "confirmed" — a confirmed tx can still
+    /// be pending its own proof while background verification catches up). Always
+    /// false for unconfirmed (mempool) entries, which have no proof to check yet.
+    /// </summary>
     public bool Verified { get; set; }
 }
 
@@ -155,4 +172,11 @@ public sealed class CachedUtxo
     public int Height { get; set; }
     public bool IsCoinbase { get; set; }
     public bool Frozen { get; set; }
+
+    /// <summary>
+    /// True once the owning tx's Merkle proof has been checked (see <see cref="CachedTx.Verified"/>).
+    /// Gates spendability in <see cref="Wallet.UtxoSpendability.IsSpendable"/>: a server can report a
+    /// fake confirmed UTXO before its proof is checked, so coin selection must never touch it early.
+    /// </summary>
+    public bool Verified { get; set; }
 }

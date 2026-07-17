@@ -18,7 +18,13 @@ public static class UtxoSpendability
     public static int Confirmations(this CachedUtxo utxo, int tipHeight) =>
         utxo.Height <= 0 ? 0 : tipHeight - utxo.Height + 1;
 
-    /// <summary>True when the UTXO has met its confirmation threshold and is not frozen.</summary>
+    /// <summary>
+    /// True when the UTXO has met its confirmation threshold, is not frozen, and its Merkle
+    /// proof has actually been checked. Without the <see cref="CachedUtxo.Verified"/> gate a
+    /// malicious server could report a fake confirmed UTXO and have it spent before background
+    /// verification ever caught the forgery.
+    /// </summary>
     public static bool IsSpendable(this CachedUtxo utxo, ChainProfile profile, int tipHeight) =>
-        !utxo.Frozen && utxo.Height > 0 && utxo.Confirmations(tipHeight) >= utxo.RequiredConfirmations(profile);
+        !utxo.Frozen && utxo.Height > 0 && utxo.Verified
+        && utxo.Confirmations(tipHeight) >= utxo.RequiredConfirmations(profile);
 }

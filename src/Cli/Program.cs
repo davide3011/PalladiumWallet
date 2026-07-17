@@ -104,8 +104,9 @@ static int Info(string[] o)
     Console.WriteLine($"xpub:     {doc.AccountXpub}");
     if (doc.Cache is { } cache)
     {
-        Console.WriteLine($"balance:  {CoinAmount.Format(cache.ConfirmedSats - cache.ImmatureSats, account.Profile.CoinUnit)} spendable"
+        Console.WriteLine($"balance:  {CoinAmount.Format(cache.SpendableSats, account.Profile.CoinUnit)} spendable"
             + (cache.ImmatureSats != 0 ? $" + {CoinAmount.Format(cache.ImmatureSats)} maturing (not spendable)" : "")
+            + (cache.PendingVerificationSats != 0 ? $" + {CoinAmount.Format(cache.PendingVerificationSats)} awaiting SPV verification (not spendable)" : "")
             + (cache.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(cache.UnconfirmedSats)} pending confirmation (not spendable)." : ""));
         Console.WriteLine($"sync:     height {cache.TipHeight}, {cache.History.Count} transactions");
         Console.WriteLine($"receive:  {account.GetReceiveAddress(cache.NextReceiveIndex)}");
@@ -149,6 +150,8 @@ static async Task<int> Sync(string[] o)
         ConfirmedSats = result.ConfirmedSats,
         UnconfirmedSats = result.UnconfirmedSats,
         ImmatureSats = result.ImmatureSats,
+        PendingVerificationSats = result.PendingVerificationSats,
+        SpendableSats = result.SpendableSats,
         NextReceiveIndex = result.NextReceiveIndex,
         NextChangeIndex = result.NextChangeIndex,
         History = [.. result.History],
@@ -160,8 +163,9 @@ static async Task<int> Sync(string[] o)
     };
     WalletStore.Save(doc, path, Opt(o, "--password"));
 
-    Console.WriteLine($"Balance: {CoinAmount.Format(result.ConfirmedSats - result.ImmatureSats, account.Profile.CoinUnit)} spendable"
+    Console.WriteLine($"Balance: {CoinAmount.Format(result.SpendableSats, account.Profile.CoinUnit)} spendable"
         + (result.ImmatureSats != 0 ? $" + {CoinAmount.Format(result.ImmatureSats)} maturing (not spendable)" : "")
+        + (result.PendingVerificationSats != 0 ? $" + {CoinAmount.Format(result.PendingVerificationSats)} awaiting SPV verification (not spendable)" : "")
         + (result.UnconfirmedSats != 0 ? $" + {CoinAmount.Format(result.UnconfirmedSats)} pending confirmation (not spendable)" : ""));
     Console.WriteLine($"History ({result.History.Count}):");
     foreach (var tx in result.History)

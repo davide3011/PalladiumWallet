@@ -29,6 +29,9 @@ public partial class MainWindowViewModel
     private string immatureText = "";
 
     [ObservableProperty]
+    private string verifyingText = "";
+
+    [ObservableProperty]
     private string networkInfo = "";
 
     // ---- receive address and QR ----
@@ -253,6 +256,7 @@ public partial class MainWindowViewModel
             BalanceText = $"0.00000000 {Profile.CoinUnit}";
             UnconfirmedText = "";
             ImmatureText = "";
+            VerifyingText = "";
             ReceiveAddress = _account.GetReceiveAddress(0).ToString();
             History.Clear();
             Addresses.Clear();
@@ -265,7 +269,11 @@ public partial class MainWindowViewModel
                     $"m/{_doc!.AccountPath}/0/{i}"));
             return;
         }
-        BalanceText = Fmt(cache.ConfirmedSats - cache.ImmatureSats);
+        // Not "Confirmed - Immature - PendingVerification": those two can overlap (an
+        // immature coinbase can also be unverified), which double-subtracts and can go
+        // negative. SpendableSats is computed directly from the same IsSpendable gate
+        // coin selection uses, so it's always correct.
+        BalanceText = Fmt(cache.SpendableSats);
         var pending = cache.History.Where(t => t.Height <= 0).Sum(t => t.DeltaSats);
         UnconfirmedText = pending != 0
             ? $"{Loc.Tr("msg.pending")}: {(pending > 0 ? "+" : "")}{Fmt(pending)} — {Loc.Tr("msg.notspendable")}"
@@ -273,13 +281,20 @@ public partial class MainWindowViewModel
         ImmatureText = cache.ImmatureSats != 0
             ? $"{Loc.Tr("msg.immature")}: {Fmt(cache.ImmatureSats)} — {Loc.Tr("msg.notspendable")}"
             : "";
+        // Progressive verification (§7.4): funds confirmed by the server but whose Merkle
+        // proof background verification hasn't reached yet — same "not spendable" treatment
+        // as immature/pending, distinct wording so it doesn't read as a maturity/confirmation problem.
+        VerifyingText = cache.PendingVerificationSats != 0
+            ? $"{Loc.Tr("msg.verifying")}: {Fmt(cache.PendingVerificationSats)} — {Loc.Tr("msg.notspendable")}"
+            : "";
         ReceiveAddress = _account.GetReceiveAddress(cache.NextReceiveIndex).ToString();
         History.Clear();
         foreach (var tx in cache.History)
             History.Add(new HistoryRow(
                 tx.Height > 0 ? tx.Height.ToString() : "mempool",
                 (tx.DeltaSats >= 0 ? "+" : "") + Fmt(tx.DeltaSats, withLabel: false),
-                tx.Txid));
+                tx.Txid,
+                tx.Verified));
 
         Addresses.Clear();
         foreach (var a in cache.Addresses)
