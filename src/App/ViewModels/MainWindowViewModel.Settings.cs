@@ -12,6 +12,7 @@ public partial class MainWindowViewModel
     public bool IsLangFr => _config.Language == "fr";
     public bool IsLangPt => _config.Language == "pt";
     public bool IsLangDe => _config.Language == "de";
+    public bool IsLangZh => _config.Language == "zh";
     public bool IsUnitPlm => _config.Unit == "PLM";
     public bool IsUnitMilli => _config.Unit == "mPLM";
     public bool IsUnitMicro => _config.Unit == "µPLM";
@@ -44,6 +45,7 @@ public partial class MainWindowViewModel
         OnPropertyChanged(nameof(IsLangFr));
         OnPropertyChanged(nameof(IsLangPt));
         OnPropertyChanged(nameof(IsLangDe));
+        OnPropertyChanged(nameof(IsLangZh));
         OnPropertyChanged(nameof(IsUnitPlm));
         OnPropertyChanged(nameof(IsUnitMilli));
         OnPropertyChanged(nameof(IsUnitMicro));

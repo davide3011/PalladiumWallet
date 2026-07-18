@@ -1511,6 +1511,9 @@
                             <RadioButton GroupName="lang" Content="Deutsch" Margin="0,0,14,4"
                                          IsChecked="{Binding IsLangDe, Mode=OneWay}"
                                          Command="{Binding SetLanguageCommand}" CommandParameter="de"/>
+                            <RadioButton GroupName="lang" Content="中文" Margin="0,0,14,4"
+                                         IsChecked="{Binding IsLangZh, Mode=OneWay}"
+                                         Command="{Binding SetLanguageCommand}" CommandParameter="zh"/>
                         </WrapPanel>
                     </StackPanel>
 
