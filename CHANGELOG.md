@@ -5,6 +5,122 @@ Technical changelog for PalladiumWallet. Format loosely follows
 by subsystem rather than strictly by date, since `0.9.0` is the first
 release and covers the full history from the initial commit.
 
+## [1.1.0] — 2026-07-19
+
+Adds a pure address-only watch-only mode (Core + CLI + App wizard + Send
+PSBT export), makes SPV sync render balance/history progressively instead
+of blocking on full Merkle verification, and fixes several Android
+sync-reconnect bugs found by testing the previous fix on a large wallet.
+
+### Added
+
+- Pure watch-only wallets from one or more plain addresses, no extended
+  key or private key material at all (unlike existing xpub/WIF imports,
+  which can still derive/hold key material): `WalletDocument.WatchAddresses`
+  + `WalletLoader.NewFromAddresses`, `ScriptKind` inferred from the address
+  via `DerivationPaths.KindFor`, CLI `restore-address` command, and a
+  matching setup-wizard step. `TransactionFactory` already refused to sign
+  for any `IsWatchOnly` account, so the new address-only accounts inherit
+  that guarantee for free.
+- Send flow: base64 PSBT export box + copy button and a visible warning
+  banner for watch-only accounts, so the unsigned PSBT built from a
+  watch-only wallet can actually be taken elsewhere to sign (previously
+  only the CLI printed it).
+- Chinese (Simplified) as a 7th UI language (`Loc.Strings`/`Languages`);
+  the Settings language picker is a hand-written `RadioButton` list, not
+  generated from `Loc.Languages`, so `IsLangZh` was added to
+  `MainWindowViewModel.Settings.cs` and `MainView.axaml` too.
+- New mainnet checkpoint at height 475124 (`ChainProfiles`).
+
+### Changed
+
+- SPV sync now renders balance/history as soon as transaction downloads
+  finish instead of blocking on every historical Merkle proof — critical
+  on mobile, where proof-checking can take much longer than the download.
+  Proofs keep verifying in the background and each transaction's
+  `Verified` flag catches up progressively; header ranges are fetched in
+  batches (`blockchain.block.headers`) instead of one call per header.
+  Coin selection (`UtxoSpendability.IsSpendable`) still refuses to spend a
+  UTXO until its Merkle proof is actually checked, regardless of
+  confirmation count — a server fabricating a confirmed balance can get it
+  displayed early but never spent before the forgery is caught. The disk
+  cache only ever persists the fully-verified end state. UI surfaces the
+  new `PendingVerificationSats`/`SpendableSats` split with a
+  "verifying..." badge.
+- `ElectrumClient`'s in-flight request cap (`MaxInFlight`, previously a
+  hardcoded 32) is now an optional `ConnectAsync` parameter, since
+  different indexing servers tolerate different concurrency before
+  throttling.
+
+### Performance
+
+- Checkpoint-anchoring state (`_anchoredUpTo`) is now persisted across
+  sync sessions via `SyncCache` instead of being re-walked and
+  re-verified from scratch on every app restart, even when the header
+  bytes were already cached on disk — this dominated reconnect time on
+  large wallets.
+
+### Fixed
+
+- `TransactionFactory.Build`: sending a large amount from a wallet with
+  many small UTXOs could produce a transaction over the standard 100 KvB
+  relay limit, previously surfaced only as a cryptic
+  `Transaction's size is too high` error after everything else had
+  already succeeded. UTXOs are now ordered largest-first with a binary
+  search for the smallest spendable prefix, naturally preferring big
+  coins over dust; NBitcoin's own oversized-selection case is now
+  recognized and translated into a clear, actionable error instead of
+  being read as "insufficient funds".
+- Android: a connection killed silently while the phone was locked (Doze,
+  radio suspend, NAT timeout) still reported `IsConnected == true`
+  because `TcpClient.Connected` only reflects the last known socket
+  state, and the keep-alive ping's failure was swallowed by an empty
+  catch — sync kept retrying on a dead socket instead of reconnecting.
+  Fixed across two passes:
+  - A failed keep-alive ping now tears down the client and reconnects;
+    `OnPause`/`OnResume` on the Android activity force an immediate
+    health check on resume instead of waiting for the 20s timer (itself
+    liable to be suspended during Doze).
+  - The keep-alive ping had no timeout, so a half-open TCP connection
+    (the common outcome of a longer Doze suspend) left it awaiting a
+    response that never arrives, so the teardown path was never reached
+    — bounded to 8s, plus a re-entrancy guard against overlapping ticks.
+  - Resume checking bailed out whenever a sync was already in progress,
+    leaving a lock/unlock during an active sync hung indefinitely; it now
+    cancels the stuck sync and tears down the dead client instead.
+  - `WalletSynchronizer.ExportCaches` persisted raw transaction bytes only
+    for already-verified transactions, discarding anything downloaded but
+    not yet proof-verified when a sync was interrupted — forcing a full
+    re-download on every resume of a large wallet. Confirmed txids are
+    now tracked at download time, independent of verification status.
+- Wizard/overlay `TextBox`es (wizard steps, private-key prompt, wallet
+  info overlay) shrank the whole panel when clicked into empty: their
+  `HorizontalAlignment="Center"` + `MaxWidth` containers sized from
+  content `DesiredSize`, and `PlaceholderText` only contributes to that
+  measurement while empty and unfocused. Switched to
+  `HorizontalAlignment="Stretch"`, which sizes from the available arrange
+  rect (clamped by `MaxWidth`) regardless of focus/placeholder state.
+- Help overlay's Donate tab is now gated behind `IsWalletOpen`, like the
+  rest of the wallet-only UI — it requires an open wallet to send from,
+  so showing it earlier was a dead end.
+
+### Documentation
+
+- `USERGUIDE.md`: documents why initial sync scales with transaction
+  count rather than wallet age (one Merkle-proof round trip per confirmed
+  transaction, no batching in the Electrum-style protocol), why later
+  syncs are fast (cache persists proofs/headers/anchoring state), and
+  warns against using this wallet as a mining payout address (many small
+  transactions measurably slow sync).
+- `SECURITY.md`: documents address-only watch-only wallets, and adds
+  multisig to the explicit "known limitations" list (unsupported —
+  derivation for it throws, not just unimplemented UI).
+- `README.md` reconciled with current repo state: 7 UI languages (was
+  6, missing Chinese Simplified), watch-only described as xpub *and*
+  address-only (was xpub-only), multisig no longer overclaimed as a
+  working PSBT flow, CLI quick-reference includes `restore-address` and
+  `servers`, links the new `USERGUIDE.md`.
+
 ## [1.0.0] — 2026-07-09
 
 First stable release. Closes the last open security gap from 0.9.x (header
