@@ -445,7 +445,7 @@
 
                         <!-- ── DESKTOP: Recipient | Amount side-by-side ── -->
                         <Grid IsVisible="{Binding IsDesktop}"
-                              RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
+                              RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
 
                             <Grid Grid.Row="0" ColumnDefinitions="*,*" ColumnSpacing="14">
                                 <!-- Recipient card -->
@@ -516,11 +516,29 @@
                                     <SelectableTextBlock Text="{Binding SendPreview}"
                                                          TextWrapping="Wrap" FontSize="13" Classes="mono"
                                                          Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <StackPanel Spacing="6"
+                                                IsVisible="{Binding PendingPsbtBase64, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="{Binding Loc[send.psbt.label]}" Classes="label"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBox Grid.Column="0" Text="{Binding PendingPsbtBase64}" IsReadOnly="True"
+                                                     FontFamily="monospace" FontSize="11" TextWrapping="Wrap"
+                                                     AcceptsReturn="True" Height="90"/>
+                                            <Button Grid.Column="1" Margin="8,0,0,0"
+                                                    Content="{Binding Loc[send.psbt.copy]}"
+                                                    Click="OnCopyPsbtClick"/>
+                                        </Grid>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
 
+                            <!-- Watch-only notice -->
+                            <TextBlock Grid.Row="2" Text="{Binding Loc[send.watchonly.hint]}"
+                                       IsVisible="{Binding IsWatchOnlyAccount}"
+                                       TextWrapping="Wrap" FontSize="12"
+                                       Foreground="{DynamicResource WarningBrush}"/>
+
                             <!-- Action buttons -->
-                            <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="14">
+                            <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="14">
                                 <Button Grid.Column="0" Content="{Binding Loc[send.prepare]}"
                                         Command="{Binding PrepareSendCommand}"
                                         HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
@@ -620,8 +638,25 @@
                                     <SelectableTextBlock Text="{Binding SendPreview}"
                                                          TextWrapping="Wrap" FontSize="13" Classes="mono"
                                                          Foreground="{DynamicResource TextSecondaryBrush}"/>
+                                    <StackPanel Spacing="6"
+                                                IsVisible="{Binding PendingPsbtBase64, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                        <TextBlock Text="{Binding Loc[send.psbt.label]}" Classes="label"/>
+                                        <TextBox Text="{Binding PendingPsbtBase64}" IsReadOnly="True"
+                                                 FontFamily="monospace" FontSize="11" TextWrapping="Wrap"
+                                                 AcceptsReturn="True" Height="90"/>
+                                        <Button Content="{Binding Loc[send.psbt.copy]}"
+                                                Click="OnCopyPsbtClick"
+                                                MinHeight="44"
+                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
+
+                            <!-- Watch-only notice -->
+                            <TextBlock Text="{Binding Loc[send.watchonly.hint]}"
+                                       IsVisible="{Binding IsWatchOnlyAccount}"
+                                       TextWrapping="Wrap" FontSize="12"
+                                       Foreground="{DynamicResource WarningBrush}"/>
 
                             <!-- Action buttons: primary (Confirm) prominent, secondary below -->
                             <Button Content="{Binding Loc[send.confirm]}" Classes="accent"

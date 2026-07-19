@@ -102,6 +102,17 @@ public partial class MainView : UserControl
         }
     }
 
+    private async void OnCopyPsbtClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm || string.IsNullOrEmpty(vm.PendingPsbtBase64))
+            return;
+        if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+        {
+            await clipboard.SetTextAsync(vm.PendingPsbtBase64);
+            vm.NotifyPsbtCopied();
+        }
+    }
+
     private void OnConnectionStatusTapped(object? sender, TappedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)

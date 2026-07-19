@@ -31,6 +31,14 @@ public partial class MainWindowViewModel
     [ObservableProperty]
     private bool hasPendingSend;
 
+    [ObservableProperty]
+    private string pendingPsbtBase64 = "";
+
+    /// <summary>True when the open account cannot sign — Send only prepares an unsigned PSBT to export.</summary>
+    public bool IsWatchOnlyAccount => _account?.IsWatchOnly ?? false;
+
+    public void NotifyPsbtCopied() => StatusMessage = Loc.Tr("psbt.copied");
+
     [RelayCommand]
     private async Task ScanQr()
     {
@@ -81,11 +89,13 @@ public partial class MainWindowViewModel
                 $"({_pendingSend.Transaction.GetVirtualSize()} vB)" +
                 (_pendingSend.Signed ? "" : Loc.Tr("msg.unsigned.watchonly"));
             HasPendingSend = _pendingSend.Signed;
+            PendingPsbtBase64 = _pendingSend.Signed ? "" : _pendingSend.Psbt.ToBase64();
         }
         catch (Exception ex)
         {
             _pendingSend = null;
             HasPendingSend = false;
+            PendingPsbtBase64 = "";
             SendPreview = $"{Loc.Tr("msg.error")}: {DescribeError(ex)}";
         }
         await Task.CompletedTask;
@@ -103,6 +113,7 @@ public partial class MainWindowViewModel
             SendTo = SendAmount = "";
             _pendingSend = null;
             HasPendingSend = false;
+            PendingPsbtBase64 = "";
             await ConnectAndSync();
         }
         catch (Exception ex)
