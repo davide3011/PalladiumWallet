@@ -60,7 +60,7 @@
         <!-- ============ SETUP WIZARD (§15): one step at a time ============ -->
         <ScrollViewer Grid.Row="1" IsVisible="{Binding IsSetupVisible}">
             <StackPanel MaxWidth="560" Margin="24,40" Spacing="18"
-                        HorizontalAlignment="Center">
+                        HorizontalAlignment="Stretch">
                 <TextBlock Text="Palladium Wallet" FontSize="28" FontWeight="Bold"
                            HorizontalAlignment="Center"/>
 
@@ -1044,7 +1044,7 @@
             <Border Background="{DynamicResource OverlayCardBrush}"
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="360" Margin="16"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <StackPanel Margin="24" Spacing="14">
                     <TextBlock Text="{Binding Loc[addr.privkey.prompt.title]}"
                                FontSize="16" FontWeight="Bold"/>
@@ -1385,7 +1385,7 @@
             <Border Background="{DynamicResource OverlayCardBrush}"
                     BorderBrush="{DynamicResource BorderSubtleBrush}" BorderThickness="1" CornerRadius="8"
                     MaxWidth="500" Margin="16"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <ScrollViewer MaxHeight="620">
                 <StackPanel Margin="24" Spacing="14">
                     <TextBlock Text="{Binding Loc[walletinfo.title]}"
