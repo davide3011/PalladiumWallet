@@ -165,7 +165,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (IsSyncing)
             return;
-        if (_client is { IsConnected: true })
+        if (_client is { IsConnected: true } client)
         {
             // If the wallet is open and the last sync failed, retry automatically.
             if (_syncFailed && _account is not null)
@@ -173,14 +173,41 @@ public partial class MainWindowViewModel : ViewModelBase
                 await ConnectAndSync();
                 return;
             }
-            try { await _client.PingAsync(); }
-            catch { }
+            try
+            {
+                await client.PingAsync();
+            }
+            catch
+            {
+                // TcpClient.Connected only reflects the last known socket state, so a
+                // connection killed silently while the app was suspended (e.g. Android
+                // Doze after screen lock) still reports IsConnected == true. A failed
+                // ping is the only reliable signal here: tear the dead client down so
+                // the next tick reconnects instead of retrying forever on a dead socket.
+                await DisconnectAsync();
+                if (_autoReconnect)
+                {
+                    ConnectionStatus = Loc.Tr("conn.reconnecting");
+                    await ConnectAndSync();
+                }
+            }
         }
         else if (_autoReconnect)
         {
             ConnectionStatus = Loc.Tr("conn.reconnecting");
             await ConnectAndSync();
         }
+    }
+
+    /// <summary>Forces an immediate connection health check, bypassing the 20s timer.
+    /// Called when the app resumes from background/lock screen, since the socket may
+    /// have died silently while suspended and the UI would otherwise show a stale
+    /// "connected" state until the next scheduled tick (or forever, if it never fires
+    /// during Doze).</summary>
+    public async System.Threading.Tasks.Task CheckConnectionOnResumeAsync()
+    {
+        if (IsSyncing) return;
+        await KeepAliveTickAsync();
     }
 
     // ---- wallet lifecycle ----
