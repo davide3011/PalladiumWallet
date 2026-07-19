@@ -36,8 +36,12 @@ public sealed class ElectrumClient : IAsyncDisposable
     // single segment; this gate avoids flooding the server with thousands of
     // simultaneous requests on large wallets → no bursts of -101/-102 nor
     // connection drops. Writes still stay pipelined up to this degree.
-    private const int MaxInFlight = 32;
-    private readonly SemaphoreSlim _inFlight = new(MaxInFlight, MaxInFlight);
+    // Configurable per connection (see ConnectAsync): the right value trades off
+    // initial-sync throughput against how aggressively a given server tolerates
+    // concurrent requests before throttling — no single constant is right for
+    // every server, so callers may raise/lower it instead of recompiling.
+    public const int DefaultMaxInFlight = 32;
+    private readonly SemaphoreSlim _inFlight;
 
     private long _nextId;
 
@@ -49,19 +53,22 @@ public sealed class ElectrumClient : IAsyncDisposable
     public event Action<string, JsonElement>? NotificationReceived;
     public event Action<Exception?>? Disconnected;
 
-    private ElectrumClient(TcpClient tcp, Stream stream, string host, int port, bool useSsl)
+    private ElectrumClient(TcpClient tcp, Stream stream, string host, int port, bool useSsl,
+        int maxInFlight)
     {
         _tcp = tcp;
         _stream = stream;
         Host = host;
         Port = port;
         UseSsl = useSsl;
+        _inFlight = new SemaphoreSlim(maxInFlight, maxInFlight);
         _readLoop  = Task.Run(ReadLoopAsync);
         _writeLoop = Task.Run(WriteLoopAsync);
     }
 
     public static async Task<ElectrumClient> ConnectAsync(string host, int port, bool useSsl,
-        CertificatePinStore? pins = null, CancellationToken ct = default)
+        CertificatePinStore? pins = null, CancellationToken ct = default,
+        int maxInFlight = DefaultMaxInFlight)
     {
         var tcp = new TcpClient { NoDelay = true };
         try
@@ -90,7 +97,7 @@ public sealed class ElectrumClient : IAsyncDisposable
                 stream = ssl;
             }
 
-            var client = new ElectrumClient(tcp, stream, host, port, useSsl);
+            var client = new ElectrumClient(tcp, stream, host, port, useSsl, maxInFlight);
             await client.RequestAsync("server.version", ct, ClientName, ProtocolVersion);
             return client;
         }
