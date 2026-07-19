@@ -578,6 +578,29 @@ If the server is overloaded (busy responses), the wallet retries automatically u
 times with increasing back-off — a large wallet's first sync may take a little while, but it
 resumes from the cache instead of restarting.
 
+**First sync can take noticeably longer than later ones — this is expected.** Each confirmed
+transaction requires its own Merkle-proof round trip to the indexing server
+(`blockchain.transaction.get_merkle`, one request per transaction — the Electrum-style
+protocol has no batched form of this call), plus, on mainnet, chaining the covering block
+header back to the nearest hardcoded checkpoint. Sync time therefore scales with the number
+of confirmed transactions in the wallet's history, not with wall-clock time since creation.
+On **Android**, the first sync is typically slower still than on desktop for the same
+wallet: mobile networks add higher round-trip latency and lower sustained throughput than a
+desktop's wired/Wi-Fi connection, and every proof round trip pays that latency individually.
+Every subsequent sync is fast: verified proofs, raw transaction bytes, downloaded block
+headers, and the checkpoint hash-chain anchoring state are all persisted into the wallet
+file's cache, so a resumed or later sync only fetches and verifies what changed since the
+last one — even across an app restart.
+
+**Do not use this wallet as a mining payout address.** Pool or solo mining payouts typically
+arrive as many small, frequent transactions, and — because of the per-transaction Merkle
+proof cost described above — sync time grows with transaction count, not balance. A wallet
+whose history has accumulated **over 5,000 transactions** has been observed taking on the
+order of a couple of minutes to fully synchronize even on a stable connection, with slower
+networks (see the Android note above) pushing that further. If you mine, pay out to a wallet
+purpose-built for high transaction volume (or one that lets you consolidate UTXOs
+aggressively), and only move funds into Palladium Wallet in batches.
+
 ---
 
 ## 13. Settings
@@ -818,7 +841,7 @@ Reset SSL certificates* — see
 | Payment sent to me doesn't appear | Not yet synced/connected, or sender hasn't broadcast. | Check the connection indicator; mempool entries appear within seconds of broadcast when connected. |
 | Update prompt at startup (*"Update available"*) | A newer GitHub release exists (checked once at startup, silently skipped offline). | *Download* opens the release page; *Dismiss* continues. Never enter your seed into anything but the wallet itself. |
 | Android: update apk refuses to install | Signature mismatch between builds. | Back up the seed **before** uninstalling; see [3.2](#32-android). |
-| First sync is slow / server busy errors | Server throttling; the wallet retries automatically (up to 8 attempts, growing back-off). | Wait; progress is cached, so restarting resumes rather than repeats. |
+| First sync is slow / server busy errors | Server throttling (automatic retry, up to 8 attempts) and/or a large transaction history — sync time scales with transaction count, not balance, worse on mobile. | Wait; progress is cached, so restarting resumes rather than repeats. See [12.3](#123-what-synchronization-actually-does). Do not use this wallet for mining payouts (many small transactions). |
 
 ---
 
