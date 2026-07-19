@@ -75,6 +75,14 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
 
     private readonly ConcurrentDictionary<string, Transaction> _txCache = new();
 
+    // txids known confirmed (height > 0) as of download time, independent of whether their
+    // Merkle proof has been verified yet — lets ExportCaches persist raw tx bytes for a
+    // confirmed transaction interrupted before verification, instead of forcing a
+    // re-download on the next sync just because _verifiedAtHeight hasn't caught up. Every
+    // entry here has txHeights[txid] > 0 at the time it was recorded, i.e. server-confirmed;
+    // unconfirmed (mempool/RBF-able) transactions are deliberately never added.
+    private readonly ConcurrentDictionary<string, byte> _confirmedTxids = new();
+
     // Concurrent: written incrementally by individual merkle-verification tasks as they
     // complete (§7.4 progressive verification), not just once after they all finish.
     private readonly ConcurrentDictionary<string, int> _verifiedAtHeight = new();
@@ -116,7 +124,12 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         Dictionary<int, int>? anchoredUpTo = null)
     {
         foreach (var (txid, hex) in rawTxHex)
+        {
             _txCache.TryAdd(txid, Transaction.Parse(hex, network));
+            // ExportCaches only ever wrote confirmed transactions here (see its own
+            // filter), so every preloaded entry is safe to mark confirmed too.
+            _confirmedTxids.TryAdd(txid, 0);
+        }
         foreach (var (txid, height) in verifiedAt)
             if (!_verifiedAtHeight.ContainsKey(txid))
                 _verifiedAtHeight[txid] = height;
@@ -147,7 +160,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             Dictionary<int, int> AnchoredUpTo)
         ExportCaches(Network network)
     {
-        var rawHex = _verifiedAtHeight.Keys
+        var rawHex = _confirmedTxids.Keys
             .Where(_txCache.ContainsKey)
             .ToDictionary(txid => txid, txid => _txCache[txid].ToHex());
 
@@ -232,17 +245,30 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
                 && (!_verifiedAtHeight.TryGetValue(kv.Key, out var h) || h != kv.Value))
             .ToList();
 
+        // Total/already-cached counts (not just this session's downloads): on a sync resumed
+        // after an interruption, `missing` is often empty because everything was already
+        // fetched last time (see _confirmedTxids/PreloadCaches) — reporting against the total
+        // shows "n/n transactions" immediately instead of a misleading "0/0" before jumping
+        // straight to proof verification.
+        var totalTx       = txHeights.Count;
+        var alreadyCached = totalTx - missing.Count;
+
+        string DownloadVerifyStatus(int downloaded, int verified) =>
+            $"transactions {downloaded}/{totalTx}, proofs {verified}/{toVerify.Count}…";
+
         if (missing.Count > 0 || toVerify.Count > 0)
-            Progress?.Invoke($"downloading {missing.Count} txs, verifying {toVerify.Count} proofs…");
+            Progress?.Invoke(DownloadVerifyStatus(alreadyCached, 0));
 
         var dlDone = 0;
         await Task.WhenAll(missing.Select(txid => RetryOnBusyAsync(async () =>
         {
             var raw = await client.GetTransactionAsync(txid, ct);
             _txCache[txid] = Transaction.Parse(raw, network);
+            if (txHeights[txid] > 0)
+                _confirmedTxids.TryAdd(txid, 0);
             var n = Interlocked.Increment(ref dlDone);
             if (n % 50 == 0 || n == missing.Count)
-                Progress?.Invoke($"tx {n}/{missing.Count}, proofs 0/{toVerify.Count}…");
+                Progress?.Invoke(DownloadVerifyStatus(alreadyCached + n, 0));
         }, ct)));
 
         SyncResult BuildSnapshot() =>
@@ -273,7 +299,7 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             _verifiedAtHeight[txid] = height;
             var n = Interlocked.Increment(ref merkDone);
             if (n % 50 == 0 || n == toVerify.Count)
-                Progress?.Invoke($"tx {missing.Count}/{missing.Count}, proofs {n}/{toVerify.Count}…");
+                Progress?.Invoke(DownloadVerifyStatus(totalTx, n));
             if (n % PartialResultBatchSize == 0)
                 PartialResult?.Invoke(BuildSnapshot());
         }, ct)).ToList();

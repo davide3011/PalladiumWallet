@@ -77,6 +77,7 @@ public partial class MainWindowViewModel : ViewModelBase
     // ---- keep-alive ----
     private bool _autoReconnect;
     private bool _syncFailed;
+    private bool _resumeRecovering;
     private readonly DispatcherTimer _keepAliveTimer;
 
     // ---- server UI sync ----
@@ -161,41 +162,60 @@ public partial class MainWindowViewModel : ViewModelBase
         _ = CheckForUpdatesAsync();
     }
 
+    private bool _keepAliveRunning;
+
     private async System.Threading.Tasks.Task KeepAliveTickAsync()
     {
-        if (IsSyncing)
+        // Re-entrancy guard: without it, a ping stuck on a half-open socket (see
+        // below) would let every subsequent 20s tick pile up another concurrent
+        // ping/reconnect attempt on top of it.
+        if (IsSyncing || _keepAliveRunning)
             return;
-        if (_client is { IsConnected: true } client)
+        _keepAliveRunning = true;
+        try
         {
-            // If the wallet is open and the last sync failed, retry automatically.
-            if (_syncFailed && _account is not null)
+            if (_client is { IsConnected: true } client)
             {
-                await ConnectAndSync();
-                return;
-            }
-            try
-            {
-                await client.PingAsync();
-            }
-            catch
-            {
-                // TcpClient.Connected only reflects the last known socket state, so a
-                // connection killed silently while the app was suspended (e.g. Android
-                // Doze after screen lock) still reports IsConnected == true. A failed
-                // ping is the only reliable signal here: tear the dead client down so
-                // the next tick reconnects instead of retrying forever on a dead socket.
-                await DisconnectAsync();
-                if (_autoReconnect)
+                // If the wallet is open and the last sync failed, retry automatically.
+                if (_syncFailed && _account is not null)
                 {
-                    ConnectionStatus = Loc.Tr("conn.reconnecting");
                     await ConnectAndSync();
+                    return;
+                }
+                try
+                {
+                    // A "half-open" TCP connection (remote end gone with no FIN/RST
+                    // ever delivered — the common outcome of Android Doze/mobile-radio
+                    // suspend killing the route silently) never fails the write, so
+                    // PingAsync would otherwise await a response that never arrives.
+                    // Bound it explicitly instead of relying on it to throw.
+                    using var timeoutCts = new System.Threading.CancellationTokenSource(System.TimeSpan.FromSeconds(8));
+                    await client.PingAsync(timeoutCts.Token);
+                }
+                catch
+                {
+                    // TcpClient.Connected only reflects the last known socket state, so a
+                    // connection killed silently while the app was suspended still reports
+                    // IsConnected == true. A failed/timed-out ping is the only reliable
+                    // signal here: tear the dead client down so the next tick reconnects
+                    // instead of retrying forever on a dead socket.
+                    await DisconnectAsync();
+                    if (_autoReconnect)
+                    {
+                        ConnectionStatus = Loc.Tr("conn.reconnecting");
+                        await ConnectAndSync();
+                    }
                 }
             }
+            else if (_autoReconnect)
+            {
+                ConnectionStatus = Loc.Tr("conn.reconnecting");
+                await ConnectAndSync();
+            }
         }
-        else if (_autoReconnect)
+        finally
         {
-            ConnectionStatus = Loc.Tr("conn.reconnecting");
-            await ConnectAndSync();
+            _keepAliveRunning = false;
         }
     }
 
@@ -206,7 +226,35 @@ public partial class MainWindowViewModel : ViewModelBase
     /// during Doze).</summary>
     public async System.Threading.Tasks.Task CheckConnectionOnResumeAsync()
     {
-        if (IsSyncing) return;
+        if (IsSyncing)
+        {
+            // A sync in progress when the phone locked may be stuck awaiting a
+            // response on a socket that died silently while suspended (same
+            // half-open-TCP scenario as the keep-alive ping, but sync requests have
+            // no timeout of their own). Cancel it and tear the client down instead
+            // of leaving it hung forever. _resumeRecovering tells ConnectAndSync's
+            // error handling that this interruption is self-inflicted and expected,
+            // so it shows "reconnecting" and restarts immediately instead of
+            // flashing a scary error message and waiting for the next keep-alive tick.
+            _resumeRecovering = true;
+            ConnectionStatus = Loc.Tr("conn.reconnecting");
+            ConnectionStatusShort = Loc.Tr("conn.reconnecting");
+            _syncCts.Cancel();
+            // Deliberately not DisconnectAsync() here: it also nulls _synchronizer,
+            // which still holds whatever this sync already downloaded/verified (e.g.
+            // thousands of Merkle proofs on a large wallet). Nulling it before the
+            // cancelled ConnectAndSync unwinds would discard that progress, forcing a
+            // full restart instead of a resume. Only tear down the dead socket here;
+            // ConnectAndSync's own cancellation handling persists the partial cache
+            // (PersistPartialTxCache) before it recreates the synchronizer — same
+            // sequencing already used for the "server changed mid-sync" case.
+            if (_client is { } deadClient)
+            {
+                _client = null;
+                try { await deadClient.DisposeAsync(); } catch { }
+            }
+            return;
+        }
         await KeepAliveTickAsync();
     }
 

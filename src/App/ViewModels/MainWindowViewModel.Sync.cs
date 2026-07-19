@@ -314,11 +314,13 @@ public partial class MainWindowViewModel
         }
         catch (OperationCanceledException)
         {
-            // Intentional cancellation due to server change request — not an error.
+            // Intentional cancellation: a server change request, or CheckConnectionOnResumeAsync
+            // recovering a sync stuck on a socket that died while the app was suspended
+            // (_resumeRecovering) — neither is an error the user needs to see as one.
             cancelled = true;
             IsConnected = false;
-            ConnectionStatus = Loc.Tr("conn.none");
-            ConnectionStatusShort = Loc.Tr("conn.none");
+            ConnectionStatus = _resumeRecovering ? Loc.Tr("conn.reconnecting") : Loc.Tr("conn.none");
+            ConnectionStatusShort = _resumeRecovering ? Loc.Tr("conn.reconnecting") : Loc.Tr("conn.none");
             StatusMessage = "";
         }
         catch (CertificatePinMismatchException ex)
@@ -331,9 +333,22 @@ public partial class MainWindowViewModel
         catch (Exception ex)
         {
             IsConnected = _client?.IsConnected == true;
-            ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
-            ConnectionStatusShort = IsConnected ? Loc.Tr("conn.connectedto") : Loc.Tr("conn.none");
-            StatusMessage = $"{Loc.Tr("msg.error")}: {DescribeError(ex)}";
+            if (_resumeRecovering && !IsConnected)
+            {
+                // We tore the connection down ourselves (see CheckConnectionOnResumeAsync);
+                // whether that surfaces here as a cancellation or as a transport exception
+                // is a race, not a real failure — show "reconnecting" and restart right away
+                // instead of a scary error message and a wait for the next keep-alive tick.
+                cancelled = true;
+                ConnectionStatus = Loc.Tr("conn.reconnecting");
+                ConnectionStatusShort = Loc.Tr("conn.reconnecting");
+            }
+            else
+            {
+                ConnectionStatus = IsConnected ? ConnectionStatus : Loc.Tr("conn.none");
+                ConnectionStatusShort = IsConnected ? Loc.Tr("conn.connectedto") : Loc.Tr("conn.none");
+                StatusMessage = $"{Loc.Tr("msg.error")}: {DescribeError(ex)}";
+            }
             if (_account is not null)
             {
                 _syncFailed = true;
@@ -345,6 +360,7 @@ public partial class MainWindowViewModel
         finally
         {
             IsSyncing = false;
+            _resumeRecovering = false;
         }
 
         // If cancelled due to a server change, restart immediately with the new server.
