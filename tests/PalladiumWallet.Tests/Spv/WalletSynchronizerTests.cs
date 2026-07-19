@@ -595,7 +595,7 @@ public class WalletSynchronizerTests
 
         var first = new WalletSynchronizer(account, client);
         var result1 = await first.SyncOnceAsync();
-        var (rawTx, verifiedAt, headers) = first.ExportCaches(Net);
+        var (rawTx, verifiedAt, headers, anchoredUpTo) = first.ExportCaches(Net);
 
         Assert.Single(rawTx);      // the confirmed tx is exported
         Assert.Single(verifiedAt); // with its verified height
@@ -605,13 +605,62 @@ public class WalletSynchronizerTests
         server.ResetCallCounts();
         var second = new WalletSynchronizer(account, client);
         second.PreloadCaches(rawTx, verifiedAt, headers,
-            result1.NextReceiveIndex, result1.NextChangeIndex, Net);
+            result1.NextReceiveIndex, result1.NextChangeIndex, Net, anchoredUpTo);
         var result2 = await second.SyncOnceAsync();
 
         Assert.Equal(result1.ConfirmedSats, result2.ConfirmedSats);
         Assert.Equal(0, server.CallCount("blockchain.transaction.get"));
         Assert.Equal(0, server.CallCount("blockchain.transaction.get_merkle"));
         Assert.Equal(0, server.CallCount("blockchain.block.header"));
+    }
+
+    [Fact]
+    public async Task Lo_stato_di_anchoring_precaricato_da_disco_evita_di_ricamminare_la_catena_al_riavvio()
+    {
+        // Same scenario as "Un_range_gia_ancorato_non_viene_ricamminato_al_sync_successivo", but
+        // across two separate WalletSynchronizer instances (simulating an app restart) with
+        // AnchoredUpTo round-tripped through ExportCaches/PreloadCaches like a real save/reload —
+        // the in-memory-only memoization that test covers wouldn't survive that on its own.
+        var account = Account();
+        var scenario = new Scenario();
+        var funding = scenario.Pay(account.GetReceiveAddress(0), 1_000_000, height: 105);
+
+        var tx2 = Net.CreateTransaction();
+        tx2.Inputs.Add(new TxIn(new OutPoint(uint256.One, 1)));
+        tx2.Outputs.Add(Money.Satoshis(500_000), account.GetReceiveAddress(1));
+
+        var chain = ChainedHeaders(100, 105, funding.GetHash(),
+            roots: new() { [103] = tx2.GetHash() });
+        foreach (var (h, hex) in chain) scenario.Headers[h] = hex;
+
+        var checkpointProfile = Profile with
+        {
+            Checkpoints = [new Checkpoint(100, BlockHeaderInfo.Parse(chain[100]).Hash.ToString(), 0x1d00ffff)],
+        };
+        var checkpointAccount = Account(checkpointProfile);
+
+        var (server, client) = await StartAsync(scenario);
+        await using var _ = server; await using var __ = client;
+
+        var first = new WalletSynchronizer(checkpointAccount, client);
+        var result1 = await first.SyncOnceAsync(); // walks and memoizes the anchor up to 105
+        var (rawTx, verifiedAt, headers, anchoredUpTo) = first.ExportCaches(Net);
+        Assert.NotEmpty(anchoredUpTo);
+
+        // Fresh synchroniser (new launch) preloaded from the exported caches, then a new tx at
+        // height 103 — within the already-anchored range — is announced.
+        scenario.Register(tx2, 103, checkpointAccount.GetReceiveAddress(1));
+        server.ResetCallCounts();
+        var second = new WalletSynchronizer(checkpointAccount, client);
+        second.PreloadCaches(rawTx, verifiedAt, headers,
+            result1.NextReceiveIndex, result1.NextChangeIndex, Net, anchoredUpTo);
+        var result2 = await second.SyncOnceAsync();
+
+        // 103 <= the persisted anchor of 105: no header-range re-walk despite this being a
+        // brand-new synchroniser instance that never anchored anything itself.
+        Assert.Equal(1_500_000, result2.ConfirmedSats);
+        Assert.Equal(0, server.CallCount("blockchain.block.header"));
+        Assert.Equal(0, server.CallCount("blockchain.block.headers"));
     }
 
     [Fact]
@@ -625,7 +674,7 @@ public class WalletSynchronizerTests
 
         var sync = new WalletSynchronizer(account, client);
         await sync.SyncOnceAsync();
-        var (rawTx, verifiedAt, _) = sync.ExportCaches(Net);
+        var (rawTx, verifiedAt, _, _) = sync.ExportCaches(Net);
 
         // Unconfirmed txs can change (RBF): they must always be re-downloaded.
         Assert.Empty(rawTx);

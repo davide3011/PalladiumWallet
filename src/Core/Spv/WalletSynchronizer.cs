@@ -80,8 +80,10 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     private readonly ConcurrentDictionary<string, int> _verifiedAtHeight = new();
     private readonly ConcurrentDictionary<int, Task<string>> _headerFetches = new();
 
-    // checkpoint height -> highest height already proven to hash-chain back to it
-    // (in-memory only: cheap to recompute from _headerFetches, no need to persist).
+    // checkpoint height -> highest height already proven to hash-chain back to it.
+    // Persisted across sessions (see ExportCaches/PreloadCaches): without it, every restart
+    // re-walks and re-verifies the whole header chain from the checkpoint even though the
+    // header bytes themselves are cached, which dominates reconnect time on large wallets.
     private readonly ConcurrentDictionary<int, int> _anchoredUpTo = new();
 
     // Serializes header-range downloads: concurrent AnchorToCheckpointAsync calls (one per tx
@@ -110,7 +112,8 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         Dictionary<int, string>? blockHeaders,
         int knownReceiveIndex,
         int knownChangeIndex,
-        Network network)
+        Network network,
+        Dictionary<int, int>? anchoredUpTo = null)
     {
         foreach (var (txid, hex) in rawTxHex)
             _txCache.TryAdd(txid, Transaction.Parse(hex, network));
@@ -120,6 +123,15 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
         if (blockHeaders is not null)
             foreach (var (height, hex) in blockHeaders)
                 _headerFetches.TryAdd(height, Task.FromResult(hex));
+        // Only trust a preloaded anchor up to a height whose header is also cached: if the
+        // header cache was cleared/corrupted independently, re-deriving the chain-of-hashes
+        // check on next use (AnchorToCheckpointAsync re-fetches what's missing) is safer than
+        // trusting a stale "already validated" claim against headers that may no longer match.
+        if (anchoredUpTo is not null)
+            foreach (var (checkpointHeight, upToHeight) in anchoredUpTo)
+                if (_headerFetches.ContainsKey(upToHeight))
+                    _anchoredUpTo.AddOrUpdate(checkpointHeight, upToHeight,
+                        (_, existing) => Math.Max(existing, upToHeight));
         _knownReceiveIndex = knownReceiveIndex;
         _knownChangeIndex  = knownChangeIndex;
     }
@@ -131,7 +143,8 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
     /// </summary>
     public (Dictionary<string, string> RawTxHex,
             Dictionary<string, int> VerifiedAt,
-            Dictionary<int, string> BlockHeaders)
+            Dictionary<int, string> BlockHeaders,
+            Dictionary<int, int> AnchoredUpTo)
         ExportCaches(Network network)
     {
         var rawHex = _verifiedAtHeight.Keys
@@ -145,7 +158,8 @@ public sealed class WalletSynchronizer(IWalletAccount account, ElectrumClient cl
             if (task.IsCompletedSuccessfully)
                 headers[height] = task.Result;
 
-        return (rawHex, new Dictionary<string, int>(_verifiedAtHeight), headers);
+        return (rawHex, new Dictionary<string, int>(_verifiedAtHeight), headers,
+            new Dictionary<int, int>(_anchoredUpTo));
     }
 
     public async Task<SyncResult> SyncOnceAsync(CancellationToken ct = default)

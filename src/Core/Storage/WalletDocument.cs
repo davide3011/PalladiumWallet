@@ -134,6 +134,14 @@ public sealed class SyncCache
     /// subsequent syncs.
     /// </summary>
     public Dictionary<int, string>? BlockHeaders { get; set; }
+
+    /// <summary>
+    /// Checkpoint height → highest height already proven to hash-chain back to it (§7.3).
+    /// Avoids re-walking and re-verifying the whole header chain from the checkpoint on
+    /// every launch: the chain-of-hashes check already done for a height doesn't need
+    /// redoing once headers themselves are cached.
+    /// </summary>
+    public Dictionary<int, int>? AnchoredUpTo { get; set; }
 }
 
 /// <summary>Scanned address with its own balance and transaction count (address view).</summary>
