@@ -99,6 +99,9 @@
                     <Button Content="{Binding Loc[wiz.importwif.btn]}" FontSize="16"
                             HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                             Command="{Binding WizardStartImportWifCommand}"/>
+                    <Button Content="{Binding Loc[wiz.importaddress.btn]}" FontSize="16"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding WizardStartImportAddressCommand}"/>
                 </StackPanel>
 
                 <!-- Step: choose wallet (multiple files present) -->
@@ -209,6 +212,19 @@
                         <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
                         <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
                                 Command="{Binding WizardNextFromImportWifCommand}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Step: import watch-only addresses (no key at all) -->
+                <StackPanel IsVisible="{Binding IsStepImportAddress}" Spacing="12">
+                    <TextBlock Text="{Binding Loc[wiz.importaddress.title]}" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding Loc[wiz.importaddress.hint]}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                    <TextBox PlaceholderText="{Binding Loc[wiz.importaddress.placeholder]}"
+                             Text="{Binding ImportAddressInput}" AcceptsReturn="True" Height="80"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="{Binding Loc[wiz.back]}" Command="{Binding WizardBackCommand}"/>
+                        <Button Content="{Binding Loc[wiz.next]}" Classes="accent"
+                                Command="{Binding WizardNextFromImportAddressCommand}"/>
                     </StackPanel>
                 </StackPanel>
 
