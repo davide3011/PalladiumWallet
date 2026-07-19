@@ -1648,8 +1648,9 @@
                             </ScrollViewer>
                         </TabItem>
 
-                        <!-- Tab: Donate -->
-                        <TabItem Header="{Binding Loc[help.tab.donate]}">
+                        <!-- Tab: Donate (needs an open wallet to send from) -->
+                        <TabItem Header="{Binding Loc[help.tab.donate]}"
+                                 IsVisible="{Binding IsWalletOpen}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Spacing="12" Margin="0,12,0,0">
                                     <TextBlock Text="{Binding Loc[donate.desc]}" TextWrapping="Wrap"
