@@ -40,6 +40,9 @@ public sealed class WalletDocument
     /// <summary>Imported WIF keys (in plaintext in the document — must be encrypted!).</summary>
     public List<string>? WifKeys { get; set; }
 
+    /// <summary>Watch-only addresses with no associated private key (pure address import).</summary>
+    public List<string>? WatchAddresses { get; set; }
+
     /// <summary>Gap limit for address scanning (§5), configurable.</summary>
     public int GapLimit { get; set; } = 20;
 

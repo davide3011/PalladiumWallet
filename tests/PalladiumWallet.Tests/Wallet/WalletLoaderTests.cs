@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using PalladiumWallet.Core.Chain;
 using PalladiumWallet.Core.Crypto;
 using PalladiumWallet.Core.Storage;
@@ -248,5 +249,86 @@ public class WalletLoaderTests
     {
         Assert.Throws<InvalidDataException>(
             () => WalletLoader.NewFromWif([], ScriptKind.NativeSegwit, ChainProfiles.Mainnet));
+    }
+
+    // ---- NewFromAddresses (pure watch-only, no key at all) ----
+
+    private static string SampleAddress(ScriptKind kind = ScriptKind.NativeSegwit) =>
+        WalletLoader.NewFromMnemonic(ValidMnemonic, null, kind, ChainProfiles.Mainnet)
+            .Account.GetReceiveAddress(0).ToString();
+
+    [Fact]
+    public void NewFromAddresses_crea_documento_watch_only_senza_chiavi()
+    {
+        var address = SampleAddress();
+        var (doc, account) = WalletLoader.NewFromAddresses([address], ChainProfiles.Mainnet);
+
+        Assert.Equal("mainnet", doc.Network);
+        Assert.Null(doc.Mnemonic);
+        Assert.Null(doc.AccountXprv);
+        Assert.Null(doc.AccountXpub);
+        Assert.Null(doc.WifKeys);
+        Assert.Equal([address], doc.WatchAddresses);
+        Assert.True(doc.IsWatchOnly);
+        Assert.True(account.IsWatchOnly);
+        Assert.Null(account.GetPrivateKey(false, 0));
+        Assert.Equal(address, account.GetReceiveAddress(0).ToString());
+    }
+
+    [Fact]
+    public void NewFromAddresses_rileva_lo_scriptkind_dallindirizzo()
+    {
+        var legacyAddr = SampleAddress(ScriptKind.Legacy);
+        var (doc, _) = WalletLoader.NewFromAddresses([legacyAddr], ChainProfiles.Mainnet);
+        Assert.Equal("Legacy", doc.ScriptKind);
+    }
+
+    [Fact]
+    public void NewFromAddresses_piu_indirizzi_sono_tutti_scansionabili()
+    {
+        var addr1 = SampleAddress();
+        var addr2 = WalletLoader.NewFromMnemonic(ValidMnemonic24, null, ScriptKind.NativeSegwit, ChainProfiles.Mainnet)
+            .Account.GetReceiveAddress(0).ToString();
+        var (_, account) = WalletLoader.NewFromAddresses([addr1, addr2], ChainProfiles.Mainnet);
+
+        Assert.NotNull(account.FixedAddresses);
+        Assert.Equal(2, account.FixedAddresses!.Count);
+        Assert.True(account.FixedAddresses!.All(e => account.GetPrivateKey(e.IsChange, e.Index) is null));
+    }
+
+    [Fact]
+    public void NewFromAddresses_lista_vuota_lancia_eccezione()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromAddresses([], ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void NewFromAddresses_indirizzo_invalido_lancia_eccezione()
+    {
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromAddresses(["not-an-address"], ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void NewFromAddresses_indirizzo_di_rete_sbagliata_lancia_eccezione()
+    {
+        var testnetAddr = WalletLoader.NewFromMnemonic(ValidMnemonic, null, ScriptKind.NativeSegwit, ChainProfiles.Testnet)
+            .Account.GetReceiveAddress(0).ToString();
+        Assert.Throws<InvalidDataException>(
+            () => WalletLoader.NewFromAddresses([testnetAddr], ChainProfiles.Mainnet));
+    }
+
+    [Fact]
+    public void ToAccount_da_watch_addresses_ricostruisce_lo_stesso_account()
+    {
+        var address = SampleAddress();
+        var (doc, _) = WalletLoader.NewFromAddresses([address], ChainProfiles.Mainnet);
+
+        var account = WalletLoader.ToAccount(doc);
+
+        Assert.True(account.IsWatchOnly);
+        Assert.Equal(address, account.GetReceiveAddress(0).ToString());
+        Assert.Null(account.GetPrivateKey(false, 0));
     }
 }

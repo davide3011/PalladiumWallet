@@ -53,6 +53,19 @@ public static class DerivationPaths
     };
 
     /// <summary>
+    /// Best-effort reverse mapping from an already-known address to a ScriptKind, used to
+    /// label pure address imports (no derivation involved, so this is informational only).
+    /// </summary>
+    public static ScriptKind KindFor(BitcoinAddress address) => address switch
+    {
+        BitcoinWitPubKeyAddress => ScriptKind.NativeSegwit,
+        TaprootAddress => ScriptKind.Taproot,
+        BitcoinWitScriptAddress => ScriptKind.NativeSegwitMultisig,
+        BitcoinScriptAddress => ScriptKind.WrappedSegwit,
+        _ => ScriptKind.Legacy,
+    };
+
+    /// <summary>
     /// Account path relative to the root: purpose'/coin'/account' (§4.2).
     /// coin_type is taken from the profile (746 mainnet, 1 testnet).
     /// </summary>

@@ -149,6 +149,21 @@ public class StorageTests
     }
 
     [Fact]
+    public void WatchAddresses_fa_roundtrip_json_ed_e_watch_only()
+    {
+        var doc = new WalletDocument
+        {
+            Network = "mainnet",
+            ScriptKind = "NativeSegwit",
+            WatchAddresses = ["bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"],
+        };
+        var restored = WalletDocument.FromJson(doc.ToJson());
+
+        Assert.Equal(doc.WatchAddresses, restored.WatchAddresses);
+        Assert.True(restored.IsWatchOnly);
+    }
+
+    [Fact]
     public void Json_corrotto_lancia_eccezione()
     {
         Assert.ThrowsAny<Exception>(() => WalletDocument.FromJson("{non è json valido}"));

@@ -250,6 +250,33 @@ public class TransactionFactoryTests
         Assert.Contains(tx.Outputs, o => o.Value.Satoshi == 400_000);
     }
 
+    [Fact]
+    public void Un_account_di_soli_indirizzi_watch_only_produce_una_psbt_non_firmata()
+    {
+        var full = Account();
+        var (utxos, txs) = Fund(full, 1_000_000);
+
+        // Pure address import: no private key at all (unlike xpub watch-only, which
+        // can still derive public keys/scriptPubKeys — this account can't upgrade
+        // to spendable without the user separately importing the matching key).
+        var watchOnly = new ImportedKeyAccount(
+            [(full.GetReceiveAddress(0), (Key?)null)], ScriptKind.NativeSegwit, Profile);
+
+        var built = new TransactionFactory(watchOnly).Build(
+            utxos, txs, full.GetReceiveAddress(5), amountSats: 400_000,
+            feeRateSatPerVByte: 2, changeIndex: 0, tipHeight: 100);
+
+        Assert.False(built.Signed);
+        Assert.True(watchOnly.IsWatchOnly);
+        Assert.Null(watchOnly.GetPrivateKey(false, 0));
+
+        var psbt = built.Psbt;
+        psbt.SignWithKeys(full.GetExtPrivateKey(false, 0));
+        psbt.Finalize();
+        var tx = psbt.ExtractTransaction();
+        Assert.Contains(tx.Outputs, o => o.Value.Satoshi == 400_000);
+    }
+
     [Theory]
     [InlineData("0.00000001", 1L)]
     [InlineData("1", 100_000_000L)]
