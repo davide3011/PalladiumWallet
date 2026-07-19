@@ -51,7 +51,15 @@ public static class WalletLoader
             return new ImportedKeyAccount(entries, kind, profile);
         }
 
-        // 4. Watch-only from xpub
+        // 4. Watch-only imported addresses (no keys, no HD derivation)
+        if (doc.WatchAddresses is { Count: > 0 } watchAddresses)
+        {
+            var entries = watchAddresses.Select(a =>
+                (BitcoinAddress.Create(a.Trim(), network), (Key?)null)).ToList();
+            return new ImportedKeyAccount(entries, kind, profile);
+        }
+
+        // 5. Watch-only from xpub
         if (doc.AccountXpub is null)
             throw new InvalidDataException("Wallet file has no xpub and no seed.");
         if (!Slip132.TryDecodePublic(doc.AccountXpub, profile, out var xpub, out _))
@@ -167,6 +175,49 @@ public static class WalletLoader
             Network = profile.NetName,
             ScriptKind = kind.ToString(),
             WifKeys = wifStrings,
+        };
+        return (doc, account);
+    }
+
+    /// <summary>
+    /// Creates the document from one or more plain addresses, with no private key at all
+    /// (pure watch-only import — the account can never sign, unlike xpub- or WIF-based accounts
+    /// which can be upgraded later by supplying the matching key). ScriptKind is informational
+    /// only here (no derivation happens from a fixed address list) and is auto-detected from the
+    /// first address unless <paramref name="kindOverride"/> is given.
+    /// </summary>
+    public static (WalletDocument Doc, ImportedKeyAccount Account) NewFromAddresses(
+        IReadOnlyList<string> addresses, ChainProfile profile, ScriptKind? kindOverride = null)
+    {
+        if (addresses.Count == 0)
+            throw new InvalidDataException("At least one address is required.");
+
+        var network = PalladiumNetworks.For(profile.Kind);
+        var entries = new List<(BitcoinAddress, Key?)>();
+        var addressStrings = new List<string>();
+
+        foreach (var raw in addresses)
+        {
+            BitcoinAddress addr;
+            try
+            {
+                addr = BitcoinAddress.Create(raw.Trim(), network);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidDataException($"Invalid address: {ex.Message}");
+            }
+            entries.Add((addr, null));
+            addressStrings.Add(raw.Trim());
+        }
+
+        var kind = kindOverride ?? DerivationPaths.KindFor(entries[0].Item1);
+        var account = new ImportedKeyAccount(entries, kind, profile);
+        var doc = new WalletDocument
+        {
+            Network = profile.NetName,
+            ScriptKind = kind.ToString(),
+            WatchAddresses = addressStrings,
         };
         return (doc, account);
     }

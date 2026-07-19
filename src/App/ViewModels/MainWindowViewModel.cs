@@ -201,6 +201,8 @@ public partial class MainWindowViewModel : ViewModelBase
         _lastTransactions = null;
         _pendingSend = null;
         HasPendingSend = false;
+        PendingPsbtBase64 = "";
+        OnPropertyChanged(nameof(IsWatchOnlyAccount));
         History.Clear();
         Contacts.Clear();
         SelectedContactInList = null;

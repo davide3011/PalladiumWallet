@@ -27,9 +27,10 @@ public partial class MainWindowViewModel
     public const string StepScriptType = "script-type";
     public const string StepImportXkey = "import-xkey";
     public const string StepImportWif = "import-wif";
+    public const string StepImportAddress = "import-address";
     public const string StepPassword = "password";
 
-    private enum WizardFlowKind { New, Restore, ImportXkey, ImportWif }
+    private enum WizardFlowKind { New, Restore, ImportXkey, ImportWif, ImportAddress }
     private WizardFlowKind _wizardFlow;
 
     [ObservableProperty]
@@ -44,6 +45,7 @@ public partial class MainWindowViewModel
     [NotifyPropertyChangedFor(nameof(IsStepScriptType))]
     [NotifyPropertyChangedFor(nameof(IsStepImportXkey))]
     [NotifyPropertyChangedFor(nameof(IsStepImportWif))]
+    [NotifyPropertyChangedFor(nameof(IsStepImportAddress))]
     [NotifyPropertyChangedFor(nameof(IsStepPassword))]
     private string setupStep = StepStart;
 
@@ -56,9 +58,10 @@ public partial class MainWindowViewModel
     public bool IsStepWords        => SetupStep == StepWords;
     public bool IsStepPassphrase   => SetupStep == StepPassphrase;
     public bool IsStepScriptType   => SetupStep == StepScriptType;
-    public bool IsStepImportXkey   => SetupStep == StepImportXkey;
-    public bool IsStepImportWif    => SetupStep == StepImportWif;
-    public bool IsStepPassword     => SetupStep == StepPassword;
+    public bool IsStepImportXkey    => SetupStep == StepImportXkey;
+    public bool IsStepImportWif     => SetupStep == StepImportWif;
+    public bool IsStepImportAddress => SetupStep == StepImportAddress;
+    public bool IsStepPassword      => SetupStep == StepPassword;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLegacySelected))]
@@ -84,6 +87,9 @@ public partial class MainWindowViewModel
 
     [ObservableProperty]
     private string importWifInput = "";
+
+    [ObservableProperty]
+    private string importAddressInput = "";
 
     // Script type detected during xkey decoding (to display to the user)
     [ObservableProperty]
@@ -215,6 +221,15 @@ public partial class MainWindowViewModel
     }
 
     [RelayCommand]
+    private void WizardStartImportAddress()
+    {
+        _wizardFlow = WizardFlowKind.ImportAddress;
+        ImportAddressInput = "";
+        SetupStep = StepImportAddress;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
     private void WizardNextFromShowSeed()
     {
         ConfirmMnemonicInput = "";
@@ -313,6 +328,35 @@ public partial class MainWindowViewModel
     }
 
     [RelayCommand]
+    private void WizardNextFromImportAddress()
+    {
+        var addresses = ImportAddressInput.Split('\n',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (addresses.Length == 0)
+        {
+            StatusMessage = Loc.Tr("msg.address.required");
+            return;
+        }
+        var network = PalladiumNetworks.For(Net);
+        foreach (var a in addresses)
+        {
+            try
+            {
+                _ = NBitcoin.BitcoinAddress.Create(a, network);
+            }
+            catch
+            {
+                StatusMessage = Loc.Tr("msg.address.invalid");
+                return;
+            }
+        }
+        PasswordInput = ConfirmPasswordInput = "";
+        EncryptWallet = true;
+        SetupStep = StepPassword;
+        StatusMessage = "";
+    }
+
+    [RelayCommand]
     private void WizardNextFromScriptType()
     {
         PasswordInput = ConfirmPasswordInput = "";
@@ -327,11 +371,16 @@ public partial class MainWindowViewModel
         SetupStep = SetupStep switch
         {
             StepOpen => WalletList.Count > 1 ? StepChooseWallet : StepStart,
-            StepChooseWallet or StepShowSeed or StepWords or StepImportXkey or StepImportWif => StepStart,
+            StepChooseWallet or StepShowSeed or StepWords or StepImportXkey or StepImportWif or StepImportAddress => StepStart,
             StepConfirmSeed => StepShowSeed,
             StepPassphrase => _wizardFlow == WizardFlowKind.Restore ? StepWords : StepConfirmSeed,
             StepScriptType => _wizardFlow == WizardFlowKind.ImportWif ? StepImportWif : StepPassphrase,
-            StepPassword => _wizardFlow == WizardFlowKind.ImportXkey ? StepImportXkey : StepScriptType,
+            StepPassword => _wizardFlow switch
+            {
+                WizardFlowKind.ImportXkey => StepImportXkey,
+                WizardFlowKind.ImportAddress => StepImportAddress,
+                _ => StepScriptType,
+            },
             _ => StepStart,
         };
         if (SetupStep == StepStart)
@@ -388,6 +437,14 @@ public partial class MainWindowViewModel
                     var wifLines = ImportWifInput.Split('\n',
                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                     var (d, a) = WalletLoader.NewFromWif(wifLines, SelectedScriptKind, Profile);
+                    (doc, account) = (d, a);
+                    break;
+                }
+                case WizardFlowKind.ImportAddress:
+                {
+                    var addressLines = ImportAddressInput.Split('\n',
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var (d, a) = WalletLoader.NewFromAddresses(addressLines, Profile);
                     (doc, account) = (d, a);
                     break;
                 }
@@ -497,13 +554,14 @@ public partial class MainWindowViewModel
         _walletPath = path;
         _password = password;
         MnemonicInput = ConfirmMnemonicInput = PassphraseInput = PasswordInput = ConfirmPasswordInput = WalletNameInput = "";
-        ImportXkeyInput = ImportWifInput = ImportXkeyDetectedKind = "";
+        ImportXkeyInput = ImportWifInput = ImportAddressInput = ImportXkeyDetectedKind = "";
         SetupStep = StepStart;
+        OnPropertyChanged(nameof(IsWatchOnlyAccount));
 
         var walletKindTag = account switch
         {
-            ImportedKeyAccount => " · imported",
             { IsWatchOnly: true } => " · watch-only",
+            ImportedKeyAccount => " · imported",
             _ => ""
         };
         var pathTag = !string.IsNullOrEmpty(doc.AccountPath) ? $" · m/{doc.AccountPath}" : "";

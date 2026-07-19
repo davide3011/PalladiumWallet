@@ -62,7 +62,7 @@ a sync, never a partial one, so no unverified data survives a restart.
 - The BIP39 mnemonic and derived private keys exist only in process memory after unlock
 - Private keys are never written to disk, logged, or sent over the network
 - The wallet file stores the encrypted seed (with password) or the encrypted/plaintext `WalletDocument` — the document contains the account xpub and sync cache, not the raw seed when watch-only
-- Watch-only wallets (`restore-xpub`) hold no private keys and cannot sign transactions
+- Watch-only wallets (`restore-xpub`, or `restore-address` for pure address imports) hold no private keys and cannot sign transactions; `TransactionFactory` only calls `AddKeys`/signs when the account reports a private key, so an address-only import can never produce a signed transaction, only an exportable unsigned PSBT
 
 ---
 
@@ -84,7 +84,7 @@ Connections to the indexing server use TOFU (Trust On First Use): the server's T
 
 ## Backup
 
-The wallet file is the only thing that needs to be backed up. For encrypted wallets, the password is also required. If both the file and the password are lost, funds are unrecoverable (no server-side backup). For watch-only wallets restored from xpub, the private keys must be kept in a separate cold storage device.
+The wallet file is the only thing that needs to be backed up. For encrypted wallets, the password is also required. If both the file and the password are lost, funds are unrecoverable (no server-side backup). For watch-only wallets (restored from xpub or from a plain address), the private keys must be kept in a separate cold storage device.
 
 ---
 

@@ -18,6 +18,7 @@ try
         ["create", .. var rest] => Create(rest),
         ["restore", var words, .. var rest] => Restore(words, rest),
         ["restore-xpub", var xpub, .. var rest] => RestoreXpub(xpub, rest),
+        ["restore-address", var addrs, .. var rest] => RestoreAddress(addrs, rest),
         ["info", .. var rest] => Info(rest),
         ["sync", .. var rest] => await Sync(rest),
         ["send", .. var rest] => await Send(rest),
@@ -92,6 +93,31 @@ static int RestoreXpub(string xpubText, string[] o)
     var path = WalletPath(o, profile);
     WalletStore.Save(doc, path, Opt(o, "--password"));
     Console.WriteLine($"Watch-only wallet saved to {path}");
+    return 0;
+}
+
+static int RestoreAddress(string addrsText, string[] o)
+{
+    var profile = Profile(o);
+    var addresses = addrsText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    if (addresses.Length == 0)
+    {
+        Console.Error.WriteLine("At least one address is required.");
+        return 1;
+    }
+    WalletDocument doc;
+    try
+    {
+        (doc, _) = WalletLoader.NewFromAddresses(addresses, profile);
+    }
+    catch (InvalidDataException ex)
+    {
+        Console.Error.WriteLine(ex.Message);
+        return 1;
+    }
+    var path = WalletPath(o, profile);
+    WalletStore.Save(doc, path, Opt(o, "--password"));
+    Console.WriteLine($"Watch-only wallet saved to {path} ({addresses.Length} address(es), cannot sign)");
     return 0;
 }
 
@@ -354,6 +380,7 @@ static int Usage()
                         [--passphrase W] [--password P] [--file PATH]
           restore       "<mnemonic>" [same options as create] [--path m/...]
           restore-xpub  <slip132 xpub> [--net ...] [--password P] [--file PATH]   (watch-only)
+          restore-address <addr1,addr2,...> [--net ...] [--password P] [--file PATH]   (watch-only, no keys)
           info          [--net ...] [--password P] [--file PATH]
 
         Network (indexing server; without --server the first known server is used):
