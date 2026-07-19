@@ -108,3 +108,6 @@ This is a complement to, not a substitute for, independent human or third-party 
 - No coin control (automatic UTXO selection only)
 - No RBF/CPFP UI (RBF flag is set on all transactions, but fee bumping is not exposed)
 - No Lightning Network support
+- No multisig (M-of-N) wallets: the network profile defines multisig SLIP-132 header
+  variants, but derivation for them is not implemented — attempting to use one throws
+  rather than silently producing an insecure/incorrect wallet

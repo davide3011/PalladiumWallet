@@ -8,11 +8,11 @@ Unlike generic wallets adapted to many coins, Palladium Wallet is designed aroun
 
 - **Lightweight SPV**: syncs against an indexing server (ElectrumX-like protocol) without downloading the full chain.
 - **Security**: seed and private keys encrypted on disk (AES-GCM, PBKDF2-SHA512), never in plaintext in logs or on the wire; every server response is validated with Merkle proofs + checkpoints.
-- **HD wallet** (BIP39/BIP32), SegWit/wrapped/legacy addresses, watch-only from xpub.
-- **PSBT-centric**: signing flows go through PSBT (offline / air-gapped / multisig).
+- **HD wallet** (BIP39/BIP32), SegWit/wrapped/legacy addresses, watch-only from xpub or from plain addresses (no key material at all).
+- **PSBT-centric**: signing flows go through PSBT (offline / air-gapped); watch-only wallets export an unsigned PSBT for offline signing. Multisig script kinds are defined in the network profile but not yet implemented (planned, see `Core/Crypto/DerivationPaths.cs`).
 - **Multi-network**: mainnet, testnet, regtest.
 - **Cross-platform**: desktop (Windows/Linux) and Android share one Avalonia UI; a **CLI** runs on the same core.
-- **Multilingual**: Italian, English, Spanish, French, Portuguese, German.
+- **Multilingual**: Italian, English, Spanish, French, Portuguese, German, Chinese (Simplified).
 
 ## Architecture
 
@@ -331,6 +331,9 @@ existing AVD, so create one first (step 3). Point it at the emulator binary:
 
 ## User guide (quick)
 
+A condensed overview follows; for the complete, exhaustive walkthrough (every screen, every
+validation rule, troubleshooting) see [USERGUIDE.md](USERGUIDE.md).
+
 ### First launch
 1. On first launch (desktop), choose **where to store data** (wallet, configuration, certificates) — the default path or a folder of your choice. On Android this step is skipped: data lives in the app's private sandbox.
 2. Create a new wallet, restore from seed, or open one of the wallets already in your data folder.
@@ -360,15 +363,20 @@ existing AVD, so create one first (step 3). Point it at the emulator binary:
 ### CLI in brief
 ```bash
 # Wallet
-dotnet run --project src/Cli -- create   [--words 12|24] [--kind segwit|wrapped|legacy] [--net mainnet|testnet|regtest] [--password P]
-dotnet run --project src/Cli -- restore  "<mnemonic>" [...]
-dotnet run --project src/Cli -- info     [--net ...] [--password P]
+dotnet run --project src/Cli -- create          [--words 12|24] [--kind segwit|wrapped|legacy] [--net mainnet|testnet|regtest] [--password P]
+dotnet run --project src/Cli -- restore         "<mnemonic>" [...]
+dotnet run --project src/Cli -- restore-xpub    <slip132-key> [--net ...] [--password P]
+dotnet run --project src/Cli -- restore-address <addr1,addr2,...> [--net ...] [--password P]
+dotnet run --project src/Cli -- info            [--net ...] [--password P]
 
 # Network
 dotnet run --project src/Cli -- sync     [--server host[:port]] [--ssl]
 dotnet run --project src/Cli -- send     --to ADDRESS (--amount X | --all) [--feerate sat/vB] [--broadcast]
+dotnet run --project src/Cli -- servers  [--discover]
 ```
 The default wallet file is `~/.palladium-wallet/<network>/wallets/default.wallet.json` (override with `--file`).
+Run without arguments for the full command list (also covers `newseed`, `addresses`, `reset-certs`);
+see [USERGUIDE.md §17](USERGUIDE.md#17-command-line-interface-cli) for complete flag reference.
 
 ---
 
